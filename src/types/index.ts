@@ -24,6 +24,7 @@ export interface Exercise {
     primaryMuscle: MuscleGroup
     equipment: Equipment[]
     movementType: MovementType
+    currentWeight?: string
     notes?: string
 }
 

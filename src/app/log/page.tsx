@@ -36,7 +36,7 @@ function buildExercisesForDayType(dayType: string): ActiveExercise[] {
         createExercise(
             ex.id, ex.name, ex.primaryMuscle,
             ex.equipment[0] ?? 'bodyweight',
-            undefined,
+            ex.currentWeight,
             dayType
         )
     )
@@ -50,7 +50,7 @@ function buildInitialExercises(): ActiveExercise[] {
             ex.exerciseName,
             lib?.primaryMuscle ?? 'general',
             lib?.equipment?.[0] ?? 'bodyweight',
-            ex.weight,
+            ex.weight !== 'BW' ? ex.weight : lib?.currentWeight,
             todayWorkout.dayType
         )
     })
@@ -97,7 +97,7 @@ export default function LogPage() {
         setExercises(prev => [...prev, createExercise(
             ex.id, ex.name, ex.primaryMuscle,
             ex.equipment[0] ?? 'bodyweight',
-            undefined,
+            ex.currentWeight,
             selectedDayType
         )])
     }
@@ -140,8 +140,7 @@ export default function LogPage() {
                     {exercises.map((ex, i) => (
                         <div
                             key={ex.exerciseId + i}
-                            style={{ animation: `slideInUp 0.2s ease ${i * 0.05}s both` }}
-                        >
+                            style={{ animation: `slideInUp 0.2s ease ${i * 0.05}s both` }}>
                             <ExerciseCard
                                 exercise={ex}
                                 onChange={updated => updateExercise(i, updated)}
@@ -232,9 +231,8 @@ export default function LogPage() {
                         border: '0.5px solid var(--border)',
                         animation: 'slideInUp 0.25s ease',
                     }}>
-                    <p
-                        className="text-xs font-bold uppercase tracking-widest mb-1"
-                        style={{ color: 'var(--muted)', fontSize: '10px' }}>
+                    <p className="text-xs font-bold uppercase tracking-widest mb-1"
+                       style={{ color: 'var(--muted)', fontSize: '10px' }}>
                         {isDefaultPlan ? "Today's plan" : 'Custom session'}
                     </p>
                     <p className="text-2xl font-black mb-1">{dayLabel} {dayEmoji}</p>
@@ -285,9 +283,8 @@ export default function LogPage() {
                 <div
                     className="rounded-2xl p-4 mb-4"
                     style={{ background: 'var(--pink-light)', border: '0.5px solid #f0b8d0' }}>
-                    <p
-                        className="text-xs font-bold uppercase tracking-widest mb-1"
-                        style={{ color: 'var(--pink-dark)', fontSize: '10px' }}>
+                    <p className="text-xs font-bold uppercase tracking-widest mb-1"
+                       style={{ color: 'var(--pink-dark)', fontSize: '10px' }}>
                         ✨ AI Coach
                     </p>
                     <p className="text-sm leading-relaxed" style={{ color: '#444' }}>
@@ -303,9 +300,8 @@ export default function LogPage() {
                 <div
                     className="rounded-2xl p-4"
                     style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
-                    <p
-                        className="text-xs font-bold uppercase tracking-widest mb-3"
-                        style={{ color: 'var(--muted)', fontSize: '10px' }}>
+                    <p className="text-xs font-bold uppercase tracking-widest mb-3"
+                       style={{ color: 'var(--muted)', fontSize: '10px' }}>
                         Or start something else
                     </p>
                     <div className="flex gap-2 flex-wrap">
