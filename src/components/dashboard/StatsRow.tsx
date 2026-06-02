@@ -10,8 +10,10 @@ export default function StatsRow({ data }: { data: DashboardData }) {
 
     return (
         <div className="flex gap-2 md:gap-3">
-            <div className="flex-1 bg-white rounded-2xl p-3 text-center" style={{ border: '0.5px solid var(--border)' }}>
-                <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--muted)', fontSize: '9px' }}>
+            <div className="flex-1 bg-white rounded-2xl p-3 flex flex-col items-center justify-center text-center"
+                 style={{ border: '0.5px solid var(--border)' }}>
+                <p className="font-bold uppercase tracking-widest mb-1"
+                   style={{ color: 'var(--muted)', fontSize: '9px' }}>
                     Streak
                 </p>
                 <p className="text-xl font-black" style={{ color: 'var(--pink)' }}>
@@ -19,8 +21,10 @@ export default function StatsRow({ data }: { data: DashboardData }) {
                 </p>
             </div>
 
-            <div className="flex-1 bg-white rounded-2xl p-3 text-center" style={{ border: '0.5px solid var(--border)' }}>
-                <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--muted)', fontSize: '9px' }}>
+            <div className="flex-1 bg-white rounded-2xl p-3 flex flex-col items-center justify-center text-center"
+                 style={{ border: '0.5px solid var(--border)' }}>
+                <p className="font-bold uppercase tracking-widest mb-1"
+                   style={{ color: 'var(--muted)', fontSize: '9px' }}>
                     Sleep
                 </p>
                 <p className="text-xl font-black">{lastSleep.hours}h 😴</p>
@@ -28,7 +32,8 @@ export default function StatsRow({ data }: { data: DashboardData }) {
 
             <div className="flex-1 bg-white rounded-2xl p-3 flex flex-col items-center justify-center"
                  style={{ border: '0.5px solid var(--border)' }}>
-                <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--muted)', fontSize: '9px' }}>
+                <p className="font-bold uppercase tracking-widest mb-1"
+                   style={{ color: 'var(--muted)', fontSize: '9px' }}>
                     Weekly
                 </p>
                 <svg width="52" height="52" viewBox="0 0 80 80">

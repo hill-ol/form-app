@@ -35,9 +35,9 @@ export default function TodayWorkout({ workout }: { workout: WorkoutSession }) {
 
             <div className="space-y-0">
                 {workout.exercises?.map((ex) => (
-                    <div key={ex.name} className="flex justify-between items-center py-2"
+                    <div key={ex.exerciseId} className="flex justify-between items-center py-2"
                          style={{ borderBottom: '0.5px solid #f0e8da' }}>
-                        <span className="text-sm font-medium">{ex.name}</span>
+                        <span className="text-sm font-medium">{ex.exerciseName}</span>
                         <div className="flex items-center gap-2">
               <span className="text-xs" style={{ color: 'var(--muted)' }}>
                 {ex.sets} × {ex.reps} · {ex.weight}
