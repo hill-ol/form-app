@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
             </main>
 
-            <BottomNav active="home" />
+            <BottomNav />
         </div>
     )
 }

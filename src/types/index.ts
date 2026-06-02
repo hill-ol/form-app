@@ -70,3 +70,13 @@ export interface DashboardData {
     lastSleep: SleepLog
     weekSessions: (WorkoutSession | null)[]
 }
+
+export type PopupMode = 'past' | 'today' | 'future' | null
+
+export interface CalendarDay {
+    date: Date
+    isCurrentMonth: boolean
+    isToday: boolean
+    session: WorkoutSession | null
+    planned: DayTemplate | null
+}
