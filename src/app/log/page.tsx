@@ -1,0 +1,336 @@
+'use client'
+
+import { useState, useCallback } from 'react'
+import { PLACEHOLDER_DASHBOARD, DEFAULT_WEEK_TEMPLATE, EXERCISE_LIBRARY } from '@/lib/placeholder'
+import { Exercise } from '@/types'
+import { ActiveExercise, createExercise } from '@/lib/sessionUtils'
+import SessionHeader from '@/components/logger/SessionHeader'
+import ExerciseCard from '@/components/logger/ExerciseCard'
+import AddExerciseSheet from '@/components/logger/AddExerciseSheet'
+import RestTimer from '@/components/logger/RestTimer'
+import FinishSummary from '@/components/logger/FinishSummary'
+import BottomNav from '@/components/layout/BottomNav'
+
+const WORKOUT_EMOJI: Record<string, string> = {
+    strength: '🏋️', cardio: '🏃', yoga: '🧘', bodyweight: '🤸',
+}
+
+const DAY_EMOJI: Record<string, string> = {
+    push: '🏋️', pull: '🏋️', legs: '🦵',
+    cardio: '🏃', yoga: '🧘', 'full body': '🤸', rest: '😴',
+}
+
+const DAY_LABEL: Record<string, string> = {
+    push: 'Push Day', pull: 'Pull Day', legs: 'Legs Day',
+    cardio: 'Cardio', yoga: 'Yoga', 'full body': 'Full Body', rest: 'Rest Day',
+}
+
+const todayWorkout = PLACEHOLDER_DASHBOARD.todayWorkout
+
+function buildExercisesForDayType(dayType: string): ActiveExercise[] {
+    const suggestions = EXERCISE_LIBRARY.filter(ex =>
+        ex.dayType.includes(dayType as never)
+    ).slice(0, 4)
+
+    return suggestions.map(ex =>
+        createExercise(
+            ex.id, ex.name, ex.primaryMuscle,
+            ex.equipment[0] ?? 'bodyweight',
+            undefined,
+            dayType
+        )
+    )
+}
+
+function buildInitialExercises(): ActiveExercise[] {
+    return (todayWorkout.exercises ?? []).map(ex => {
+        const lib = EXERCISE_LIBRARY.find(e => e.id === ex.exerciseId)
+        return createExercise(
+            ex.exerciseId,
+            ex.exerciseName,
+            lib?.primaryMuscle ?? 'general',
+            lib?.equipment?.[0] ?? 'bodyweight',
+            ex.weight,
+            todayWorkout.dayType
+        )
+    })
+}
+
+type Screen = 'pre' | 'active' | 'done'
+
+export default function LogPage() {
+    const [screen, setScreen] = useState<Screen>('pre')
+    const [selectedDayType, setSelectedDayType] = useState<string>(todayWorkout.dayType)
+    const [exercises, setExercises] = useState<ActiveExercise[]>(buildInitialExercises)
+    const [showAddSheet, setShowAddSheet] = useState(false)
+    const [restTimerOn, setRestTimerOn] = useState(false)
+    const [restActive, setRestActive] = useState(false)
+    const [startTime, setStartTime] = useState<number>(0)
+
+    const dayLabel = DAY_LABEL[selectedDayType] ?? 'Workout'
+    const dayEmoji = DAY_EMOJI[selectedDayType] ?? '🏋️'
+    const isDefaultPlan = selectedDayType === todayWorkout.dayType
+
+    function selectDayType(dayType: string) {
+        setSelectedDayType(dayType)
+        if (dayType === todayWorkout.dayType) {
+            setExercises(buildInitialExercises())
+        } else {
+            setExercises(buildExercisesForDayType(dayType))
+        }
+    }
+
+    function startSession() {
+        setStartTime(Date.now())
+        setScreen('active')
+    }
+
+    function updateExercise(index: number, updated: ActiveExercise) {
+        setExercises(prev => prev.map((ex, i) => i === index ? updated : ex))
+    }
+
+    function removeExercise(index: number) {
+        setExercises(prev => prev.filter((_, i) => i !== index))
+    }
+
+    function addExercise(ex: Exercise) {
+        setExercises(prev => [...prev, createExercise(
+            ex.id, ex.name, ex.primaryMuscle,
+            ex.equipment[0] ?? 'bodyweight',
+            undefined,
+            selectedDayType
+        )])
+    }
+
+    const handleSetComplete = useCallback(() => {
+        if (restTimerOn) setRestActive(true)
+    }, [restTimerOn])
+
+    function handleToggleTimer() {
+        setRestTimerOn(prev => {
+            if (prev) setRestActive(false)
+            return !prev
+        })
+    }
+
+    if (screen === 'done') {
+        const duration = Math.floor((Date.now() - startTime) / 1000)
+        return <FinishSummary exercises={exercises} duration={duration} dayName={dayLabel} />
+    }
+
+    if (screen === 'active') {
+        return (
+            <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--cream)' }}>
+                <SessionHeader
+                    dayName={`${dayLabel} ${dayEmoji}`}
+                    restTimerOn={restTimerOn}
+                    onToggleTimer={handleToggleTimer}
+                    onFinish={() => setScreen('done')}
+                />
+
+                <div className="flex-1 overflow-y-auto px-4 pt-3" style={{ paddingBottom: '140px' }}>
+                    {restActive && restTimerOn && (
+                        <RestTimer
+                            seconds={90}
+                            onComplete={() => setRestActive(false)}
+                            onSkip={() => setRestActive(false)}
+                        />
+                    )}
+
+                    {exercises.map((ex, i) => (
+                        <div
+                            key={ex.exerciseId + i}
+                            style={{ animation: `slideInUp 0.2s ease ${i * 0.05}s both` }}
+                        >
+                            <ExerciseCard
+                                exercise={ex}
+                                onChange={updated => updateExercise(i, updated)}
+                                onRemove={() => removeExercise(i)}
+                                onSetComplete={handleSetComplete}
+                                restTimerOn={restTimerOn}
+                            />
+                        </div>
+                    ))}
+
+                    <button
+                        onClick={() => setShowAddSheet(true)}
+                        className="w-full py-4 rounded-2xl flex items-center justify-center gap-2 font-black uppercase tracking-wider transition-all active:scale-95"
+                        style={{
+                            background: 'transparent',
+                            border: '1.5px dashed var(--border)',
+                            color: 'var(--muted)',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            marginTop: '4px',
+                        }}>
+                        + Add exercise
+                    </button>
+                </div>
+
+                <div style={{
+                    position: 'fixed', bottom: '64px', left: 0, right: 0,
+                    padding: '12px 16px',
+                    background: 'var(--cream)',
+                    borderTop: '0.5px solid var(--border)',
+                }}>
+                    <button
+                        onClick={() => setScreen('done')}
+                        className="w-full py-4 rounded-full text-white font-black uppercase tracking-widest text-sm transition-all active:scale-95"
+                        style={{
+                            background: 'var(--pink)',
+                            maxWidth: '640px',
+                            display: 'block',
+                            margin: '0 auto',
+                            cursor: 'pointer',
+                        }}>
+                        Finish Session
+                    </button>
+                </div>
+
+                <BottomNav />
+
+                {showAddSheet && (
+                    <AddExerciseSheet
+                        currentDayType={selectedDayType}
+                        onAdd={addExercise}
+                        onClose={() => setShowAddSheet(false)}
+                    />
+                )}
+            </div>
+        )
+    }
+
+    const displayExercises = isDefaultPlan
+        ? (todayWorkout.exercises ?? [])
+        : exercises.map(ex => ({
+            exerciseId: ex.exerciseId,
+            exerciseName: ex.exerciseName,
+            sets: ex.sets.length,
+            reps: 0,
+            weight: ex.lastWeight ?? 'BW',
+        }))
+
+    return (
+        <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--cream)' }}>
+            <div className="md:hidden flex items-center justify-between px-4 pt-5 pb-2">
+                <p className="text-xl font-black tracking-tight">
+                    FORM <span style={{ color: 'var(--pink)' }}>.</span>
+                </p>
+                <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                    style={{ background: 'var(--pink-light)', color: 'var(--pink)' }}>
+                    O
+                </div>
+            </div>
+
+            <div className="flex-1 flex flex-col px-4 pt-4 pb-24 max-w-2xl mx-auto w-full">
+
+                <div
+                    className="rounded-2xl p-5 mb-4"
+                    style={{
+                        background: '#fff',
+                        border: '0.5px solid var(--border)',
+                        animation: 'slideInUp 0.25s ease',
+                    }}>
+                    <p
+                        className="text-xs font-bold uppercase tracking-widest mb-1"
+                        style={{ color: 'var(--muted)', fontSize: '10px' }}>
+                        {isDefaultPlan ? "Today's plan" : 'Custom session'}
+                    </p>
+                    <p className="text-2xl font-black mb-1">{dayLabel} {dayEmoji}</p>
+                    <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
+                        {displayExercises.length} exercises · estimated 45–60 min
+                    </p>
+
+                    <div className="space-y-2 mb-4">
+                        {displayExercises.map((ex, i) => {
+                            const lib = EXERCISE_LIBRARY.find(e => e.id === ex.exerciseId)
+                            return (
+                                <div
+                                    key={ex.exerciseId}
+                                    className="flex items-center justify-between rounded-xl px-3 py-2.5"
+                                    style={{
+                                        background: 'var(--cream)',
+                                        border: '0.5px solid var(--border)',
+                                        animation: `slideInUp 0.2s ease ${i * 0.06}s both`,
+                                    }}>
+                                    <div>
+                                        <p className="text-sm font-semibold">{ex.exerciseName}</p>
+                                        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                                            {lib?.primaryMuscle ?? ex.exerciseId} · {ex.sets}×{ex.reps || '—'}
+                                        </p>
+                                    </div>
+                                    <span
+                                        className="text-xs font-bold px-2 py-1 rounded-full"
+                                        style={{ background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
+                    {ex.weight}
+                  </span>
+                                </div>
+                            )
+                        })}
+                    </div>
+
+                    <button
+                        onClick={startSession}
+                        className="w-full py-4 rounded-full text-white font-black uppercase tracking-widest text-sm transition-all active:scale-95"
+                        style={{
+                            background: 'var(--pink)',
+                            cursor: 'pointer',
+                            animation: 'pulse 2s infinite',
+                        }}>
+                        Start Session {dayEmoji}
+                    </button>
+                </div>
+
+                <div
+                    className="rounded-2xl p-4 mb-4"
+                    style={{ background: 'var(--pink-light)', border: '0.5px solid #f0b8d0' }}>
+                    <p
+                        className="text-xs font-bold uppercase tracking-widest mb-1"
+                        style={{ color: 'var(--pink-dark)', fontSize: '10px' }}>
+                        ✨ AI Coach
+                    </p>
+                    <p className="text-sm leading-relaxed" style={{ color: '#444' }}>
+                        You slept 7h and energy is good. Perfect day for a push session.
+                        Try{' '}
+                        <span className="font-bold" style={{ color: 'var(--pink)' }}>
+              135 lbs on bench
+            </span>{' '}
+                        today.
+                    </p>
+                </div>
+
+                <div
+                    className="rounded-2xl p-4"
+                    style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
+                    <p
+                        className="text-xs font-bold uppercase tracking-widest mb-3"
+                        style={{ color: 'var(--muted)', fontSize: '10px' }}>
+                        Or start something else
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                        {(['push', 'pull', 'legs', 'cardio', 'yoga'] as const).map(type => (
+                            <button
+                                key={type}
+                                onClick={() => selectDayType(type)}
+                                className="text-xs font-bold px-3 py-2 rounded-full transition-all active:scale-95"
+                                style={{
+                                    background: selectedDayType === type ? 'var(--pink-light)' : 'var(--cream)',
+                                    color: selectedDayType === type ? 'var(--pink-dark)' : 'var(--muted)',
+                                    border: selectedDayType === type
+                                        ? '1.5px solid var(--pink)'
+                                        : '1.5px solid var(--border)',
+                                    cursor: 'pointer',
+                                }}>
+                                {DAY_EMOJI[type]} {type.charAt(0).toUpperCase() + type.slice(1)}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+            </div>
+
+            <BottomNav />
+        </div>
+    )
+}
