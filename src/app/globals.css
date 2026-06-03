@@ -2,6 +2,24 @@
 
 @import "tailwindcss";
 
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button, a, [role="button"] {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+button:active {
+  opacity: 0.85;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   --cream: #FAF7F0;
   --pink: #E8417A;
@@ -23,18 +41,46 @@ body {
 }
 
 @keyframes slideUp {
-  from { transform: translateY(100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes slideDown {
-  from { transform: translateY(0); opacity: 1; }
-  to { transform: translateY(100%); opacity: 0; }
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(0.99); }
 }
 
 .slide-up {
@@ -98,16 +144,6 @@ body {
   background: #E8417A;
   border-radius: 999px;
   transition: left 0.15s ease, width 0.15s ease;
-}
-
-@keyframes slideInUp {
-  from { transform: translateY(16px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
 }
 
 input[type='number']::-webkit-inner-spin-button,

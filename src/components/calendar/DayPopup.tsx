@@ -11,16 +11,22 @@ const DAY_EMOJI: Record<string, string> = {
     push: '🏋️', pull: '🏋️', legs: '🦵',
     cardio: '🏃', yoga: '🧘', 'full body': '🤸', rest: '😴',
 }
+const DAY_LABEL: Record<string, string> = {
+    push: 'Push Day', pull: 'Pull Day', legs: 'Legs Day',
+    cardio: 'Cardio', yoga: 'Yoga', 'full body': 'Full Body', rest: 'Rest Day',
+}
 
 interface Props {
     day: CalendarDay
     onClose: () => void
+    onOverrideSaved?: (date: string, dayType: string) => void
 }
 
-export default function DayPopup({ day, onClose }: Props) {
+export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
     const router = useRouter()
     const { date, isToday, session, planned } = day
     const [selectedType, setSelectedType] = useState<string>(planned?.dayType ?? 'rest')
+    const [saving, setSaving] = useState(false)
     const [saved, setSaved] = useState(false)
 
     const today = new Date()
@@ -31,16 +37,23 @@ export default function DayPopup({ day, onClose }: Props) {
 
     const workoutType = session?.type ?? (planned ? DAY_TYPE_TO_WORKOUT[planned.dayType] : null)
     const colors = workoutType && workoutType !== 'rest' ? WORKOUT_COLORS[workoutType] : null
-    const label = date.toLocaleDateString('en-US', {
+    const dateStr = date.toLocaleDateString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric'
     }).toUpperCase()
+    const isoDate = date.toISOString().split('T')[0]
 
-    function handleSave() {
-        setSaved(true)
-        setTimeout(() => {
-            setSaved(false)
-            onClose()
-        }, 800)
+    async function handleSave() {
+        setSaving(true)
+        try {
+            const { saveDayOverride } = await import('@/lib/db')
+            await saveDayOverride(isoDate, selectedType, DAY_LABEL[selectedType])
+            onOverrideSaved?.(isoDate, selectedType)
+            setSaved(true)
+            setTimeout(() => onClose(), 700)
+        } catch (e) {
+            console.error('Failed to save override:', e)
+            setSaving(false)
+        }
     }
 
     const Handle = () => (
@@ -49,9 +62,9 @@ export default function DayPopup({ day, onClose }: Props) {
     )
 
     const DateLabel = ({ color }: { color?: string }) => (
-        <p className="text-xs font-bold uppercase tracking-widest mb-0.5"
+        <p className="font-bold uppercase tracking-widest mb-0.5"
            style={{ color: color ?? '#aaa', fontSize: '10px', letterSpacing: '0.1em' }}>
-            {label}
+            {dateStr}
         </p>
     )
 
@@ -87,7 +100,7 @@ export default function DayPopup({ day, onClose }: Props) {
                 )}
                 <div className="flex gap-2">
                     {[['Duration', `${session.duration ?? 52} min`], ['Sleep', '7h 😴'], ['Energy', '💪']].map(([l, v]) => (
-                        <div key={l} className="flex-1 rounded-2xl p-3 text-center"
+                        <div key={l} className="flex-1 rounded-2xl p-2 text-center"
                              style={{ background: '#FAF7F0' }}>
                             <p className="font-bold uppercase" style={{ fontSize: '9px', color: '#aaa' }}>{l}</p>
                             <p className="text-sm font-black mt-1">{v}</p>
@@ -116,7 +129,7 @@ export default function DayPopup({ day, onClose }: Props) {
                 </div>
                 <button
                     onClick={() => router.push('/log')}
-                    className="w-full py-3.5 rounded-full text-white text-xs font-black uppercase tracking-widest transition-all duration-150 active:scale-95"
+                    className="w-full py-3.5 rounded-full text-white text-xs font-black uppercase tracking-widest transition-all duration-200 active:scale-95"
                     style={{ background: 'var(--pink)' }}>
                     Start Session
                 </button>
@@ -131,7 +144,7 @@ export default function DayPopup({ day, onClose }: Props) {
                 <div className="mb-4">
                     <DateLabel />
                     <p className="text-xl font-black">
-                        {DAY_EMOJI[selectedType]} {selectedType.charAt(0).toUpperCase() + selectedType.slice(1)} Day
+                        {DAY_EMOJI[selectedType]} {DAY_LABEL[selectedType]}
                     </p>
                 </div>
                 <p className="text-xs mb-3" style={{ color: '#aaa' }}>
@@ -142,7 +155,7 @@ export default function DayPopup({ day, onClose }: Props) {
                         <button
                             key={type}
                             onClick={() => setSelectedType(type)}
-                            className="text-xs font-bold px-3 py-2 rounded-full transition-all duration-150"
+                            className="text-xs font-bold px-3 py-2 rounded-full transition-all duration-200 active:scale-95"
                             style={{
                                 background: selectedType === type ? 'var(--pink-light)' : '#FAF7F0',
                                 color: selectedType === type ? 'var(--pink-dark)' : '#888',
@@ -157,13 +170,15 @@ export default function DayPopup({ day, onClose }: Props) {
                 </div>
                 <button
                     onClick={handleSave}
-                    className="w-full py-3.5 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-150 active:scale-95"
+                    disabled={saving}
+                    className="w-full py-3.5 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-200 active:scale-95"
                     style={{
-                        background: saved ? '#FAF7F0' : 'var(--pink-light)',
-                        color: saved ? '#aaa' : 'var(--pink)',
-                        border: `1.5px solid ${saved ? '#e8e0d0' : 'var(--pink)'}`,
+                        background: saved ? '#D1FAE5' : 'var(--pink-light)',
+                        color: saved ? '#065F46' : 'var(--pink)',
+                        border: `1.5px solid ${saved ? '#6EE7B7' : 'var(--pink)'}`,
+                        cursor: saving ? 'default' : 'pointer',
                     }}>
-                    {saved ? 'Saved ✓' : 'Save Plan'}
+                    {saved ? 'Saved ✓' : saving ? 'Saving...' : 'Save Plan'}
                 </button>
             </CalendarPopupPortal>
         )
@@ -174,10 +189,8 @@ export default function DayPopup({ day, onClose }: Props) {
             <Handle />
             <DateLabel />
             <p className="text-xl font-black mb-5">No session logged 😴</p>
-            <button
-                onClick={onClose}
-                className="w-full py-3.5 rounded-full text-xs font-black uppercase tracking-widest"
-                style={{ background: '#FAF7F0', color: '#aaa', border: '1.5px solid #e8e0d0' }}>
+            <button onClick={onClose} className="w-full py-3.5 rounded-full text-xs font-black uppercase tracking-widest"
+                    style={{ background: '#FAF7F0', color: '#aaa', border: '1.5px solid #e8e0d0' }}>
                 Close
             </button>
         </CalendarPopupPortal>

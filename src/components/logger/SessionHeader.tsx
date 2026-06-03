@@ -51,18 +51,25 @@ export default function SessionHeader({ dayName, restTimerOn, onToggleTimer, onF
                     <span className="text-xs" style={{ color: 'rgba(255,255,255,0.8)' }}>Rest timer</span>
                     <div
                         onClick={onToggleTimer}
-                        className="flex items-center cursor-pointer transition-all"
                         style={{
-                            width: '32px', height: '18px', borderRadius: '999px',
-                            background: restTimerOn ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)',
+                            width: '36px',
+                            height: '20px',
+                            borderRadius: '999px',
+                            background: restTimerOn ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)',
                             padding: '2px',
-                            justifyContent: restTimerOn ? 'flex-end' : 'flex-start',
+                            cursor: 'pointer',
                             display: 'flex',
+                            alignItems: 'center',
+                            transition: 'background 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                            justifyContent: restTimerOn ? 'flex-end' : 'flex-start',
                         }}>
                         <div style={{
-                            width: '14px', height: '14px', borderRadius: '50%',
+                            width: '16px',
+                            height: '16px',
+                            borderRadius: '50%',
                             background: restTimerOn ? 'var(--pink)' : '#fff',
-                            transition: 'all 0.2s',
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                         }} />
                     </div>
                 </div>

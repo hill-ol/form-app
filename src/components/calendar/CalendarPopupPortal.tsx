@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 
 interface Props {
@@ -11,6 +11,11 @@ interface Props {
 export default function CalendarPopupPortal({ onClose, children }: Props) {
     const [closing, setClosing] = useState(false)
     const [mounted, setMounted] = useState(false)
+
+    const handleClose = useCallback(() => {
+        setClosing(true)
+        setTimeout(() => onClose(), 280)
+    }, [onClose])
 
     useEffect(() => {
         const timer = setTimeout(() => setMounted(true), 0)
@@ -24,12 +29,7 @@ export default function CalendarPopupPortal({ onClose, children }: Props) {
             document.removeEventListener('keydown', handleKey)
             document.body.style.overflow = ''
         }
-    }, [])
-
-    function handleClose() {
-        setClosing(true)
-        setTimeout(() => onClose(), 220)
-    }
+    }, [handleClose])
 
     if (!mounted) return null
 
@@ -43,25 +43,24 @@ export default function CalendarPopupPortal({ onClose, children }: Props) {
                 flexDirection: 'column',
                 justifyContent: 'flex-end',
                 background: closing ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,0.45)',
-                transition: 'background 0.22s ease',
+                transition: 'background 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
             }}
-            onClick={handleClose}
-        >
+            onClick={handleClose}>
             <div
                 className="popup-scroll"
                 style={{
                     background: '#fff',
                     borderRadius: '24px 24px 0 0',
-                    padding: '20px 20px 36px',
+                    padding: '20px 20px 40px',
                     width: '100%',
                     maxHeight: '85vh',
                     overflowY: 'auto',
                     animation: closing
-                        ? 'slideDown 0.22s cubic-bezier(0.32, 0.72, 0, 1) forwards'
-                        : 'slideUp 0.25s cubic-bezier(0.32, 0.72, 0, 1)',
+                        ? 'slideDown 0.28s cubic-bezier(0.32, 0.72, 0, 1) forwards'
+                        : 'slideUp 0.32s cubic-bezier(0.32, 0.72, 0, 1)',
+                    willChange: 'transform',
                 }}
-                onClick={e => e.stopPropagation()}
-            >
+                onClick={e => e.stopPropagation()}>
                 {children}
             </div>
         </div>,

@@ -339,3 +339,20 @@ export async function getPersonalRecords() {
     }
     return Object.values(prs).sort((a, b) => b.weight - a.weight).slice(0, 6)
 }
+
+export async function saveDayOverride(date: string, dayType: string, label: string) {
+    const { error } = await supabase
+        .from('day_overrides')
+        .upsert({ date, day_type: dayType, label, updated_at: new Date().toISOString() }, { onConflict: 'date' })
+    if (error) throw error
+}
+
+export async function getDayOverrides(startDate: string, endDate: string) {
+    const { data, error } = await supabase
+        .from('day_overrides')
+        .select('*')
+        .gte('date', startDate)
+        .lte('date', endDate)
+    if (error) return []
+    return data ?? []
+}
