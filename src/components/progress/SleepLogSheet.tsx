@@ -43,7 +43,14 @@ export default function SleepLogSheet({ onClose }: Props) {
     const [mood, setMood] = useState(3)
     const [saved, setSaved] = useState(false)
 
-    function handleSave() {
+    async function handleSave() {
+        try {
+            const { logSleep } = await import('@/lib/db')
+            const today = new Date().toISOString().split('T')[0]
+            await logSleep(today, hours, mood)
+        } catch (e) {
+            console.error('Failed to save sleep:', e)
+        }
         setSaved(true)
         setTimeout(() => { setSaved(false); onClose() }, 800)
     }

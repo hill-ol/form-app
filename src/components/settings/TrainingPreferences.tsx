@@ -65,7 +65,36 @@ export default function TrainingPreferences() {
     const [aiCoach, setAiCoach] = useState(true)
     const [saved, setSaved] = useState(false)
 
-    function handleSave() {
+    useEffect(() => {
+        async function load() {
+            try {
+                const { getPreferences } = await import('@/lib/db')
+                const prefs = await getPreferences()
+                if (prefs) {
+                    setWeeklyGoal(prefs.weekly_goal)
+                    setRestDuration(prefs.rest_duration_seconds)
+                    setRestTimerDefault(prefs.rest_timer_default)
+                    setAiCoach(prefs.show_ai_coach)
+                }
+            } catch (e) {
+                console.error('Failed to load preferences:', e)
+            }
+        }
+        load()
+    }, [])
+
+    async function handleSave() {
+        try {
+            const { savePreferences } = await import('@/lib/db')
+            await savePreferences({
+                weeklyGoal,
+                restDurationSeconds: restDuration,
+                restTimerDefault,
+                showAiCoach: aiCoach,
+            })
+        } catch (e) {
+            console.error('Failed to save preferences:', e)
+        }
         setSaved(true)
         setTimeout(() => setSaved(false), 1500)
     }

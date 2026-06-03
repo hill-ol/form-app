@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import {useEffect, useState} from 'react'
 import { DEFAULT_WEEK_TEMPLATE } from '@/lib/placeholder'
 import { DayTemplate } from '@/types'
 
@@ -28,6 +28,19 @@ export default function WeeklyTemplateEditor() {
     const [saved, setSaved] = useState(false)
     const [expanded, setExpanded] = useState<number | null>(null)
 
+    useEffect(() => {
+        async function load() {
+            try {
+                const { getWeeklyTemplate } = await import('@/lib/db')
+                const data = await getWeeklyTemplate()
+                if (data.length > 0) setTemplate(data)
+            } catch (e) {
+                console.error('Failed to load template:', e)
+            }
+        }
+        load()
+    }, [])
+
     function updateDay(dayOfWeek: number, dayType: string) {
         setTemplate(prev => prev.map(t =>
             t.dayOfWeek === dayOfWeek
@@ -40,7 +53,13 @@ export default function WeeklyTemplateEditor() {
         ))
     }
 
-    function handleSave() {
+    async function handleSave() {
+        try {
+            const { saveWeeklyTemplate } = await import('@/lib/db')
+            await saveWeeklyTemplate(template)
+        } catch (e) {
+            console.error('Failed to save template:', e)
+        }
         setSaved(true)
         setTimeout(() => setSaved(false), 1500)
     }

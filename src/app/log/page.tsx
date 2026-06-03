@@ -115,7 +115,14 @@ export default function LogPage() {
 
     if (screen === 'done') {
         const duration = Math.floor((Date.now() - startTime) / 1000)
-        return <FinishSummary exercises={exercises} duration={duration} dayName={dayLabel} />
+        return (
+            <FinishSummary
+                exercises={exercises}
+                duration={duration}
+                dayName={dayLabel}
+                dayType={selectedDayType}
+            />
+        )
     }
 
     if (screen === 'active') {
