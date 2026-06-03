@@ -2,14 +2,18 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'FORM',
+  title: 'FORM.',
   description: 'Your personal fitness tracker',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'FORM',
+    title: 'FORM.',
   },
+  other: {
+    'apple-mobile-web-app-capable': 'yes',
+    'mobile-web-app-capable': 'yes',
+  }
 }
 
 export const viewport: Viewport = {
