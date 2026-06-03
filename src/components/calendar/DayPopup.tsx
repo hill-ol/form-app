@@ -16,6 +16,22 @@ const DAY_LABEL: Record<string, string> = {
     cardio: 'Cardio', yoga: 'Yoga', 'full body': 'Full Body', rest: 'Rest Day',
 }
 
+function Handle() {
+    return (
+        <div className="w-10 h-1 rounded-full mx-auto mb-5"
+             style={{ background: '#e8e0d0' }} />
+    )
+}
+
+function DateLabel({ text, color }: { text: string; color?: string }) {
+    return (
+        <p className="font-bold uppercase tracking-widest mb-0.5"
+           style={{ color: color ?? '#aaa', fontSize: '10px', letterSpacing: '0.1em' }}>
+            {text}
+        </p>
+    )
+}
+
 interface Props {
     day: CalendarDay
     onClose: () => void
@@ -56,25 +72,13 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
         }
     }
 
-    const Handle = () => (
-        <div className="w-10 h-1 rounded-full mx-auto mb-5"
-             style={{ background: '#e8e0d0' }} />
-    )
-
-    const DateLabel = ({ color }: { color?: string }) => (
-        <p className="font-bold uppercase tracking-widest mb-0.5"
-           style={{ color: color ?? '#aaa', fontSize: '10px', letterSpacing: '0.1em' }}>
-            {dateStr}
-        </p>
-    )
-
     if (isPast && session) {
         return (
             <CalendarPopupPortal onClose={onClose}>
                 <Handle />
                 <div className="flex justify-between items-start mb-4">
                     <div>
-                        <DateLabel />
+                        <DateLabel text={dateStr} />
                         <p className="text-xl font-black">{session.name} {WORKOUT_EMOJI[session.type]}</p>
                     </div>
                     {colors && (
@@ -117,7 +121,7 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
                 <Handle />
                 <div className="flex justify-between items-start mb-5">
                     <div>
-                        <DateLabel color="var(--pink)" />
+                        <DateLabel text={dateStr} color="var(--pink)" />
                         <p className="text-xl font-black">
                             {planned?.label ?? 'Rest Day'} {planned ? DAY_EMOJI[planned.dayType] : '😴'}
                         </p>
@@ -130,7 +134,7 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
                 <button
                     onClick={() => router.push('/log')}
                     className="w-full py-3.5 rounded-full text-white text-xs font-black uppercase tracking-widest transition-all duration-200 active:scale-95"
-                    style={{ background: 'var(--pink)' }}>
+                    style={{ background: 'var(--pink)', border: 'none', cursor: 'pointer' }}>
                     Start Session
                 </button>
             </CalendarPopupPortal>
@@ -142,7 +146,7 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
             <CalendarPopupPortal onClose={onClose}>
                 <Handle />
                 <div className="mb-4">
-                    <DateLabel />
+                    <DateLabel text={dateStr} />
                     <p className="text-xl font-black">
                         {DAY_EMOJI[selectedType]} {DAY_LABEL[selectedType]}
                     </p>
@@ -163,6 +167,7 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
                                     ? '1.5px solid var(--pink)'
                                     : '1.5px solid #e8e0d0',
                                 transform: selectedType === type ? 'scale(1.05)' : 'scale(1)',
+                                cursor: 'pointer',
                             }}>
                             {DAY_EMOJI[type]} {type}
                         </button>
@@ -187,10 +192,12 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
     return (
         <CalendarPopupPortal onClose={onClose}>
             <Handle />
-            <DateLabel />
+            <DateLabel text={dateStr} />
             <p className="text-xl font-black mb-5">No session logged 😴</p>
-            <button onClick={onClose} className="w-full py-3.5 rounded-full text-xs font-black uppercase tracking-widest"
-                    style={{ background: '#FAF7F0', color: '#aaa', border: '1.5px solid #e8e0d0' }}>
+            <button
+                onClick={onClose}
+                className="w-full py-3.5 rounded-full text-xs font-black uppercase tracking-widest"
+                style={{ background: '#FAF7F0', color: '#aaa', border: '1.5px solid #e8e0d0', cursor: 'pointer' }}>
                 Close
             </button>
         </CalendarPopupPortal>
