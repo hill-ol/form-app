@@ -60,7 +60,21 @@ export default async function DashboardPage() {
                     <MoodCheckIn />
                 </div>
 
-                <AiCoachCard />
+                <AiCoachCard context={{
+                    lastSleep: data.lastSleep
+                        ? { hours: data.lastSleep.hours, mood: data.lastSleep.quality }
+                        : undefined,
+                    streak: data.currentStreak,
+                    weeklyGoal: data.weeklyGoal,
+                    weeklyCompleted: data.weeklyCompleted,
+                    todayPlan: todayTemplate?.label,
+                    recentSessions: data.recentSessions.map(s => ({
+                        date: s.date,
+                        name: s.name,
+                        dayType: s.dayType,
+                        duration: s.duration,
+                    })),
+                }} />
                 <TodayWorkout workout={data.todayWorkout} />
                 <QuoteBanner />
                 <StatsRow data={data} />

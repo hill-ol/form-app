@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { PLACEHOLDER_DASHBOARD, DEFAULT_WEEK_TEMPLATE, EXERCISE_LIBRARY } from '@/lib/placeholder'
 import { Exercise } from '@/types'
 import { ActiveExercise, createExercise } from '@/lib/sessionUtils'
+import { useCoachInsight } from '@/lib/useCoach'
 import SessionHeader from '@/components/logger/SessionHeader'
 import ExerciseCard from '@/components/logger/ExerciseCard'
 import AddExerciseSheet from '@/components/logger/AddExerciseSheet'
@@ -31,7 +32,6 @@ function buildExercisesForDayType(dayType: string): ActiveExercise[] {
     const suggestions = EXERCISE_LIBRARY.filter(ex =>
         ex.dayType.includes(dayType as never)
     ).slice(0, 4)
-
     return suggestions.map(ex =>
         createExercise(
             ex.id, ex.name, ex.primaryMuscle,
@@ -70,6 +70,12 @@ export default function LogPage() {
     const dayLabel = DAY_LABEL[selectedDayType] ?? 'Workout'
     const dayEmoji = DAY_EMOJI[selectedDayType] ?? '🏋️'
     const isDefaultPlan = selectedDayType === todayWorkout.dayType
+
+    const { insight: coachInsight, loading: coachLoading } = useCoachInsight(
+        'pre-session',
+        { todayPlan: dayLabel },
+        [selectedDayType]
+    )
 
     function selectDayType(dayType: string) {
         setSelectedDayType(dayType)
@@ -188,6 +194,7 @@ export default function LogPage() {
                             display: 'block',
                             margin: '0 auto',
                             cursor: 'pointer',
+                            border: 'none',
                         }}>
                         Finish Session
                     </button>
@@ -222,22 +229,20 @@ export default function LogPage() {
                 <p className="text-xl font-black tracking-tight">
                     FORM <span style={{ color: 'var(--pink)' }}>.</span>
                 </p>
-                <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                    style={{ background: 'var(--pink-light)', color: 'var(--pink)' }}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                     style={{ background: 'var(--pink-light)', color: 'var(--pink)' }}>
                     O
                 </div>
             </div>
 
             <div className="flex-1 flex flex-col px-4 pt-4 pb-24 max-w-2xl mx-auto w-full">
 
-                <div
-                    className="rounded-2xl p-5 mb-4"
-                    style={{
-                        background: '#fff',
-                        border: '0.5px solid var(--border)',
-                        animation: 'slideInUp 0.25s ease',
-                    }}>
+                <div className="rounded-2xl p-5 mb-4"
+                     style={{
+                         background: '#fff',
+                         border: '0.5px solid var(--border)',
+                         animation: 'slideInUp 0.25s ease',
+                     }}>
                     <p className="text-xs font-bold uppercase tracking-widest mb-1"
                        style={{ color: 'var(--muted)', fontSize: '10px' }}>
                         {isDefaultPlan ? "Today's plan" : 'Custom session'}
@@ -265,9 +270,8 @@ export default function LogPage() {
                                             {lib?.primaryMuscle ?? ex.exerciseId} · {ex.sets}×{ex.reps || '—'}
                                         </p>
                                     </div>
-                                    <span
-                                        className="text-xs font-bold px-2 py-1 rounded-full"
-                                        style={{ background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
+                                    <span className="text-xs font-bold px-2 py-1 rounded-full"
+                                          style={{ background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
                     {ex.weight}
                   </span>
                                 </div>
@@ -281,32 +285,35 @@ export default function LogPage() {
                         style={{
                             background: 'var(--pink)',
                             cursor: 'pointer',
+                            border: 'none',
                             animation: 'pulse 2s infinite',
                         }}>
                         Start Session {dayEmoji}
                     </button>
                 </div>
 
-                <div
-                    className="rounded-2xl p-4 mb-4"
-                    style={{ background: 'var(--pink-light)', border: '0.5px solid #f0b8d0' }}>
+                <div className="rounded-2xl p-4 mb-4"
+                     style={{ background: 'var(--pink-light)', border: '0.5px solid #f0b8d0' }}>
                     <p className="text-xs font-bold uppercase tracking-widest mb-1"
                        style={{ color: 'var(--pink-dark)', fontSize: '10px' }}>
                         ✨ AI Coach
                     </p>
-                    <p className="text-sm leading-relaxed" style={{ color: '#444' }}>
-                        You slept 7h and energy is good. Perfect day for a push session.
-                        Try{' '}
-                        <span className="font-bold" style={{ color: 'var(--pink)' }}>
-              135 lbs on bench
-            </span>{' '}
-                        today.
-                    </p>
+                    {coachLoading ? (
+                        <div className="space-y-1.5">
+                            <div className="h-3 rounded-full animate-pulse"
+                                 style={{ background: '#f0b8d0', width: '85%' }} />
+                            <div className="h-3 rounded-full animate-pulse"
+                                 style={{ background: '#f0b8d0', width: '60%' }} />
+                        </div>
+                    ) : (
+                        <p className="text-sm leading-relaxed" style={{ color: '#444' }}>
+                            {coachInsight}
+                        </p>
+                    )}
                 </div>
 
-                <div
-                    className="rounded-2xl p-4"
-                    style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
+                <div className="rounded-2xl p-4"
+                     style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
                     <p className="text-xs font-bold uppercase tracking-widest mb-3"
                        style={{ color: 'var(--muted)', fontSize: '10px' }}>
                         Or start something else

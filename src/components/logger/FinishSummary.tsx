@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ActiveExercise } from '@/lib/sessionUtils'
 import { saveSession } from '@/lib/db'
+import { useCoachInsight } from '@/lib/useCoach'
 
 interface Props {
     exercises: ActiveExercise[]
@@ -22,6 +23,29 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
         acc + ex.sets.filter(s => s.completed).length, 0)
     const totalExercises = exercises.filter(ex => ex.sets.some(s => s.completed)).length
     const mins = Math.floor(duration / 60)
+
+    const completedExercises = exercises.filter(ex => ex.sets.some(s => s.completed))
+
+    const { insight: coachInsight, loading: coachLoading } = useCoachInsight(
+        'post-session',
+        { streak: undefined },
+        [],
+        {
+            dayName,
+            totalSets,
+            totalExercises,
+            durationMins: mins,
+            exercises: completedExercises.map(ex => {
+                const done = ex.sets.filter(s => s.completed)
+                return {
+                    name: ex.exerciseName,
+                    sets: done.length,
+                    reps: parseInt(done[0]?.reps ?? '0'),
+                    weight: done[0]?.weight ?? 'BW',
+                }
+            }),
+        }
+    )
 
     useEffect(() => {
         async function save() {
@@ -52,7 +76,9 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
              style={{ backgroundColor: 'var(--cream)' }}>
 
             <div className="text-center mb-8">
-                <p className="text-5xl mb-3">{saving ? '⏳' : error ? '⚠️' : '🎉'}</p>
+                <p className="text-5xl mb-3">
+                    {saving ? '⏳' : error ? '⚠️' : '🎉'}
+                </p>
                 <p className="text-3xl font-black tracking-tight mb-1">
                     {saving ? 'Saving...' : error ? 'Session logged locally' : 'Session done.'}
                 </p>
@@ -71,10 +97,13 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                     ].map(([label, val]) => (
                         <div key={label} className="rounded-2xl p-3 text-center"
                              style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
-                            <p className="font-bold uppercase" style={{ fontSize: '9px', color: 'var(--muted)' }}>
+                            <p className="font-bold uppercase"
+                               style={{ fontSize: '9px', color: 'var(--muted)' }}>
                                 {label}
                             </p>
-                            <p className="text-xl font-black mt-1" style={{ color: 'var(--pink)' }}>{val}</p>
+                            <p className="text-xl font-black mt-1" style={{ color: 'var(--pink)' }}>
+                                {val}
+                            </p>
                         </div>
                     ))}
                 </div>
@@ -82,15 +111,25 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                 <div className="rounded-2xl p-4 mb-4"
                      style={{ background: 'var(--pink-light)', border: '0.5px solid #f0b8d0' }}>
                     <p className="text-xs font-bold uppercase tracking-widest mb-1"
-                       style={{ color: 'var(--pink-dark)', fontSize: '10px' }}>✨ AI Coach</p>
-                    <p className="text-sm leading-relaxed" style={{ color: '#444' }}>
-                        Great session! You completed {totalSets} sets across {totalExercises} exercises.
-                        Keep this consistency up and you&apos;ll be ready to level up next week.
+                       style={{ color: 'var(--pink-dark)', fontSize: '10px' }}>
+                        ✨ AI Coach
                     </p>
+                    {coachLoading ? (
+                        <div className="space-y-1.5">
+                            <div className="h-3 rounded-full animate-pulse"
+                                 style={{ background: '#f0b8d0', width: '85%' }} />
+                            <div className="h-3 rounded-full animate-pulse"
+                                 style={{ background: '#f0b8d0', width: '65%' }} />
+                        </div>
+                    ) : (
+                        <p className="text-sm leading-relaxed" style={{ color: '#444' }}>
+                            {coachInsight}
+                        </p>
+                    )}
                 </div>
 
                 <div className="space-y-2 mb-6">
-                    {exercises.filter(ex => ex.sets.some(s => s.completed)).map(ex => {
+                    {completedExercises.map(ex => {
                         const done = ex.sets.filter(s => s.completed)
                         return (
                             <div key={ex.exerciseId}
@@ -109,7 +148,11 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                     onClick={() => router.push('/')}
                     disabled={saving}
                     className="w-full py-4 rounded-full text-white font-black uppercase tracking-widest text-sm transition-all active:scale-95"
-                    style={{ background: saving ? '#ccc' : 'var(--pink)', cursor: saving ? 'default' : 'pointer' }}>
+                    style={{
+                        background: saving ? '#ccc' : 'var(--pink)',
+                        cursor: saving ? 'default' : 'pointer',
+                        border: 'none',
+                    }}>
                     {saving ? 'Saving session...' : 'Back to Dashboard'}
                 </button>
             </div>

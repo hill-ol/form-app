@@ -7,10 +7,12 @@ import { WORKOUT_COLORS, WORKOUT_EMOJI, DAY_TYPE_TO_WORKOUT } from '@/lib/calend
 import CalendarPopupPortal from './CalendarPopupPortal'
 
 const DAY_TYPE_OPTIONS = ['push', 'pull', 'legs', 'cardio', 'yoga', 'full body', 'rest']
+
 const DAY_EMOJI: Record<string, string> = {
     push: '🏋️', pull: '🏋️', legs: '🦵',
     cardio: '🏃', yoga: '🧘', 'full body': '🤸', rest: '😴',
 }
+
 const DAY_LABEL: Record<string, string> = {
     push: 'Push Day', pull: 'Pull Day', legs: 'Legs Day',
     cardio: 'Cardio', yoga: 'Yoga', 'full body': 'Full Body', rest: 'Rest Day',
@@ -18,15 +20,18 @@ const DAY_LABEL: Record<string, string> = {
 
 function Handle() {
     return (
-        <div className="w-10 h-1 rounded-full mx-auto mb-5"
-             style={{ background: '#e8e0d0' }} />
+        <div
+            className="w-10 h-1 rounded-full mx-auto mb-5"
+            style={{ background: '#e8e0d0' }}
+        />
     )
 }
 
 function DateLabel({ text, color }: { text: string; color?: string }) {
     return (
-        <p className="font-bold uppercase tracking-widest mb-0.5"
-           style={{ color: color ?? '#aaa', fontSize: '10px', letterSpacing: '0.1em' }}>
+        <p
+            className="font-bold uppercase tracking-widest mb-0.5"
+            style={{ color: color ?? '#aaa', fontSize: '10px', letterSpacing: '0.1em' }}>
             {text}
         </p>
     )
@@ -53,10 +58,12 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
 
     const workoutType = session?.type ?? (planned ? DAY_TYPE_TO_WORKOUT[planned.dayType] : null)
     const colors = workoutType && workoutType !== 'rest' ? WORKOUT_COLORS[workoutType] : null
+
     const dateStr = date.toLocaleDateString('en-US', {
-        weekday: 'long', month: 'long', day: 'numeric'
+        weekday: 'long', month: 'long', day: 'numeric',
     }).toUpperCase()
-    const isoDate = date.toISOString().split('T')[0]
+
+    const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
     async function handleSave() {
         setSaving(true)
@@ -79,11 +86,14 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
                 <div className="flex justify-between items-start mb-4">
                     <div>
                         <DateLabel text={dateStr} />
-                        <p className="text-xl font-black">{session.name} {WORKOUT_EMOJI[session.type]}</p>
+                        <p className="text-xl font-black">
+                            {session.name} {WORKOUT_EMOJI[session.type]}
+                        </p>
                     </div>
                     {colors && (
-                        <span className="text-xs font-bold px-3 py-1.5 rounded-full"
-                              style={{ background: colors.bg, color: colors.text }}>
+                        <span
+                            className="text-xs font-bold px-3 py-1.5 rounded-full"
+                            style={{ background: colors.bg, color: colors.text }}>
               {session.type}
             </span>
                     )}
@@ -91,9 +101,10 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
                 {session.exercises && (
                     <div className="rounded-2xl p-3 mb-3" style={{ background: '#FAF7F0' }}>
                         {session.exercises.map(ex => (
-                            <div key={ex.exerciseId}
-                                 className="flex justify-between items-center py-2"
-                                 style={{ borderBottom: '0.5px solid #f0e8da' }}>
+                            <div
+                                key={ex.exerciseId}
+                                className="flex justify-between items-center py-2"
+                                style={{ borderBottom: '0.5px solid #f0e8da' }}>
                                 <span className="text-sm font-semibold">{ex.exerciseName}</span>
                                 <span className="text-xs" style={{ color: '#aaa' }}>
                   {ex.sets}×{ex.reps} · {ex.weight}
@@ -103,7 +114,11 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
                     </div>
                 )}
                 <div className="flex gap-2">
-                    {[['Duration', `${session.duration ?? 52} min`], ['Sleep', '7h 😴'], ['Energy', '💪']].map(([l, v]) => (
+                    {[
+                        ['Duration', `${session.duration ?? 52} min`],
+                        ['Sleep', '7h 😴'],
+                        ['Energy', '💪'],
+                    ].map(([l, v]) => (
                         <div key={l} className="flex-1 rounded-2xl p-2 text-center"
                              style={{ background: '#FAF7F0' }}>
                             <p className="font-bold uppercase" style={{ fontSize: '9px', color: '#aaa' }}>{l}</p>
@@ -123,12 +138,16 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
                     <div>
                         <DateLabel text={dateStr} color="var(--pink)" />
                         <p className="text-xl font-black">
-                            {planned?.label ?? 'Rest Day'} {planned ? DAY_EMOJI[planned.dayType] : '😴'}
+                            {planned?.label ?? 'Rest Day'}{' '}
+                            {planned ? DAY_EMOJI[planned.dayType] : '😴'}
                         </p>
                     </div>
                     {colors && (
-                        <span className="text-xs font-bold px-3 py-1.5 rounded-full"
-                              style={{ background: colors.bg, color: colors.text }}>Planned</span>
+                        <span
+                            className="text-xs font-bold px-3 py-1.5 rounded-full"
+                            style={{ background: colors.bg, color: colors.text }}>
+              Planned
+            </span>
                     )}
                 </div>
                 <button
@@ -197,7 +216,10 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
             <button
                 onClick={onClose}
                 className="w-full py-3.5 rounded-full text-xs font-black uppercase tracking-widest"
-                style={{ background: '#FAF7F0', color: '#aaa', border: '1.5px solid #e8e0d0', cursor: 'pointer' }}>
+                style={{
+                    background: '#FAF7F0', color: '#aaa',
+                    border: '1.5px solid #e8e0d0', cursor: 'pointer',
+                }}>
                 Close
             </button>
         </CalendarPopupPortal>

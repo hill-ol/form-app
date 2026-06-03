@@ -4,12 +4,12 @@ export function getCalendarDays(
     year: number,
     month: number,
     sessions: WorkoutSession[],
-    template: DayTemplate[]
+    template: DayTemplate[],
+    overrides: Record<string, string> = {}
 ): CalendarDay[] {
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
     const startOffset = firstDay.getDay()
-
     const days: CalendarDay[] = []
     const today = new Date()
 
@@ -21,8 +21,28 @@ export function getCalendarDays(
     for (let d = 1; d <= lastDay.getDate(); d++) {
         const date = new Date(year, month, d)
         const isToday = date.toDateString() === today.toDateString()
-        const session = sessions.find(s => new Date(s.date).toDateString() === date.toDateString()) ?? null
-        const planned = template.find(t => t.dayOfWeek === date.getDay()) ?? null
+        const isoDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+
+        const session = sessions.find(s => {
+            const sd = new Date(s.date)
+            return sd.toDateString() === date.toDateString()
+        }) ?? null
+
+        let planned = template.find(t => t.dayOfWeek === date.getDay()) ?? null
+
+        if (overrides[isoDate]) {
+            const overrideDayType = overrides[isoDate]
+            planned = {
+                dayOfWeek: date.getDay() as 0|1|2|3|4|5|6,
+                dayType: overrideDayType as DayTemplate['dayType'],
+                workoutType: overrideDayType === 'cardio' ? 'cardio'
+                    : overrideDayType === 'yoga' ? 'yoga'
+                        : overrideDayType === 'rest' ? 'bodyweight'
+                            : 'strength',
+                label: overrideDayType.charAt(0).toUpperCase() + overrideDayType.slice(1) + ' Day',
+            }
+        }
+
         days.push({ date, isCurrentMonth: true, isToday, session, planned })
     }
 
@@ -36,9 +56,9 @@ export function getCalendarDays(
 }
 
 export const WORKOUT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-    strength: { bg: '#FDE8F0', text: '#C42D65', border: '#E8417A' },
-    cardio:   { bg: '#D1FAE5', text: '#065F46', border: '#34D399' },
-    yoga:     { bg: '#EDE9FE', text: '#6D28D9', border: '#A78BFA' },
+    strength:   { bg: '#FDE8F0', text: '#C42D65', border: '#E8417A' },
+    cardio:     { bg: '#D1FAE5', text: '#065F46', border: '#34D399' },
+    yoga:       { bg: '#EDE9FE', text: '#6D28D9', border: '#A78BFA' },
     bodyweight: { bg: '#FEF3C7', text: '#92400E', border: '#FBBF24' },
 }
 

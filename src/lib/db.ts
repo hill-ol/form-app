@@ -1,8 +1,67 @@
 import { supabase } from './supabase'
-import { WorkoutSession, DayTemplate } from '@/types'
+import { DayTemplate } from '@/types'
 import { ActiveExercise } from './sessionUtils'
 
-// ── Sleep ──────────────────────────────────────────────
+interface SupabaseSession {
+    id: string
+    date: string
+    day_type: string
+    workout_type: string
+    name: string
+    duration_seconds: number | null
+    mood: number | null
+    sleep_hours: number | null
+    notes: string | null
+    exercise_logs?: SupabaseExerciseLog[]
+}
+
+interface SupabaseExerciseLog {
+    id: string
+    session_id: string
+    exercise_id: string
+    exercise_name: string
+    muscle_group: string | null
+    equipment: string | null
+    exercise_type: string | null
+    set_logs?: SupabaseSetLog[]
+}
+
+interface SupabaseSetLog {
+    id: string
+    exercise_log_id: string
+    set_number: number
+    reps: number | null
+    weight_lbs: number | null
+    duration_seconds: number | null
+    distance: number | null
+    completed: boolean
+}
+
+interface SupabaseSleepLog {
+    id: string
+    date: string
+    hours: number
+    mood: number
+    created_at: string
+}
+
+interface SupabaseSetLogWithExercise {
+    weight_lbs: number
+    exercise_logs: {
+        exercise_name: string
+        exercise_id: string
+    }
+    created_at: string
+}
+
+interface SupabasePreferences {
+    id: string
+    weekly_goal: number
+    rest_duration_seconds: number
+    rest_timer_default: boolean
+    show_ai_coach: boolean
+    updated_at: string
+}
 
 export async function logSleep(date: string, hours: number, mood: number) {
     const { data, error } = await supabase
@@ -11,20 +70,20 @@ export async function logSleep(date: string, hours: number, mood: number) {
         .select()
         .single()
     if (error) throw error
-    return data
+    return data as SupabaseSleepLog
 }
 
-export async function getSleepLogs(limit = 30) {
+export async function getSleepLogs(limit = 30): Promise<SupabaseSleepLog[]> {
     const { data, error } = await supabase
         .from('sleep_logs')
         .select('*')
         .order('date', { ascending: false })
         .limit(limit)
     if (error) throw error
-    return data ?? []
+    return (data ?? []) as SupabaseSleepLog[]
 }
 
-export async function getLastSleep() {
+export async function getLastSleep(): Promise<SupabaseSleepLog | null> {
     const { data, error } = await supabase
         .from('sleep_logs')
         .select('*')
@@ -32,10 +91,8 @@ export async function getLastSleep() {
         .limit(1)
         .single()
     if (error) return null
-    return data
+    return data as SupabaseSleepLog
 }
-
-// ── Sessions ───────────────────────────────────────────
 
 export async function saveSession(
     session: {
@@ -66,6 +123,7 @@ export async function saveSession(
         .single()
 
     if (sessionError) throw sessionError
+    const savedSession = sessionData as SupabaseSession
 
     for (const ex of exercises) {
         const completedSets = ex.sets.filter(s => s.completed)
@@ -74,7 +132,7 @@ export async function saveSession(
         const { data: exData, error: exError } = await supabase
             .from('exercise_logs')
             .insert({
-                session_id: sessionData.id,
+                session_id: savedSession.id,
                 exercise_id: ex.exerciseId,
                 exercise_name: ex.exerciseName,
                 muscle_group: ex.muscleGroup,
@@ -85,9 +143,10 @@ export async function saveSession(
             .single()
 
         if (exError) throw exError
+        const savedEx = exData as SupabaseExerciseLog
 
         const sets = completedSets.map((s, i) => ({
-            exercise_log_id: exData.id,
+            exercise_log_id: savedEx.id,
             set_number: i + 1,
             reps: s.reps ? parseInt(s.reps) : null,
             weight_lbs: s.weight && s.weight !== 'BW' ? parseFloat(s.weight) : null,
@@ -103,10 +162,10 @@ export async function saveSession(
         if (setError) throw setError
     }
 
-    return sessionData
+    return savedSession
 }
 
-export async function getRecentSessions(limit = 10) {
+export async function getRecentSessions(limit = 10): Promise<SupabaseSession[]> {
     const { data, error } = await supabase
         .from('workout_sessions')
         .select(`
@@ -119,10 +178,13 @@ export async function getRecentSessions(limit = 10) {
         .order('date', { ascending: false })
         .limit(limit)
     if (error) throw error
-    return data ?? []
+    return (data ?? []) as SupabaseSession[]
 }
 
-export async function getSessionsForMonth(year: number, month: number) {
+export async function getSessionsForMonth(
+    year: number,
+    month: number
+): Promise<SupabaseSession[]> {
     const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
     const end = `${year}-${String(month + 1).padStart(2, '0')}-31`
     const { data, error } = await supabase
@@ -132,10 +194,13 @@ export async function getSessionsForMonth(year: number, month: number) {
         .lte('date', end)
         .order('date', { ascending: true })
     if (error) throw error
-    return data ?? []
+    return (data ?? []) as SupabaseSession[]
 }
 
-export async function getExerciseHistory(exerciseId: string, limit = 20) {
+export async function getExerciseHistory(
+    exerciseId: string,
+    limit = 20
+): Promise<SupabaseExerciseLog[]> {
     const { data, error } = await supabase
         .from('exercise_logs')
         .select(`
@@ -147,10 +212,10 @@ export async function getExerciseHistory(exerciseId: string, limit = 20) {
         .order('created_at', { ascending: false })
         .limit(limit)
     if (error) throw error
-    return data ?? []
+    return (data ?? []) as SupabaseExerciseLog[]
 }
 
-export async function getCurrentStreak() {
+export async function getCurrentStreak(): Promise<number> {
     const { data, error } = await supabase
         .from('workout_sessions')
         .select('date')
@@ -158,7 +223,7 @@ export async function getCurrentStreak() {
         .limit(60)
     if (error) return 0
 
-    const dates = (data ?? []).map(d => d.date)
+    const dates = (data ?? []).map((d: { date: string }) => d.date)
     if (dates.length === 0) return 0
 
     let streak = 0
@@ -168,7 +233,9 @@ export async function getCurrentStreak() {
     for (let i = 0; i < dates.length; i++) {
         const sessionDate = new Date(dates[i])
         sessionDate.setHours(0, 0, 0, 0)
-        const diffDays = Math.round((today.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24))
+        const diffDays = Math.round(
+            (today.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24)
+        )
         if (diffDays === streak || diffDays === streak + 1) {
             streak = diffDays === streak ? streak : streak + 1
         } else {
@@ -178,18 +245,21 @@ export async function getCurrentStreak() {
     return streak
 }
 
-// ── Weekly template ────────────────────────────────────
-
 export async function getWeeklyTemplate(): Promise<DayTemplate[]> {
     const { data, error } = await supabase
         .from('weekly_template')
         .select('*')
         .order('day_of_week', { ascending: true })
     if (error) throw error
-    return (data ?? []).map(row => ({
-        dayOfWeek: row.day_of_week as 0|1|2|3|4|5|6,
-        dayType: row.day_type,
-        workoutType: row.workout_type,
+    return (data ?? []).map((row: {
+        day_of_week: number
+        day_type: string
+        workout_type: string
+        label: string
+    }) => ({
+        dayOfWeek: row.day_of_week as DayTemplate['dayOfWeek'],
+        dayType: row.day_type as DayTemplate['dayType'],
+        workoutType: row.workout_type as DayTemplate['workoutType'],
         label: row.label,
     }))
 }
@@ -208,16 +278,14 @@ export async function saveWeeklyTemplate(template: DayTemplate[]) {
     if (error) throw error
 }
 
-// ── Training preferences ───────────────────────────────
-
-export async function getPreferences() {
+export async function getPreferences(): Promise<SupabasePreferences | null> {
     const { data, error } = await supabase
         .from('training_preferences')
         .select('*')
         .limit(1)
         .single()
     if (error) return null
-    return data
+    return data as SupabasePreferences
 }
 
 export async function savePreferences(prefs: {
@@ -254,8 +322,6 @@ export async function savePreferences(prefs: {
     }
 }
 
-// ── Exercise library ───────────────────────────────────
-
 export async function saveExerciseToLibrary(ex: {
     id: string
     name: string
@@ -285,25 +351,25 @@ export async function saveExerciseToLibrary(ex: {
     if (error) throw error
 }
 
-export async function getCustomExercises() {
+export async function getCustomExercises(): Promise<SupabaseExerciseLog[]> {
     const { data, error } = await supabase
         .from('exercise_library')
         .select('*')
         .eq('is_custom', true)
     if (error) return []
-    return data ?? []
+    return (data ?? []) as SupabaseExerciseLog[]
 }
 
-export async function getExerciseWeights() {
+export async function getExerciseWeights(): Promise<Record<string, number>> {
     const { data, error } = await supabase
         .from('exercise_library')
         .select('id, current_weight')
         .not('current_weight', 'is', null)
     if (error) return {}
-    return Object.fromEntries((data ?? []).map(r => [r.id, r.current_weight]))
+    return Object.fromEntries(
+        (data ?? []).map((r: { id: string; current_weight: number }) => [r.id, r.current_weight])
+    )
 }
-
-// ── Progress data ──────────────────────────────────────
 
 export async function getProgressData() {
     const [sessions, sleepLogs] = await Promise.all([
@@ -313,7 +379,11 @@ export async function getProgressData() {
     return { sessions, sleepLogs }
 }
 
-export async function getPersonalRecords() {
+export async function getPersonalRecords(): Promise<{
+    exercise: string
+    weight: number
+    date: string
+}[]> {
     const { data, error } = await supabase
         .from('set_logs')
         .select(`
@@ -327,32 +397,48 @@ export async function getPersonalRecords() {
     if (error) return []
 
     const prs: Record<string, { exercise: string; weight: number; date: string }> = {}
-    for (const row of data ?? []) {
-        const name = (row.exercise_logs as any).exercise_name
+
+    for (const row of (data ?? []) as unknown as SupabaseSetLogWithExercise[]) {
+        const name = row.exercise_logs.exercise_name
         if (!prs[name] || row.weight_lbs > prs[name].weight) {
             prs[name] = {
                 exercise: name,
                 weight: row.weight_lbs,
-                date: new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                date: new Date(row.created_at).toLocaleDateString('en-US', {
+                    month: 'short', day: 'numeric',
+                }),
             }
         }
     }
-    return Object.values(prs).sort((a, b) => b.weight - a.weight).slice(0, 6)
+
+    return Object.values(prs)
+        .sort((a, b) => b.weight - a.weight)
+        .slice(0, 6)
 }
 
-export async function saveDayOverride(date: string, dayType: string, label: string) {
+export async function saveDayOverride(
+    date: string,
+    dayType: string,
+    label: string
+) {
     const { error } = await supabase
         .from('day_overrides')
-        .upsert({ date, day_type: dayType, label, updated_at: new Date().toISOString() }, { onConflict: 'date' })
+        .upsert(
+            { date, day_type: dayType, label, updated_at: new Date().toISOString() },
+            { onConflict: 'date' }
+        )
     if (error) throw error
 }
 
-export async function getDayOverrides(startDate: string, endDate: string) {
+export async function getDayOverrides(
+    startDate: string,
+    endDate: string
+): Promise<{ date: string; day_type: string; label: string }[]> {
     const { data, error } = await supabase
         .from('day_overrides')
         .select('*')
         .gte('date', startDate)
         .lte('date', endDate)
     if (error) return []
-    return data ?? []
+    return (data ?? []) as { date: string; day_type: string; label: string }[]
 }

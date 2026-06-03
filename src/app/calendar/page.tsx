@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import TopNav from '@/components/layout/TopNav'
 import BottomNav from '@/components/layout/BottomNav'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import WeekPlanner from '@/components/calendar/WeekPlanner'
 import { getCalendarDays, WORKOUT_COLORS } from '@/lib/calendarUtils'
 import { PLACEHOLDER_DASHBOARD, DEFAULT_WEEK_TEMPLATE } from '@/lib/placeholder'
+import { DayTemplate } from '@/types'
 
 const WORKOUT_TYPES = ['strength', 'cardio', 'yoga', 'bodyweight'] as const
 const WORKOUT_LABELS: Record<string, string> = {
@@ -18,8 +19,51 @@ export default function CalendarPage() {
     const [month, setMonth] = useState(today.getMonth())
     const [year, setYear] = useState(today.getFullYear())
     const [showPlanner, setShowPlanner] = useState(false)
+    const [template, setTemplate] = useState<DayTemplate[]>(DEFAULT_WEEK_TEMPLATE)
+    const [overrides, setOverrides] = useState<Record<string, string>>({})
+    const [sessions, setSessions] = useState(PLACEHOLDER_DASHBOARD.recentSessions)
 
-    const days = getCalendarDays(year, month, PLACEHOLDER_DASHBOARD.recentSessions, DEFAULT_WEEK_TEMPLATE)
+    useEffect(() => {
+        async function load() {
+            try {
+                const { getWeeklyTemplate, getSessionsForMonth, getDayOverrides } = await import('@/lib/db')
+                const [tmpl, sess] = await Promise.all([
+                    getWeeklyTemplate(),
+                    getSessionsForMonth(year, month),
+                ])
+                if (tmpl.length > 0) setTemplate(tmpl)
+
+                const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
+                const end = `${year}-${String(month + 1).padStart(2, '0')}-31`
+                const ov = await getDayOverrides(start, end)
+                const ovMap: Record<string, string> = {}
+                for (const o of ov) ovMap[o.date] = o.day_type
+                setOverrides(ovMap)
+
+                if (sess.length > 0) {
+                    setSessions(sess.map((s: any) => ({
+                        id: s.id,
+                        date: s.date,
+                        type: s.workout_type,
+                        dayType: s.day_type,
+                        name: s.name,
+                        duration: s.duration_seconds
+                            ? Math.floor(s.duration_seconds / 60)
+                            : undefined,
+                    })))
+                }
+            } catch (e) {
+                console.error('Failed to load calendar data:', e)
+            }
+        }
+        load()
+    }, [year, month])
+
+    const handleOverrideSaved = useCallback((date: string, dayType: string) => {
+        setOverrides(prev => ({ ...prev, [date]: dayType }))
+    }, [])
+
+    const days = getCalendarDays(year, month, sessions, template, overrides)
     const monthLabel = new Date(year, month).toLocaleDateString('en-US', { month: 'long' })
 
     function prevMonth() {
@@ -53,21 +97,21 @@ export default function CalendarPage() {
                             <button
                                 onClick={prevMonth}
                                 className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 hover:scale-110"
-                                style={{ color: 'var(--muted)' }}>
+                                style={{ color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>
                                 ‹
                             </button>
                             <span className="text-sm font-bold" style={{ color: 'var(--muted)' }}>{year}</span>
                             <button
                                 onClick={nextMonth}
                                 className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 hover:scale-110"
-                                style={{ color: 'var(--muted)' }}>
+                                style={{ color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>
                                 ›
                             </button>
                         </div>
                         <button
                             onClick={() => setShowPlanner(true)}
                             className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-black transition-all duration-150 hover:scale-110 active:scale-95"
-                            style={{ background: 'var(--pink-light)', color: 'var(--pink)' }}>
+                            style={{ background: 'var(--pink-light)', color: 'var(--pink)', border: 'none', cursor: 'pointer' }}>
                             +
                         </button>
                     </div>
@@ -76,7 +120,10 @@ export default function CalendarPage() {
                         <p className="text-3xl font-black tracking-tight">{monthLabel}</p>
                     </div>
 
-                    <CalendarGrid days={days} />
+                    <CalendarGrid
+                        days={days}
+                        onOverrideSaved={handleOverrideSaved}
+                    />
 
                     <div className="flex gap-3 flex-wrap px-4 pb-4">
                         {WORKOUT_TYPES.map(type => {

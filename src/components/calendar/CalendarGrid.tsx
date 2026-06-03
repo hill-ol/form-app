@@ -7,9 +7,12 @@ import DayPopup from './DayPopup'
 
 const DAY_HEADERS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
-interface Props { days: CalendarDay[] }
+interface Props {
+    days: CalendarDay[]
+    onOverrideSaved?: (date: string, dayType: string) => void
+}
 
-export default function CalendarGrid({ days }: Props) {
+export default function CalendarGrid({ days, onOverrideSaved }: Props) {
     const [selected, setSelected] = useState<CalendarDay | null>(null)
     const [hovered, setHovered] = useState<number | null>(null)
 
@@ -27,10 +30,10 @@ export default function CalendarGrid({ days }: Props) {
             <div className="grid grid-cols-7 gap-1 px-2 pb-2">
                 {days.map((day, i) => {
                     const hasSession = !!day.session
-                    const workoutType = hasSession
-                        ? day.session!.type
+                    const workoutType = hasSession ? day.session!.type : null
+                    const plannedType = day.planned
+                        ? DAY_TYPE_TO_WORKOUT[day.planned.dayType]
                         : null
-                    const plannedType = day.planned ? DAY_TYPE_TO_WORKOUT[day.planned.dayType] : null
                     const colors = workoutType ? WORKOUT_COLORS[workoutType] : null
                     const emoji = hasSession ? WORKOUT_EMOJI[day.session!.type] : null
                     const isHovered = hovered === i
@@ -52,9 +55,10 @@ export default function CalendarGrid({ days }: Props) {
                                 opacity: day.isCurrentMonth ? 1 : 0.2,
                                 cursor: isClickable ? 'pointer' : 'default',
                                 transform: isHovered && isClickable ? 'scale(1.08)' : 'scale(1)',
-                                border: day.isToday && !hasSession ? '1.5px solid var(--pink)' : 'none',
-                            }}
-                        >
+                                border: day.isToday && !hasSession
+                                    ? '1.5px solid var(--pink)'
+                                    : 'none',
+                            }}>
                             {emoji && (
                                 <span style={{ fontSize: '13px', lineHeight: 1 }}>{emoji}</span>
                             )}
@@ -89,7 +93,14 @@ export default function CalendarGrid({ days }: Props) {
             </div>
 
             {selected && (
-                <DayPopup day={selected} onClose={() => setSelected(null)} />
+                <DayPopup
+                    day={selected}
+                    onClose={() => setSelected(null)}
+                    onOverrideSaved={(date, dayType) => {
+                        onOverrideSaved?.(date, dayType)
+                        setSelected(null)
+                    }}
+                />
             )}
         </div>
     )
