@@ -1,28 +1,27 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { PLACEHOLDER_SESSIONS, linearRegression } from '@/lib/progressUtils'
+import { ScatterPoint, linearRegression } from '@/lib/progressUtils'
+import { ScatterPoint as ProgressScatterPoint } from '@/lib/progressData'
 
-export default function SleepVsPerformance() {
+interface Props {
+    scatterData: ProgressScatterPoint[]
+}
+
+export default function SleepVsPerformance({ scatterData }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const chartRef = useRef<unknown>(null)
 
-    const points = PLACEHOLDER_SESSIONS.map(s => ({
-        x: s.sleepHours,
-        y: s.maxBenchWeight,
-    }))
+    const points: ScatterPoint[] = scatterData.map(p => ({ x: p.x, y: p.y }))
     const { m, b } = linearRegression(points)
 
-    const under6 = PLACEHOLDER_SESSIONS.filter(s => s.sleepHours < 6)
-    const over8  = PLACEHOLDER_SESSIONS.filter(s => s.sleepHours >= 8)
-    const avg = (arr: typeof PLACEHOLDER_SESSIONS) =>
-        arr.length
-            ? Math.round(arr.reduce((a, s) => a + s.maxBenchWeight, 0) / arr.length)
-            : 0
-    const pct =
-        over8.length && under6.length
-            ? Math.round(((avg(over8) - avg(under6)) / avg(under6)) * 100)
-            : 11
+    const under6 = scatterData.filter(p => p.x < 6)
+    const over8 = scatterData.filter(p => p.x >= 8)
+    const avgWeight = (pts: ProgressScatterPoint[]) =>
+        pts.length ? Math.round(pts.reduce((a, p) => a + p.y, 0) / pts.length) : 0
+    const pct = over8.length && under6.length
+        ? Math.round(((avgWeight(over8) - avgWeight(under6)) / avgWeight(under6)) * 100)
+        : null
 
     useEffect(() => {
         async function init() {
@@ -31,9 +30,9 @@ export default function SleepVsPerformance() {
             const ctx = canvasRef.current
             if (!ctx) return
             if (chartRef.current) (chartRef.current as { destroy: () => void }).destroy()
+            if (!points.length) return
 
             const xMin = 4.5, xMax = 10
-
             chartRef.current = new Chart(ctx, {
                 data: {
                     datasets: [
@@ -76,21 +75,13 @@ export default function SleepVsPerformance() {
                                 if (!el) {
                                     el = document.createElement('div')
                                     el.id = 'sleep-perf-tooltip'
-                                    el.style.cssText = `
-                    position: fixed; pointer-events: none; opacity: 0;
-                    background: #1a1a1a; border-radius: 12px; padding: 8px 12px;
-                    font-family: Inter, sans-serif; transition: opacity 0.15s;
-                    white-space: nowrap; z-index: 999;
-                  `
+                                    el.style.cssText = `position:fixed;pointer-events:none;opacity:0;background:#1a1a1a;border-radius:12px;padding:8px 12px;font-family:Inter,sans-serif;transition:opacity 0.15s;white-space:nowrap;z-index:999;`
                                     document.body.appendChild(el)
                                 }
                                 if (tooltip.opacity === 0) { el.style.opacity = '0'; return }
                                 const item = tooltip.dataPoints?.[0]
                                 if (!item || item.datasetIndex !== 0) { el.style.opacity = '0'; return }
-                                el.innerHTML = `
-                  <div style="font-size:11px;color:#aaa;margin-bottom:2px;">😴 ${item.parsed.x}h sleep</div>
-                  <div style="font-size:13px;font-weight:900;color:#E8417A;">${item.parsed.y} lbs</div>
-                `
+                                el.innerHTML = `<div style="font-size:11px;color:#aaa;margin-bottom:2px;">😴 ${item.parsed.x}h sleep</div><div style="font-size:13px;font-weight:900;color:#E8417A;">${item.parsed.y} lbs</div>`
                                 const rect = chart.canvas.getBoundingClientRect()
                                 el.style.opacity = '1'
                                 el.style.left = rect.left + tooltip.caretX - el.offsetWidth / 2 + 'px'
@@ -100,37 +91,15 @@ export default function SleepVsPerformance() {
                     },
                     scales: {
                         x: {
-                            type: 'linear' as const,
-                            min: 4.5,
-                            max: 10,
-                            title: {
-                                display: true,
-                                text: 'Sleep (hrs)',
-                                font: { size: 9 },
-                                color: '#aaa',
-                            },
+                            type: 'linear' as const, min: 4.5, max: 10,
+                            title: { display: true, text: 'Sleep (hrs)', font: { size: 9 }, color: '#aaa' },
                             grid: { color: '#f5f0e8' },
-                            ticks: {
-                                font: { size: 9 },
-                                color: '#aaa',
-                                callback: (v: any) => v + 'h',
-                            }
+                            ticks: { font: { size: 9 }, color: '#aaa', callback: (v: any) => v + 'h' }
                         },
                         y: {
-                            min: 100,
-                            max: 150,
-                            title: {
-                                display: true,
-                                text: 'lbs',
-                                font: { size: 9 },
-                                color: '#aaa',
-                            },
+                            title: { display: true, text: 'lbs', font: { size: 9 }, color: '#aaa' },
                             grid: { color: '#f5f0e8' },
-                            ticks: {
-                                font: { size: 9 },
-                                color: '#aaa',
-                                maxTicksLimit: 5,
-                            },
+                            ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 5 },
                             border: { display: false }
                         }
                     }
@@ -143,7 +112,7 @@ export default function SleepVsPerformance() {
             const el = document.getElementById('sleep-perf-tooltip')
             if (el) el.remove()
         }
-    }, [])
+    }, [scatterData])
 
     return (
         <div className="rounded-2xl p-4 mb-3"
@@ -153,51 +122,42 @@ export default function SleepVsPerformance() {
                    style={{ fontSize: '11px', color: '#888' }}>
                     Sleep vs performance
                 </p>
-                <span className="font-bold rounded-full px-2 py-1"
-                      style={{ fontSize: '10px', background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
-          r = 0.81
-        </span>
+                {points.length > 0 && (
+                    <span className="font-bold rounded-full px-2 py-1"
+                          style={{ fontSize: '10px', background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
+            {points.length} sessions
+          </span>
+                )}
             </div>
             <p className="mb-3" style={{ fontSize: '10px', color: 'var(--muted)' }}>
-                Bench press · last {PLACEHOLDER_SESSIONS.length} sessions
+                Weight lifted vs hours slept
             </p>
-            <div style={{ position: 'relative', height: '160px' }}>
-                <canvas ref={canvasRef}
-                        role="img"
-                        aria-label="Scatter plot of sleep hours vs bench press weight">
-                    Sleep hours vs bench press weight — positive correlation.
-                </canvas>
-            </div>
-            <div className="flex gap-3 mt-2 mb-3">
-                {[
-                    { color: '#E8417A', label: 'Session', round: true },
-                    { color: '#C42D65', label: 'Trend', round: false },
-                ].map(({ color, label, round }) => (
-                    <div key={label} className="flex items-center gap-1.5">
-            <span style={{
-                width: '10px', height: '10px', display: 'block',
-                borderRadius: round ? '50%' : '2px',
-                background: color,
-            }} />
-                        <span style={{ fontSize: '10px', color: 'var(--muted)', fontWeight: 600 }}>
-              {label}
+            {points.length < 3 ? (
+                <div className="flex items-center justify-center h-24"
+                     style={{ color: 'var(--muted)', fontSize: '12px' }}>
+                    Log sleep + sessions to see correlation
+                </div>
+            ) : (
+                <div style={{ position: 'relative', height: '160px' }}>
+                    <canvas ref={canvasRef} role="img"
+                            aria-label="Scatter plot of sleep hours vs weight lifted">
+                        Sleep vs performance scatter.
+                    </canvas>
+                </div>
+            )}
+            {pct !== null && (
+                <div className="rounded-2xl p-3 mt-3" style={{ background: 'var(--pink-light)' }}>
+                    <p className="font-bold uppercase tracking-widest mb-1"
+                       style={{ fontSize: '9px', color: 'var(--pink-dark)' }}>✨ AI insight</p>
+                    <p className="leading-relaxed" style={{ fontSize: '11px', color: '#444' }}>
+                        You lift{' '}
+                        <span className="font-black" style={{ color: 'var(--pink)' }}>
+              {pct}% heavier
             </span>
-                    </div>
-                ))}
-            </div>
-            <div className="rounded-2xl p-3" style={{ background: 'var(--pink-light)' }}>
-                <p className="font-bold uppercase tracking-widest mb-1"
-                   style={{ fontSize: '9px', color: 'var(--pink-dark)' }}>
-                    ✨ AI insight
-                </p>
-                <p className="leading-relaxed" style={{ fontSize: '11px', color: '#444' }}>
-                    You lift{' '}
-                    <span className="font-black" style={{ color: 'var(--pink)' }}>
-            {pct}% heavier
-          </span>
-                    {' '}after 8h+ sleep vs under 6h. Your sweet spot is 7.5–8.5h.
-                </p>
-            </div>
+                        {' '}after 8h+ sleep vs under 6h.
+                    </p>
+                </div>
+            )}
         </div>
     )
 }

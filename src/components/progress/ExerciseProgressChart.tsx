@@ -1,26 +1,27 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { PLACEHOLDER_SESSIONS } from '@/lib/progressUtils'
+import { ExercisePoint } from '@/lib/progressData'
 
-type ExKey = 'bench' | 'ohp' | 'squat'
-
-const EX_CONFIG: Record<ExKey, { label: string; key: keyof typeof PLACEHOLDER_SESSIONS[0] }> = {
-    bench: { label: 'Bench Press',    key: 'maxBenchWeight' },
-    ohp:   { label: 'Overhead Press', key: 'maxOHPWeight'   },
-    squat: { label: 'Squat',          key: 'maxSquatWeight' },
+interface Props {
+    exerciseHistory: Record<string, ExercisePoint[]>
 }
 
-export default function ExerciseProgressChart() {
+export default function ExerciseProgressChart({ exerciseHistory }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const chartRef = useRef<unknown>(null)
-    const [ex, setEx] = useState<ExKey>('bench')
+    const exercises = Object.keys(exerciseHistory)
+    const [selected, setSelected] = useState<string>(exercises[0] ?? '')
 
-    const sessions = PLACEHOLDER_SESSIONS
-    const cfg = EX_CONFIG[ex]
-    const maxVal = Math.max(...sessions.map(s => s[cfg.key] as number))
-    const firstVal = sessions[0][cfg.key] as number
-    const lastVal = sessions[sessions.length - 1][cfg.key] as number
+    useEffect(() => {
+        if (exercises.length > 0 && !selected) setSelected(exercises[0])
+    }, [exercises])
+
+    const points = selected ? (exerciseHistory[selected] ?? []) : []
+
+    const maxVal = points.length ? Math.max(...points.map(p => p.weight)) : 0
+    const firstVal = points.length ? points[0].weight : 0
+    const lastVal = points.length ? points[points.length - 1].weight : 0
     const gain = lastVal - firstVal
 
     useEffect(() => {
@@ -30,12 +31,13 @@ export default function ExerciseProgressChart() {
             const ctx = canvasRef.current
             if (!ctx) return
             if (chartRef.current) (chartRef.current as { destroy: () => void }).destroy()
+            if (!points.length) return
             chartRef.current = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: sessions.map(s => new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                    labels: points.map(p => p.label),
                     datasets: [{
-                        data: sessions.map(s => s[cfg.key]),
+                        data: points.map(p => p.weight),
                         borderColor: '#E8417A',
                         backgroundColor: '#E8417A22',
                         borderWidth: 2,
@@ -51,45 +53,69 @@ export default function ExerciseProgressChart() {
                     plugins: { legend: { display: false } },
                     scales: {
                         x: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 5, maxRotation: 0 } },
-                        y: { grid: { color: '#f5f0e8' }, ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 4, callback: (v: unknown) => v + ' lbs' }, border: { display: false } }
+                        y: {
+                            grid: { color: '#f5f0e8' },
+                            ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 4, callback: (v: any) => v + ' lbs' },
+                            border: { display: false }
+                        }
                     }
                 }
             })
         }
         init()
         return () => { if (chartRef.current) (chartRef.current as { destroy: () => void }).destroy() }
-    }, [ex])
+    }, [selected, exerciseHistory])
+
+    if (exercises.length === 0) {
+        return (
+            <div className="rounded-2xl p-4 mb-3"
+                 style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
+                <p className="font-black uppercase tracking-widest mb-2"
+                   style={{ fontSize: '11px', color: '#888' }}>Exercise progress</p>
+                <div className="flex items-center justify-center h-24"
+                     style={{ color: 'var(--muted)', fontSize: '12px' }}>
+                    Log strength sessions to track progression
+                </div>
+            </div>
+        )
+    }
 
     return (
-        <div className="rounded-2xl p-4 mb-3" style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
+        <div className="rounded-2xl p-4 mb-3"
+             style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
             <div className="flex justify-between items-center mb-1">
-                <p className="font-black uppercase tracking-widest" style={{ fontSize: '11px', color: '#888' }}>
-                    {cfg.label}
+                <p className="font-black uppercase tracking-widest"
+                   style={{ fontSize: '11px', color: '#888' }}>
+                    {selected}
                 </p>
-                <span className="font-bold rounded-full px-2 py-1"
-                      style={{ fontSize: '10px', background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
-          ↑ +{gain} lbs
-        </span>
+                {gain !== 0 && (
+                    <span className="font-bold rounded-full px-2 py-1"
+                          style={{ fontSize: '10px', background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
+            {gain > 0 ? '↑' : '↓'} {Math.abs(gain)} lbs
+          </span>
+                )}
             </div>
-            <p className="mb-3" style={{ fontSize: '10px', color: 'var(--muted)' }}>
-                PR: <span className="font-black" style={{ color: 'var(--pink)' }}>{maxVal} lbs</span>
-            </p>
+            {maxVal > 0 && (
+                <p className="mb-3" style={{ fontSize: '10px', color: 'var(--muted)' }}>
+                    PR: <span className="font-black" style={{ color: 'var(--pink)' }}>{maxVal} lbs</span>
+                </p>
+            )}
             <div style={{ position: 'relative', height: '110px' }}>
                 <canvas ref={canvasRef} role="img" aria-label="Line chart of exercise weight progression">
                     Exercise weight progression over time.
                 </canvas>
             </div>
-            <div className="flex gap-1.5 mt-3" style={{ overflowX: 'auto' }}>
-                {(Object.entries(EX_CONFIG) as [ExKey, typeof EX_CONFIG[ExKey]][]).map(([key, cfg]) => (
-                    <button key={key}
-                            onClick={() => setEx(key)}
+            <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                {exercises.map(name => (
+                    <button key={name}
+                            onClick={() => setSelected(name)}
                             className="font-bold rounded-full transition-all active:scale-95 flex-shrink-0"
                             style={{
                                 padding: '5px 12px', fontSize: '10px', border: 'none', cursor: 'pointer',
-                                background: ex === key ? 'var(--pink)' : '#f5f0e8',
-                                color: ex === key ? '#fff' : '#aaa',
+                                background: selected === name ? 'var(--pink)' : '#f5f0e8',
+                                color: selected === name ? '#fff' : '#aaa',
                             }}>
-                        {cfg.label}
+                        {name}
                     </button>
                 ))}
             </div>

@@ -1,25 +1,34 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { WeeklyWorkoutPoint, MonthlyWorkoutPoint } from '@/lib/progressData'
+import { PLACEHOLDER_DASHBOARD } from '@/lib/placeholder'
 import { WEEKLY_WORKOUTS, MONTHLY_WORKOUTS } from '@/lib/progressUtils'
 
 type Range = 'weekly' | 'monthly'
 
-export default function WorkoutFrequencyChart() {
+interface Props {
+    weeklyData: WeeklyWorkoutPoint[]
+    monthlyData: MonthlyWorkoutPoint[]
+}
+
+export default function WorkoutFrequencyChart({ weeklyData, monthlyData }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const chartRef = useRef<unknown>(null)
     const [range, setRange] = useState<Range>('weekly')
 
+    const weekly = weeklyData.length > 0 ? weeklyData : WEEKLY_WORKOUTS
+    const monthly = monthlyData.length > 0 ? monthlyData : MONTHLY_WORKOUTS
+
     useEffect(() => {
-        let chart: unknown = null
         async function init() {
             const { Chart, registerables } = await import('chart.js')
             Chart.register(...registerables)
             const ctx = canvasRef.current
             if (!ctx) return
             if (chartRef.current) (chartRef.current as { destroy: () => void }).destroy()
-            const data = range === 'weekly' ? WEEKLY_WORKOUTS : MONTHLY_WORKOUTS
-            chart = new Chart(ctx, {
+            const data = range === 'weekly' ? weekly : monthly
+            chartRef.current = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: data.map(d => d.label),
@@ -35,18 +44,22 @@ export default function WorkoutFrequencyChart() {
                     plugins: { legend: { display: false } },
                     scales: {
                         x: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#aaa', maxRotation: 0 } },
-                        y: { grid: { color: '#f5f0e8' }, ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 4, stepSize: 1 }, border: { display: false } }
+                        y: {
+                            grid: { color: '#f5f0e8' },
+                            ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 4, stepSize: 1 },
+                            border: { display: false }
+                        }
                     }
                 }
             })
-            chartRef.current = chart
         }
         init()
         return () => { if (chartRef.current) (chartRef.current as { destroy: () => void }).destroy() }
-    }, [range])
+    }, [range, weeklyData, monthlyData])
 
     return (
-        <div className="rounded-2xl p-4 mb-3" style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
+        <div className="rounded-2xl p-4 mb-3"
+             style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
             <div className="flex justify-between items-center mb-3">
                 <p className="font-black uppercase tracking-widest" style={{ fontSize: '11px', color: '#888' }}>
                     Workouts / week
@@ -66,12 +79,18 @@ export default function WorkoutFrequencyChart() {
                     ))}
                 </div>
             </div>
-            <div style={{ position: 'relative', height: '100px' }}>
-                <canvas ref={canvasRef}
-                        role="img" aria-label="Bar chart of workout frequency">
-                    Workout frequency over time.
-                </canvas>
-            </div>
+            {weekly.length === 0 && monthly.length === 0 ? (
+                <div className="flex items-center justify-center h-24"
+                     style={{ color: 'var(--muted)', fontSize: '12px' }}>
+                    Log your first session to see data here
+                </div>
+            ) : (
+                <div style={{ position: 'relative', height: '100px' }}>
+                    <canvas ref={canvasRef} role="img" aria-label="Bar chart of workout frequency">
+                        Workout frequency over time.
+                    </canvas>
+                </div>
+            )}
         </div>
     )
 }
