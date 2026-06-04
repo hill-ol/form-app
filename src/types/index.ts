@@ -46,6 +46,7 @@ export interface WorkoutSession {
     duration?: number
     exercises?: ExerciseLog[]
     notes?: string
+    mood?: number
 }
 
 export interface DayTemplate {
@@ -79,5 +80,6 @@ export interface CalendarDay {
     isCurrentMonth: boolean
     isToday: boolean
     session: WorkoutSession | null
+    sessions: WorkoutSession[]
     planned: DayTemplate | null
 }

@@ -20,8 +20,10 @@ export default function CalendarGrid({ days, onOverrideSaved }: Props) {
         <div className="relative">
             <div className="grid grid-cols-7 px-2 mb-1">
                 {DAY_HEADERS.map(d => (
-                    <div key={d} className="text-center font-bold uppercase py-1"
-                         style={{ fontSize: '9px', color: '#bbb', letterSpacing: '0.05em' }}>
+                    <div
+                        key={d}
+                        className="text-center font-bold uppercase py-1"
+                        style={{ fontSize: '9px', color: '#bbb', letterSpacing: '0.05em' }}>
                         {d}
                     </div>
                 ))}
@@ -30,12 +32,24 @@ export default function CalendarGrid({ days, onOverrideSaved }: Props) {
             <div className="grid grid-cols-7 gap-1 px-2 pb-2">
                 {days.map((day, i) => {
                     const hasSession = !!day.session
-                    const workoutType = hasSession ? day.session!.type : null
-                    const plannedType = day.planned
-                        ? DAY_TYPE_TO_WORKOUT[day.planned.dayType]
+                    const hasOverride = !!day.planned && !hasSession
+
+                    const workoutType = hasSession
+                        ? day.session!.type
+                        : day.planned
+                            ? DAY_TYPE_TO_WORKOUT[day.planned.dayType]
+                            : null
+
+                    const colors = workoutType && workoutType !== 'rest'
+                        ? WORKOUT_COLORS[workoutType]
                         : null
-                    const colors = workoutType ? WORKOUT_COLORS[workoutType] : null
-                    const emoji = hasSession ? WORKOUT_EMOJI[day.session!.type] : null
+
+                    const emoji = hasSession
+                        ? WORKOUT_EMOJI[day.session!.type]
+                        : day.planned && day.planned.dayType !== 'rest'
+                            ? WORKOUT_EMOJI[DAY_TYPE_TO_WORKOUT[day.planned.dayType]] ?? null
+                            : null
+
                     const isHovered = hovered === i
                     const isClickable = day.isCurrentMonth
 
@@ -49,29 +63,42 @@ export default function CalendarGrid({ days, onOverrideSaved }: Props) {
                             style={{
                                 background: colors && hasSession
                                     ? colors.bg
-                                    : isHovered && isClickable
-                                        ? '#F5EEE8'
-                                        : 'transparent',
+                                    : colors && hasOverride && day.isCurrentMonth
+                                        ? colors.bg + '66'
+                                        : isHovered && isClickable
+                                            ? '#F5EEE8'
+                                            : 'transparent',
                                 opacity: day.isCurrentMonth ? 1 : 0.2,
                                 cursor: isClickable ? 'pointer' : 'default',
                                 transform: isHovered && isClickable ? 'scale(1.08)' : 'scale(1)',
                                 border: day.isToday && !hasSession
                                     ? '1.5px solid var(--pink)'
-                                    : 'none',
+                                    : colors && hasOverride && day.isCurrentMonth
+                                        ? `1.5px solid ${colors.border}44`
+                                        : 'none',
                             }}>
                             {emoji && (
-                                <span style={{ fontSize: '13px', lineHeight: 1 }}>{emoji}</span>
+                                <span style={{
+                                    fontSize: day.sessions.length > 1 ? '10px' : '13px',
+                                    lineHeight: 1,
+                                    opacity: hasOverride ? 0.6 : 1,
+                                }}>
+    {day.sessions.length > 1 ? `${day.sessions.length}×` : emoji}
+  </span>
                             )}
-                            {!emoji && plannedType && plannedType !== 'rest' && day.isCurrentMonth && (
+
+                            {!emoji && day.planned && day.planned.dayType !== 'rest' && day.isCurrentMonth && (
                                 <span style={{
                                     width: '5px', height: '5px', borderRadius: '50%',
-                                    background: WORKOUT_COLORS[plannedType]?.border ?? '#ccc',
-                                    display: 'block', marginBottom: '2px', opacity: 0.5,
+                                    background: colors?.border ?? '#ccc',
+                                    display: 'block', marginBottom: '2px', opacity: 0.4,
                                 }} />
                             )}
+
                             {day.isToday ? (
-                                <div className="w-6 h-6 rounded-full flex items-center justify-center"
-                                     style={{ background: 'var(--pink)' }}>
+                                <div
+                                    className="w-6 h-6 rounded-full flex items-center justify-center"
+                                    style={{ background: 'var(--pink)' }}>
                   <span style={{ fontSize: '10px', fontWeight: 900, color: '#fff' }}>
                     {day.date.getDate()}
                   </span>
@@ -80,7 +107,11 @@ export default function CalendarGrid({ days, onOverrideSaved }: Props) {
                                 <span style={{
                                     fontSize: '10px',
                                     fontWeight: 700,
-                                    color: colors && hasSession ? colors.text : '#1a1a1a',
+                                    color: colors && hasSession
+                                        ? colors.text
+                                        : colors && hasOverride
+                                            ? colors.text + 'aa'
+                                            : '#1a1a1a',
                                     lineHeight: 1,
                                     marginTop: emoji ? '1px' : 0,
                                 }}>

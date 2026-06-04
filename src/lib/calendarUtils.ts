@@ -15,7 +15,14 @@ export function getCalendarDays(
 
     for (let i = 0; i < startOffset; i++) {
         const date = new Date(year, month, -startOffset + i + 1)
-        days.push({ date, isCurrentMonth: false, isToday: false, session: null, planned: null })
+        days.push({
+            date,
+            isCurrentMonth: false,
+            isToday: false,
+            session: null,
+            sessions: [],
+            planned: null,
+        })
     }
 
     for (let d = 1; d <= lastDay.getDate(); d++) {
@@ -23,10 +30,11 @@ export function getCalendarDays(
         const isToday = date.toDateString() === today.toDateString()
         const isoDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 
-        const session = sessions.find(s => {
-            const sd = new Date(s.date)
-            return sd.toDateString() === date.toDateString()
-        }) ?? null
+        const daySessions = sessions.filter(s => {
+            const sessionDate = s.date.split('T')[0]
+            return sessionDate === isoDate
+        })
+        const session = daySessions[0] ?? null
 
         let planned = template.find(t => t.dayOfWeek === date.getDay()) ?? null
 
@@ -43,13 +51,27 @@ export function getCalendarDays(
             }
         }
 
-        days.push({ date, isCurrentMonth: true, isToday, session, planned })
+        days.push({
+            date,
+            isCurrentMonth: true,
+            isToday,
+            session,
+            sessions: daySessions,
+            planned,
+        })
     }
 
     const remaining = 42 - days.length
     for (let i = 1; i <= remaining; i++) {
         const date = new Date(year, month + 1, i)
-        days.push({ date, isCurrentMonth: false, isToday: false, session: null, planned: null })
+        days.push({
+            date,
+            isCurrentMonth: false,
+            isToday: false,
+            session: null,
+            sessions: [],
+            planned: null,
+        })
     }
 
     return days

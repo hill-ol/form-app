@@ -186,7 +186,8 @@ export async function getSessionsForMonth(
     month: number
 ): Promise<SupabaseSession[]> {
     const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
-    const end = `${year}-${String(month + 1).padStart(2, '0')}-31`
+    const lastDay = new Date(year, month + 1, 0).getDate()
+    const end = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
     const { data, error } = await supabase
         .from('workout_sessions')
         .select('id, date, day_type, workout_type, name, duration_seconds, mood')
@@ -423,10 +424,12 @@ export async function saveDayOverride(
 ) {
     const { error } = await supabase
         .from('day_overrides')
-        .upsert(
-            { date, day_type: dayType, label, updated_at: new Date().toISOString() },
-            { onConflict: 'date' }
-        )
+        .insert({
+            date,
+            day_type: dayType,
+            label,
+            updated_at: new Date().toISOString(),
+        })
     if (error) throw error
 }
 
@@ -441,4 +444,28 @@ export async function getDayOverrides(
         .lte('date', endDate)
     if (error) return []
     return (data ?? []) as { date: string; day_type: string; label: string }[]
+}
+
+export async function getSessionById(sessionId: string): Promise<SupabaseSession | null> {
+    const { data, error } = await supabase
+        .from('workout_sessions')
+        .select(`
+      *,
+      exercise_logs (
+        *,
+        set_logs (*)
+      )
+    `)
+        .eq('id', sessionId)
+        .single()
+    if (error) return null
+    return data as SupabaseSession
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+    const { error } = await supabase
+        .from('workout_sessions')
+        .delete()
+        .eq('id', sessionId)
+    if (error) throw error
 }
