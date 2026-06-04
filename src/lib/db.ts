@@ -469,3 +469,70 @@ export async function deleteSession(sessionId: string): Promise<void> {
         .eq('id', sessionId)
     if (error) throw error
 }
+
+export async function getLastSessionByDayType(dayType: string): Promise<SupabaseSession | null> {
+    const { data, error } = await supabase
+        .from('workout_sessions')
+        .select(`
+      *,
+      exercise_logs (
+        *,
+        set_logs (*)
+      )
+    `)
+        .eq('day_type', dayType)
+        .order('date', { ascending: false })
+        .limit(1)
+        .single()
+    if (error) return null
+    return data as SupabaseSession
+}
+
+export async function getProgressionSuggestions(): Promise<Record<string, number>> {
+    const { data, error } = await supabase
+        .from('exercise_logs')
+        .select(`
+      exercise_id,
+      exercise_name,
+      set_logs (reps, weight_lbs, completed),
+      workout_sessions!inner (date)
+    `)
+        .order('created_at', { ascending: false })
+        .limit(100)
+
+    if (error) return {}
+
+    const exerciseHistory: Record<string, {
+        date: string
+        maxWeight: number
+        allRepsHit: boolean
+        targetReps: number
+    }[]> = {}
+
+    for (const log of (data ?? []) as any[]) {
+        const id = log.exercise_id
+        const date = log.workout_sessions.date
+        const completedSets = (log.set_logs ?? []).filter((s: any) => s.completed && s.weight_lbs)
+        if (!completedSets.length) continue
+
+        const maxWeight = Math.max(...completedSets.map((s: any) => s.weight_lbs))
+        const avgReps = completedSets.reduce((a: number, s: any) => a + (s.reps ?? 0), 0) / completedSets.length
+        const allRepsHit = avgReps >= 10
+
+        if (!exerciseHistory[id]) exerciseHistory[id] = []
+        exerciseHistory[id].push({ date, maxWeight, allRepsHit, targetReps: 10 })
+    }
+
+    const suggestions: Record<string, number> = {}
+
+    for (const [id, history] of Object.entries(exerciseHistory)) {
+        const sorted = history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        const lastThree = sorted.slice(0, 3)
+        if (lastThree.length >= 2 && lastThree.every(s => s.allRepsHit)) {
+            const lastWeight = lastThree[0].maxWeight
+            suggestions[id] = lastWeight + 5
+        }
+    }
+
+    return suggestions
+}

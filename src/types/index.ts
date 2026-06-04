@@ -35,6 +35,7 @@ export interface ExerciseLog {
     reps: number
     weight: string
     progressReady?: boolean
+    suggestedWeight?: string
 }
 
 export interface WorkoutSession {

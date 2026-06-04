@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { WeeklyWorkoutPoint, MonthlyWorkoutPoint } from '@/lib/progressData'
-import { PLACEHOLDER_DASHBOARD } from '@/lib/placeholder'
-import { WEEKLY_WORKOUTS, MONTHLY_WORKOUTS } from '@/lib/progressUtils'
 
 type Range = 'weekly' | 'monthly'
 
@@ -17,8 +15,8 @@ export default function WorkoutFrequencyChart({ weeklyData, monthlyData }: Props
     const chartRef = useRef<unknown>(null)
     const [range, setRange] = useState<Range>('weekly')
 
-    const weekly = weeklyData.length > 0 ? weeklyData : WEEKLY_WORKOUTS
-    const monthly = monthlyData.length > 0 ? monthlyData : MONTHLY_WORKOUTS
+    const weekly = weeklyData
+    const monthly = monthlyData
 
     useEffect(() => {
         async function init() {

@@ -67,6 +67,7 @@ export default function LogPage() {
     const [startTime, setStartTime] = useState<number>(0)
     const [coachInsight, setCoachInsight] = useState<string | null>(null)
     const [coachLoading, setCoachLoading] = useState(false)
+    const [estimatedDuration, setEstimatedDuration] = useState('45–60 min')
 
     const dayLabel = DAY_LABEL[selectedDayType] ?? 'Workout'
     const dayEmoji = DAY_EMOJI[selectedDayType] ?? '🏋️'
@@ -77,6 +78,25 @@ export default function LogPage() {
             sessionStorage.setItem('form_session_start', String(startTime))
         }
     }, [startTime])
+
+    useEffect(() => {
+        async function loadDuration() {
+            try {
+                const { getLastSessionByDayType } = await import('@/lib/db')
+                const last = await getLastSessionByDayType(selectedDayType)
+                if (last && (last as any).duration_seconds) {
+                    const mins = Math.floor((last as any).duration_seconds / 60)
+                    const rounded = Math.round(mins / 5) * 5
+                    setEstimatedDuration(`~${rounded} min`)
+                } else {
+                    setEstimatedDuration('45–60 min')
+                }
+            } catch {
+                setEstimatedDuration('45–60 min')
+            }
+        }
+        loadDuration()
+    }, [selectedDayType])
 
     async function fetchCoachInsight() {
         if (coachLoading) return
@@ -264,19 +284,20 @@ export default function LogPage() {
 
             <div className="flex-1 flex flex-col px-4 pt-4 pb-24 max-w-2xl mx-auto w-full">
 
-                <div className="rounded-2xl p-5 mb-4"
-                     style={{
-                         background: '#fff',
-                         border: '0.5px solid var(--border)',
-                         animation: 'slideInUp 0.25s ease',
-                     }}>
+                <div
+                    className="rounded-2xl p-5 mb-4"
+                    style={{
+                        background: '#fff',
+                        border: '0.5px solid var(--border)',
+                        animation: 'slideInUp 0.25s ease',
+                    }}>
                     <p className="text-xs font-bold uppercase tracking-widest mb-1"
                        style={{ color: 'var(--muted)', fontSize: '10px' }}>
                         {isDefaultPlan ? "Today's plan" : 'Custom session'}
                     </p>
                     <p className="text-2xl font-black mb-1">{dayLabel} {dayEmoji}</p>
                     <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
-                        {displayExercises.length} exercises · estimated 45–60 min
+                        {displayExercises.length} exercises · estimated {estimatedDuration}
                     </p>
 
                     <div className="space-y-2 mb-4">
@@ -297,10 +318,20 @@ export default function LogPage() {
                                             {lib?.primaryMuscle ?? ex.exerciseId} · {ex.sets}×{ex.reps || '—'}
                                         </p>
                                     </div>
-                                    <span className="text-xs font-bold px-2 py-1 rounded-full"
-                                          style={{ background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
-                    {ex.weight}
-                  </span>
+                                    <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2 py-1 rounded-full"
+                          style={{ background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
+                      {ex.weight}
+                    </span>
+                                        {(ex as any).progressReady && (
+                                            <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full"
+                                                  style={{ background: 'var(--pink)', fontSize: '10px' }}>
+                        ↑ {(ex as any).suggestedWeight
+                                                ? `try ${(ex as any).suggestedWeight}`
+                                                : 'level up'}
+                      </span>
+                                        )}
+                                    </div>
                                 </div>
                             )
                         })}

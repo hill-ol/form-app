@@ -7,7 +7,12 @@ const WORKOUT_EMOJI: Record<string, string> = {
     bodyweight: '🤸',
 }
 
-export default function TodayWorkout({ workout }: { workout: WorkoutSession }) {
+interface Props {
+    workout: WorkoutSession
+    estimatedDuration?: string
+}
+
+export default function TodayWorkout({ workout, estimatedDuration = '45–60 min' }: Props) {
     const emoji = WORKOUT_EMOJI[workout.type]
 
     return (
@@ -24,8 +29,8 @@ export default function TodayWorkout({ workout }: { workout: WorkoutSession }) {
                 <div className="flex items-center gap-2">
           <span className="text-xs font-semibold px-3 py-1 rounded-full"
                 style={{ background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
-            Strength
-          </span>
+          {workout.type.charAt(0).toUpperCase() + workout.type.slice(1)}
+        </span>
                     <button className="hidden md:block text-xs font-bold uppercase tracking-wider text-white px-4 py-2 rounded-full"
                             style={{ background: 'var(--pink)' }}>
                         Start Session
@@ -45,8 +50,8 @@ export default function TodayWorkout({ workout }: { workout: WorkoutSession }) {
                             {ex.progressReady && (
                                 <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full"
                                       style={{ background: 'var(--pink)', fontSize: '10px' }}>
-                  ↑ level up
-                </span>
+    ↑ {ex.suggestedWeight ? `try ${ex.suggestedWeight}` : 'level up'}
+  </span>
                             )}
                         </div>
                     </div>
