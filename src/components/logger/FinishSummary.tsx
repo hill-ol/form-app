@@ -54,7 +54,10 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                     {
                         date: new Date().toISOString().split('T')[0],
                         dayType,
-                        workoutType: 'strength',
+                        workoutType: dayType === 'cardio' ? 'cardio'
+                            : dayType === 'yoga' ? 'yoga'
+                                : dayType === 'full body' ? 'bodyweight'
+                                    : 'strength',
                         name: dayName,
                         durationSeconds: duration,
                         mood,

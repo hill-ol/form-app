@@ -5,17 +5,20 @@ import { ExercisePoint } from '@/lib/progressData'
 
 interface Props {
     exerciseHistory: Record<string, ExercisePoint[]>
+    initialExercise?: string
 }
 
-export default function ExerciseProgressChart({ exerciseHistory }: Props) {
-    const canvasRef = useRef<HTMLCanvasElement>(null)
-    const chartRef = useRef<unknown>(null)
+export default function ExerciseProgressChart({ exerciseHistory, initialExercise }: Props) {
     const exercises = Object.keys(exerciseHistory)
-    const [selected, setSelected] = useState<string>(exercises[0] ?? '')
+    const [selected, setSelected] = useState<string>(
+        initialExercise ?? exercises[0] ?? ''
+    )
 
     useEffect(() => {
-        if (exercises.length > 0 && !selected) setSelected(exercises[0])
-    }, [exercises])
+        if (initialExercise && exerciseHistory[initialExercise]) {
+            setSelected(initialExercise)
+        }
+    }, [initialExercise])
 
     const points = selected ? (exerciseHistory[selected] ?? []) : []
 

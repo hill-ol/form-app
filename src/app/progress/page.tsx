@@ -1,3 +1,6 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import TopNav from '@/components/layout/TopNav'
 import BottomNav from '@/components/layout/BottomNav'
 import AiRecapCard from '@/components/progress/AiRecapCard'
@@ -8,10 +11,24 @@ import SleepChart from '@/components/progress/SleepChart'
 import SleepVsPerformance from '@/components/progress/SleepVsPerformance'
 import MoodVsPerformance from '@/components/progress/MoodVsPerformance'
 import PersonalRecords from '@/components/progress/PersonalRecords'
-import { loadProgressData } from '@/lib/progressData'
+import { loadProgressData, ProgressData } from '@/lib/progressData'
 
-export default async function ProgressPage() {
-    const data = await loadProgressData().catch(() => null)
+export default function ProgressPage() {
+    const [data, setData] = useState<ProgressData | null>(null)
+    const [selectedExercise, setSelectedExercise] = useState<string | null>(null)
+
+    useEffect(() => {
+        loadProgressData()
+            .then(setData)
+            .catch(() => setData(null))
+    }, [])
+
+    function handleSelectExercise(name: string) {
+        setSelectedExercise(name)
+        document.getElementById('exercise-chart')?.scrollIntoView({
+            behavior: 'smooth', block: 'start'
+        })
+    }
 
     return (
         <div className="min-h-screen" style={{ backgroundColor: 'var(--cream)' }}>
@@ -53,17 +70,21 @@ export default async function ProgressPage() {
                     monthlyData={data?.monthlyWorkouts ?? []}
                 />
 
-                <ExerciseProgressChart
-                    exerciseHistory={data?.exerciseHistory ?? {}}
-                />
+                <div id="exercise-chart">
+                    <ExerciseProgressChart
+                        exerciseHistory={data?.exerciseHistory ?? {}}
+                        initialExercise={selectedExercise ?? undefined}
+                    />
+                </div>
 
                 <SleepChart sleepData={data?.sleepData ?? []} />
-
                 <SleepVsPerformance scatterData={data?.scatterData ?? []} />
-
                 <MoodVsPerformance moodData={data?.moodData ?? []} />
 
-                <PersonalRecords records={data?.personalRecords ?? []} />
+                <PersonalRecords
+                    records={data?.personalRecords ?? []}
+                    onSelectExercise={handleSelectExercise}
+                />
             </main>
 
             <BottomNav />

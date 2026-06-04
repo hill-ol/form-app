@@ -10,6 +10,7 @@ import AddExerciseSheet from '@/components/logger/AddExerciseSheet'
 import RestTimer from '@/components/logger/RestTimer'
 import FinishSummary from '@/components/logger/FinishSummary'
 import BottomNav from '@/components/layout/BottomNav'
+import { ActiveSet } from '@/lib/sessionUtils'
 
 const WORKOUT_EMOJI: Record<string, string> = {
     strength: '🏋️', cardio: '🏃', yoga: '🧘', bodyweight: '🤸',
@@ -60,7 +61,7 @@ type Screen = 'pre' | 'active' | 'done'
 export default function LogPage() {
     const [screen, setScreen] = useState<Screen>('pre')
     const [selectedDayType, setSelectedDayType] = useState<string>(todayWorkout.dayType)
-    const [exercises, setExercises] = useState<ActiveExercise[]>(buildInitialExercises)
+    const [exercises, setExercises] = useState<ActiveExercise[]>([])
     const [showAddSheet, setShowAddSheet] = useState(false)
     const [restTimerOn, setRestTimerOn] = useState(false)
     const [restActive, setRestActive] = useState(false)
@@ -96,6 +97,58 @@ export default function LogPage() {
             }
         }
         loadDuration()
+    }, [selectedDayType])
+
+    useEffect(() => {
+        async function loadRealExercises() {
+            try {
+                const { getLastSessionByDayType } = await import('@/lib/db')
+                const last = await getLastSessionByDayType(selectedDayType)
+
+                if (!last || !(last as any).exercise_logs?.length) {
+                    setExercises(buildExercisesForDayType(selectedDayType))
+                    return
+                }
+
+                const exLogs = (last as any).exercise_logs ?? []
+
+                const built: ActiveExercise[] = exLogs.map((ex: any) => {
+                    const completedSets = (ex.set_logs ?? [])
+                        .filter((s: any) => s.completed)
+                        .sort((a: any, b: any) => a.set_number - b.set_number)
+
+                    const sets: ActiveSet[] = completedSets.length > 0
+                        ? completedSets.map((s: any) => ({
+                            id: crypto.randomUUID(),
+                            reps: '',
+                            weight: s.weight_lbs ? String(s.weight_lbs) : '',
+                            duration: '',
+                            distance: '',
+                            completed: false,
+                        }))
+                        : [{ id: crypto.randomUUID(), reps: '', weight: '', duration: '', distance: '', completed: false }]
+
+                    return {
+                        exerciseId: ex.exercise_id,
+                        exerciseName: ex.exercise_name,
+                        muscleGroup: ex.muscle_group ?? 'general',
+                        equipment: ex.equipment ?? 'barbell',
+                        exerciseType: (ex.exercise_type ?? 'strength') as ActiveExercise['exerciseType'],
+                        lastWeight: completedSets[0]?.weight_lbs
+                            ? String(completedSets[0].weight_lbs)
+                            : undefined,
+                        sets,
+                    }
+                })
+
+                setExercises(built)
+            } catch (e) {
+                console.error('Failed to load real exercises:', e)
+                setExercises(buildExercisesForDayType(selectedDayType))
+            }
+        }
+
+        loadRealExercises()
     }, [selectedDayType])
 
     async function fetchCoachInsight() {

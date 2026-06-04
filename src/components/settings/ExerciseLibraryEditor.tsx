@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import {useEffect, useState} from 'react'
 import { EXERCISE_LIBRARY } from '@/lib/placeholder'
 import { Exercise } from '@/types'
 import CalendarPopupPortal from '@/components/calendar/CalendarPopupPortal'
@@ -30,6 +30,36 @@ export default function ExerciseLibraryEditor() {
         return matchesQuery && matchesFilter
     })
 
+    useEffect(() => {
+        async function loadCustomExercises() {
+            try {
+                const { getCustomExercises } = await import('@/lib/db')
+                const custom = await getCustomExercises()
+                if (custom.length > 0) {
+                    const mapped = custom.map((ex: any) => ({
+                        id: ex.id,
+                        name: ex.name,
+                        dayType: ex.day_types,
+                        muscleGroups: ex.muscle_groups,
+                        primaryMuscle: ex.primary_muscle,
+                        equipment: ex.equipment,
+                        movementType: ex.movement_type,
+                        currentWeight: ex.current_weight ? String(ex.current_weight) : undefined,
+                        notes: ex.notes,
+                    }))
+                    setLibrary(prev => {
+                        const existingIds = new Set(prev.map(e => e.id))
+                        const newOnes = mapped.filter((e: any) => !existingIds.has(e.id))
+                        return [...prev, ...newOnes]
+                    })
+                }
+            } catch (e) {
+                console.error('Failed to load custom exercises:', e)
+            }
+        }
+        loadCustomExercises()
+    }, [])
+
     function openEdit(ex: Exercise) {
         setEditing({
             exercise: {
@@ -58,7 +88,7 @@ export default function ExerciseLibraryEditor() {
         })
     }
 
-    function saveEdit() {
+    async function saveEdit() {
         if (!editing) return
         if (editing.isNew) {
             setLibrary(prev => [...prev, editing.exercise])
@@ -67,13 +97,38 @@ export default function ExerciseLibraryEditor() {
                 ex.id === editing.exercise.id ? editing.exercise : ex
             ))
         }
+
+        try {
+            const { saveExerciseToLibrary } = await import('@/lib/db')
+            await saveExerciseToLibrary({
+                id: editing.exercise.id,
+                name: editing.exercise.name,
+                dayTypes: editing.exercise.dayType,
+                muscleGroups: editing.exercise.muscleGroups,
+                primaryMuscle: editing.exercise.primaryMuscle,
+                equipment: editing.exercise.equipment,
+                movementType: editing.exercise.movementType,
+                currentWeight: editing.exercise.currentWeight,
+                notes: editing.exercise.notes,
+                isCustom: editing.isNew,
+            })
+        } catch (e) {
+            console.error('Failed to save exercise to Supabase:', e)
+        }
+
         setSaved(true)
         setTimeout(() => { setSaved(false); setEditing(null) }, 800)
     }
 
-    function deleteExercise(id: string) {
+    async function deleteExercise(id: string) {
         setLibrary(prev => prev.filter(ex => ex.id !== id))
         setEditing(null)
+        try {
+            const { supabase } = await import('@/lib/supabase')
+            await supabase.from('exercise_library').delete().eq('id', id)
+        } catch (e) {
+            console.error('Failed to delete from Supabase:', e)
+        }
     }
 
     function updateEditing(field: keyof Exercise, value: unknown) {

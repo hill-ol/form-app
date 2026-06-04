@@ -1,8 +1,9 @@
 interface Props {
     records: { exercise: string; weight: number; date: string }[]
+    onSelectExercise?: (name: string) => void
 }
 
-export default function PersonalRecords({ records }: Props) {
+export default function PersonalRecords({ records, onSelectExercise }: Props) {
     return (
         <div className="rounded-2xl p-4 mb-3"
              style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
@@ -18,10 +19,21 @@ export default function PersonalRecords({ records }: Props) {
             ) : (
                 <div>
                     {records.map((pr, i) => (
-                        <div key={pr.exercise}
-                             className="flex items-center justify-between py-2.5"
-                             style={{ borderBottom: i < records.length - 1 ? '0.5px solid #f5f0e8' : 'none' }}>
-                            <span className="text-sm font-semibold">{pr.exercise}</span>
+                        <div
+                            key={pr.exercise}
+                            onClick={() => onSelectExercise?.(pr.exercise)}
+                            className="flex items-center justify-between py-2.5 cursor-pointer transition-all active:scale-95"
+                            style={{
+                                borderBottom: i < records.length - 1 ? '0.5px solid #f5f0e8' : 'none',
+                            }}>
+                            <div>
+                                <span className="text-sm font-semibold">{pr.exercise}</span>
+                                {onSelectExercise && (
+                                    <p className="text-xs mt-0.5" style={{ color: 'var(--pink)', opacity: 0.7 }}>
+                                        tap to view history
+                                    </p>
+                                )}
+                            </div>
                             <div className="text-right">
                                 <p className="font-black" style={{ fontSize: '13px', color: 'var(--pink)' }}>
                                     {pr.weight} lbs
