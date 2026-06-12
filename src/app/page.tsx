@@ -129,8 +129,7 @@ export default async function DashboardPage() {
             const topSet = sets.sort((a: any, b: any) =>
                 (b.weight_lbs ?? 0) - (a.weight_lbs ?? 0)
             )[0]
-            const suggestedWeight = progressionSuggestions[ex.exercise_id]
-
+            const suggestedWeight = (progressionSuggestions as Record<string, number>)[ex.exercise_id]
             return {
                 exerciseId: ex.exercise_id,
                 exerciseName: ex.exercise_name,
