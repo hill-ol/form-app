@@ -422,12 +422,19 @@ export async function saveDayOverride(
     dayType: string,
     label: string
 ) {
+    const { error: deleteError } = await supabase
+        .from('day_overrides')
+        .delete()
+        .eq('date', date)
+        .eq('is_logged', false)
+
     const { error } = await supabase
         .from('day_overrides')
         .insert({
             date,
             day_type: dayType,
             label,
+            is_logged: false,
             updated_at: new Date().toISOString(),
         })
     if (error) throw error

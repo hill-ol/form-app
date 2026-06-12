@@ -9,9 +9,13 @@ interface Props {
 }
 
 export default function ExerciseProgressChart({ exerciseHistory, initialExercise }: Props) {
+    const canvasRef = useRef<HTMLCanvasElement>(null)
+    const chartRef = useRef<unknown>(null)
     const exercises = Object.keys(exerciseHistory)
     const [selected, setSelected] = useState<string>(
-        initialExercise ?? exercises[0] ?? ''
+        initialExercise && exerciseHistory[initialExercise]
+            ? initialExercise
+            : exercises[0] ?? ''
     )
 
     useEffect(() => {
@@ -20,8 +24,13 @@ export default function ExerciseProgressChart({ exerciseHistory, initialExercise
         }
     }, [initialExercise])
 
-    const points = selected ? (exerciseHistory[selected] ?? []) : []
+    useEffect(() => {
+        if (exercises.length > 0 && !selected) {
+            setSelected(exercises[0])
+        }
+    }, [exercises])
 
+    const points = selected ? (exerciseHistory[selected] ?? []) : []
     const maxVal = points.length ? Math.max(...points.map(p => p.weight)) : 0
     const firstVal = points.length ? points[0].weight : 0
     const lastVal = points.length ? points[points.length - 1].weight : 0
@@ -55,10 +64,16 @@ export default function ExerciseProgressChart({ exerciseHistory, initialExercise
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 5, maxRotation: 0 } },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 5, maxRotation: 0 }
+                        },
                         y: {
                             grid: { color: '#f5f0e8' },
-                            ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 4, callback: (v: any) => v + ' lbs' },
+                            ticks: {
+                                font: { size: 9 }, color: '#aaa', maxTicksLimit: 4,
+                                callback: (v: any) => v + ' lbs'
+                            },
                             border: { display: false }
                         }
                     }
@@ -66,7 +81,9 @@ export default function ExerciseProgressChart({ exerciseHistory, initialExercise
             })
         }
         init()
-        return () => { if (chartRef.current) (chartRef.current as { destroy: () => void }).destroy() }
+        return () => {
+            if (chartRef.current) (chartRef.current as { destroy: () => void }).destroy()
+        }
     }, [selected, exerciseHistory])
 
     if (exercises.length === 0) {
@@ -104,11 +121,13 @@ export default function ExerciseProgressChart({ exerciseHistory, initialExercise
                 </p>
             )}
             <div style={{ position: 'relative', height: '110px' }}>
-                <canvas ref={canvasRef} role="img" aria-label="Line chart of exercise weight progression">
+                <canvas ref={canvasRef} role="img"
+                        aria-label="Line chart of exercise weight progression">
                     Exercise weight progression over time.
                 </canvas>
             </div>
-            <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1"
+                 style={{ scrollbarWidth: 'none' }}>
                 {exercises.map(name => (
                     <button key={name}
                             onClick={() => setSelected(name)}

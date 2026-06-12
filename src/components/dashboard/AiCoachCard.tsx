@@ -19,14 +19,24 @@ export default function AiCoachCard({ context = {} }: Props) {
         setLoading(true)
         setError(false)
         try {
-            const res = await fetch('/api/coach', {
+            const userContext = {
+                sleepHours: context.lastSleep?.hours ?? 7,
+                sleepQuality: context.lastSleep?.mood ?? 3,
+                currentStreak: context.streak ?? 0,
+                daysPerWeekGoal: context.weeklyGoal ?? 5,
+                completedThisWeek: context.weeklyCompleted ?? 0,
+                todayPlan: context.todayPlan ?? 'push',
+                recentWorkouts: (context.recentSessions ?? []).map((s: any) => s.name ?? s.dayType ?? 'workout'),
+            }
+            const res = await fetch('/api/recommend', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'dashboard', context }),
+                body: JSON.stringify(userContext),
             })
             const data = await res.json()
-            setInsight(data.insight)
-            setCache(cacheKey, data.insight)
+            const text = data.summary ?? data.insight ?? 'Keep going — you\'re doing great.'
+            setInsight(text)
+            setCache(cacheKey, text)
         } catch {
             setError(true)
         } finally {
