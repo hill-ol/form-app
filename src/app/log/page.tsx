@@ -36,7 +36,8 @@ function buildExercisesForDayType(dayType: string): ActiveExercise[] {
             ex.id, ex.name, ex.primaryMuscle,
             ex.equipment[0] ?? 'bodyweight',
             ex.currentWeight,
-            dayType
+            dayType,
+            ex.exerciseType as ActiveExercise['exerciseType'] | undefined,
         )
     )
 }
@@ -121,26 +122,41 @@ export default function LogPage() {
                         .filter((s: any) => s.completed)
                         .sort((a: any, b: any) => a.set_number - b.set_number)
 
+                    // Respect per-exercise type from library (e.g. 'hold' for plank)
+                    const libEntry = EXERCISE_LIBRARY.find(e => e.id === ex.exercise_id)
+                    const exerciseType = (libEntry?.exerciseType ?? ex.exercise_type ?? 'strength') as ActiveExercise['exerciseType']
+                    const isHoldEx = exerciseType === 'hold'
+
                     const sets: ActiveSet[] = completedSets.length > 0
                         ? completedSets.map((s: any) => ({
                             id: crypto.randomUUID(),
                             reps: '',
                             weight: s.weight_lbs ? String(s.weight_lbs) : '',
-                            duration: '',
+                            duration: isHoldEx && s.duration_seconds
+                                ? `${Math.floor(s.duration_seconds / 60)}:${String(s.duration_seconds % 60).padStart(2, '0')}`
+                                : '',
                             distance: '',
                             completed: false,
                         }))
                         : [{ id: crypto.randomUUID(), reps: '', weight: '', duration: '', distance: '', completed: false }]
+
+                    // Compute most-common reps from last session for pre-fill
+                    const repsCounts: Record<string, number> = {}
+                    for (const s of completedSets) {
+                        if (s.reps) repsCounts[s.reps] = (repsCounts[s.reps] ?? 0) + 1
+                    }
+                    const lastReps = Object.keys(repsCounts).sort((a, b) => repsCounts[b] - repsCounts[a])[0]
 
                     return {
                         exerciseId: ex.exercise_id,
                         exerciseName: ex.exercise_name,
                         muscleGroup: ex.muscle_group ?? 'general',
                         equipment: ex.equipment ?? 'barbell',
-                        exerciseType: (ex.exercise_type ?? 'strength') as ActiveExercise['exerciseType'],
+                        exerciseType,
                         lastWeight: completedSets[0]?.weight_lbs
                             ? String(completedSets[0].weight_lbs)
                             : undefined,
+                        lastReps: lastReps ? String(lastReps) : undefined,
                         sets,
                     }
                 })

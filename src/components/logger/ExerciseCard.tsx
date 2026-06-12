@@ -18,7 +18,8 @@ export default function ExerciseCard({
     const [confirmRemove, setConfirmRemove] = useState(false)
 
     const isCardio = exercise.exerciseType === 'cardio'
-    const isBodyweight = exercise.exerciseType === 'bodyweight' || exercise.equipment === 'bodyweight'
+    const isHold = exercise.exerciseType === 'hold'
+    const isBodyweight = !isHold && (exercise.exerciseType === 'bodyweight' || exercise.equipment === 'bodyweight')
     const isYoga = exercise.exerciseType === 'yoga'
 
     function updateSet(id: string, field: keyof ActiveSet, value: string) {
@@ -31,6 +32,8 @@ export default function ExerciseCard({
     function completeSet(set: ActiveSet) {
         if (isCardio) {
             if (!set.duration && !set.distance) return
+        } else if (isHold) {
+            if (!set.duration) return
         } else {
             if (!set.reps) return
         }
@@ -50,7 +53,7 @@ export default function ExerciseCard({
             sets: [...exercise.sets, createSet({
                 weight: lastSet?.weight ?? exercise.lastWeight ?? '',
                 reps: '',
-                duration: '',
+                duration: lastSet?.duration ?? '',
                 distance: '',
             })],
         })
@@ -94,6 +97,7 @@ export default function ExerciseCard({
 
     function isSetReady(set: ActiveSet) {
         if (isCardio) return !!(set.duration || set.distance)
+        if (isHold) return !!set.duration
         return !!set.reps
     }
 
@@ -121,11 +125,17 @@ export default function ExerciseCard({
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    {exercise.lastWeight && !isCardio && (
+                    {exercise.lastReps && !isCardio && !isHold && (
                         <span className="text-xs font-bold px-2 py-1 rounded-full"
                               style={{ background: '#FEF6DC', color: '#9A6F00' }}>
-              last: {exercise.lastWeight} lbs
-            </span>
+                            last: {exercise.lastReps} reps
+                        </span>
+                    )}
+                    {exercise.lastWeight && !isCardio && !isBodyweight && !isHold && (
+                        <span className="text-xs font-bold px-2 py-1 rounded-full"
+                              style={{ background: '#FEF6DC', color: '#9A6F00' }}>
+                            last: {exercise.lastWeight} lbs
+                        </span>
                     )}
                     {completedCount > 0 && (
                         <span className="text-xs font-bold px-2 py-1 rounded-full"
@@ -168,12 +178,25 @@ export default function ExerciseCard({
                                         {cardioLabel.distance}
                                     </div>
                                 </>
+                            ) : isHold ? (
+                                <>
+                                    <div style={{ flex: 1, textAlign: 'center', fontSize: '9px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                                        min
+                                    </div>
+                                    <div style={{ flex: 1, textAlign: 'center', fontSize: '9px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                                        sec
+                                    </div>
+                                </>
                             ) : (
                                 <>
                                     <div style={{ flex: 1, textAlign: 'center', fontSize: '9px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                                         Reps
                                     </div>
-                                    {!isBodyweight && (
+                                    {isBodyweight ? (
+                                        <div style={{ flex: 1, textAlign: 'center', fontSize: '9px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                                            band/vest (opt)
+                                        </div>
+                                    ) : (
                                         <div style={{ flex: 1, textAlign: 'center', fontSize: '9px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                                             lbs
                                         </div>
@@ -216,28 +239,56 @@ export default function ExerciseCard({
                                             style={inputStyle(!!set.distance, set.completed)}
                                         />
                                     </>
+                                ) : isHold ? (
+                                    <>
+                                        <input
+                                            type="number"
+                                            inputMode="numeric"
+                                            placeholder="0"
+                                            value={set.duration.split(':')[0] ?? ''}
+                                            onChange={e => {
+                                                const ss = set.duration.split(':')[1] ?? '00'
+                                                updateSet(set.id, 'duration', `${e.target.value}:${ss}`)
+                                            }}
+                                            disabled={set.completed}
+                                            style={inputStyle(!!(set.duration.split(':')[0]), set.completed)}
+                                        />
+                                        <input
+                                            type="number"
+                                            inputMode="numeric"
+                                            placeholder="00"
+                                            value={set.duration.split(':')[1] ?? ''}
+                                            onChange={e => {
+                                                const mm = set.duration.split(':')[0] ?? '0'
+                                                updateSet(set.id, 'duration', `${mm}:${e.target.value}`)
+                                            }}
+                                            disabled={set.completed}
+                                            style={inputStyle(!!(set.duration.split(':')[1]), set.completed)}
+                                        />
+                                    </>
                                 ) : (
                                     <>
                                         <input
                                             type="number"
                                             inputMode="numeric"
-                                            placeholder="—"
+                                            placeholder={exercise.lastReps ?? '—'}
                                             value={set.reps}
                                             onChange={e => updateSet(set.id, 'reps', e.target.value)}
                                             disabled={set.completed}
                                             style={inputStyle(!!set.reps, set.completed)}
                                         />
-                                        {!isBodyweight && (
-                                            <input
-                                                type="text"
-                                                inputMode="decimal"
-                                                placeholder="—"
-                                                value={set.weight}
-                                                onChange={e => updateSet(set.id, 'weight', e.target.value)}
-                                                disabled={set.completed}
-                                                style={inputStyle(!!set.weight, set.completed)}
-                                            />
-                                        )}
+                                        <input
+                                            type="text"
+                                            inputMode="decimal"
+                                            placeholder={isBodyweight ? '+/- lbs' : (exercise.lastWeight ?? '—')}
+                                            value={set.weight}
+                                            onChange={e => updateSet(set.id, 'weight', e.target.value)}
+                                            disabled={set.completed}
+                                            style={{
+                                                ...inputStyle(!!set.weight, set.completed),
+                                                ...(isBodyweight ? { opacity: set.completed ? 1 : 0.6, fontSize: '14px' } : {}),
+                                            }}
+                                        />
                                     </>
                                 )}
 
@@ -279,7 +330,7 @@ export default function ExerciseCard({
                             background: 'var(--cream)', color: 'var(--pink)',
                             border: 'none', borderTop: '0.5px solid #f5f0e8', cursor: 'pointer',
                         }}>
-                        + {isCardio ? 'add run' : 'add set'}
+                        + {isCardio ? 'add run' : isHold ? 'add hold' : 'add set'}
                     </button>
                 </>
             )}

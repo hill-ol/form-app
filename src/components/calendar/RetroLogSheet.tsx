@@ -13,6 +13,7 @@ const DAY_LABEL: Record<string, string> = {
 interface RetroSet {
     reps: string
     weight: string
+    duration: string  // "MM:SS" for hold exercises
 }
 
 interface RetroExercise {
@@ -20,6 +21,7 @@ interface RetroExercise {
     name: string
     muscleGroup: string
     equipment: string
+    exerciseType: string
     libraryWeight: string // current_weight at time of adding
     sets: RetroSet[]
 }
@@ -32,7 +34,7 @@ interface Props {
 }
 
 function blankSet(weight: string): RetroSet {
-    return { reps: '', weight }
+    return { reps: '', weight, duration: '' }
 }
 
 export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props) {
@@ -84,6 +86,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
             name: ex.name,
             muscleGroup: ex.primaryMuscle,
             equipment: ex.equipment[0] ?? 'barbell',
+            exerciseType: ex.exerciseType ?? 'strength',
             libraryWeight: w,
             sets: [blankSet(w)],
         }])
@@ -94,7 +97,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
         setExercises(prev => prev.filter(e => e.id !== id))
     }
 
-    function updateSet(exId: string, setIdx: number, field: 'reps' | 'weight', value: string) {
+    function updateSet(exId: string, setIdx: number, field: 'reps' | 'weight' | 'duration', value: string) {
         setExercises(prev => prev.map(ex => {
             if (ex.id !== exId) return ex
             const sets = ex.sets.map((s, i) => i === setIdx ? { ...s, [field]: value } : s)
@@ -139,12 +142,12 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                 exerciseName: ex.name,
                 muscleGroup: ex.muscleGroup,
                 equipment: ex.equipment,
-                exerciseType: workoutType as 'strength' | 'cardio' | 'bodyweight' | 'yoga',
+                exerciseType: ex.exerciseType as 'strength' | 'cardio' | 'bodyweight' | 'yoga' | 'hold',
                 sets: ex.sets.map(s => ({
                     id: crypto.randomUUID(),
                     reps: s.reps,
                     weight: s.weight,
-                    duration: '',
+                    duration: s.duration,
                     distance: '',
                     completed: true,
                 })),
@@ -222,49 +225,87 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                             </div>
 
                             {/* Set header */}
-                            <div className="flex items-center gap-2 mb-1.5 px-1">
-                                <span className="w-5" />
-                                <span className="text-xs font-bold uppercase tracking-widest text-center"
-                                    style={{ width: '72px', color: 'var(--muted)' }}>reps</span>
-                                <span className="text-xs font-bold uppercase tracking-widest text-center"
-                                    style={{ width: '72px', color: 'var(--muted)' }}>lbs</span>
-                            </div>
+                            {ex.exerciseType === 'hold' ? (
+                                <div className="flex items-center gap-2 mb-1.5 px-1">
+                                    <span className="w-5" />
+                                    <span className="text-xs font-bold uppercase tracking-widest text-center"
+                                        style={{ width: '72px', color: 'var(--muted)' }}>min</span>
+                                    <span className="text-xs font-bold uppercase tracking-widest text-center"
+                                        style={{ width: '72px', color: 'var(--muted)' }}>sec</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2 mb-1.5 px-1">
+                                    <span className="w-5" />
+                                    <span className="text-xs font-bold uppercase tracking-widest text-center"
+                                        style={{ width: '72px', color: 'var(--muted)' }}>reps</span>
+                                    <span className="text-xs font-bold uppercase tracking-widest text-center"
+                                        style={{ width: '72px', color: 'var(--muted)' }}>
+                                        {ex.exerciseType === 'bodyweight' ? 'band/vest' : 'lbs'}
+                                    </span>
+                                </div>
+                            )}
 
                             <div className="space-y-1.5 mb-2">
                                 {ex.sets.map((s, sIdx) => (
                                     <div key={sIdx} className="flex items-center gap-2">
                                         <span className="text-xs font-bold w-5 text-center flex-shrink-0"
                                             style={{ color: 'var(--muted)' }}>{sIdx + 1}</span>
-                                        <input
-                                            type="number"
-                                            inputMode="numeric"
-                                            placeholder="—"
-                                            value={s.reps}
-                                            onChange={e => updateSet(ex.id, sIdx, 'reps', e.target.value)}
-                                            className="rounded-xl px-2 py-1.5 font-semibold text-center"
-                                            style={{
-                                                width: '72px', fontSize: '13px',
-                                                border: '1.5px solid var(--border)',
-                                                background: '#fff', outline: 'none',
-                                                fontFamily: 'Inter, sans-serif', color: '#1a1a1a',
-                                            }}
-                                        />
-                                        <input
-                                            type="number"
-                                            inputMode="decimal"
-                                            placeholder="—"
-                                            value={s.weight}
-                                            onChange={e => updateSet(ex.id, sIdx, 'weight', e.target.value)}
-                                            className="rounded-xl px-2 py-1.5 font-semibold text-center"
-                                            style={{
-                                                width: '72px', fontSize: '13px',
-                                                border: s.weight && parseFloat(s.weight) > parseFloat(ex.libraryWeight || '0')
-                                                    ? '1.5px solid var(--pink)'
-                                                    : '1.5px solid var(--border)',
-                                                background: '#fff', outline: 'none',
-                                                fontFamily: 'Inter, sans-serif', color: '#1a1a1a',
-                                            }}
-                                        />
+                                        {ex.exerciseType === 'hold' ? (
+                                            <>
+                                                <input
+                                                    type="number"
+                                                    inputMode="numeric"
+                                                    placeholder="0"
+                                                    value={s.duration.split(':')[0] ?? ''}
+                                                    onChange={e => {
+                                                        const ss = s.duration.split(':')[1] ?? '00'
+                                                        updateSet(ex.id, sIdx, 'duration', `${e.target.value}:${ss}`)
+                                                    }}
+                                                    className="rounded-xl px-2 py-1.5 font-semibold text-center"
+                                                    style={{ width: '72px', fontSize: '13px', border: '1.5px solid var(--border)', background: '#fff', outline: 'none', fontFamily: 'Inter, sans-serif', color: '#1a1a1a' }}
+                                                />
+                                                <input
+                                                    type="number"
+                                                    inputMode="numeric"
+                                                    placeholder="00"
+                                                    value={s.duration.split(':')[1] ?? ''}
+                                                    onChange={e => {
+                                                        const mm = s.duration.split(':')[0] ?? '0'
+                                                        updateSet(ex.id, sIdx, 'duration', `${mm}:${e.target.value}`)
+                                                    }}
+                                                    className="rounded-xl px-2 py-1.5 font-semibold text-center"
+                                                    style={{ width: '72px', fontSize: '13px', border: '1.5px solid var(--border)', background: '#fff', outline: 'none', fontFamily: 'Inter, sans-serif', color: '#1a1a1a' }}
+                                                />
+                                            </>
+                                        ) : (
+                                            <>
+                                                <input
+                                                    type="number"
+                                                    inputMode="numeric"
+                                                    placeholder="—"
+                                                    value={s.reps}
+                                                    onChange={e => updateSet(ex.id, sIdx, 'reps', e.target.value)}
+                                                    className="rounded-xl px-2 py-1.5 font-semibold text-center"
+                                                    style={{ width: '72px', fontSize: '13px', border: '1.5px solid var(--border)', background: '#fff', outline: 'none', fontFamily: 'Inter, sans-serif', color: '#1a1a1a' }}
+                                                />
+                                                <input
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    placeholder={ex.exerciseType === 'bodyweight' ? '+/- lbs' : '—'}
+                                                    value={s.weight}
+                                                    onChange={e => updateSet(ex.id, sIdx, 'weight', e.target.value)}
+                                                    className="rounded-xl px-2 py-1.5 font-semibold text-center"
+                                                    style={{
+                                                        width: '72px', fontSize: '13px',
+                                                        border: s.weight && parseFloat(s.weight) > parseFloat(ex.libraryWeight || '0')
+                                                            ? '1.5px solid var(--pink)'
+                                                            : '1.5px solid var(--border)',
+                                                        background: '#fff', outline: 'none',
+                                                        fontFamily: 'Inter, sans-serif', color: '#1a1a1a',
+                                                    }}
+                                                />
+                                            </>
+                                        )}
                                         {ex.sets.length > 1 && (
                                             <button onClick={() => removeSet(ex.id, sIdx)}
                                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: '16px', lineHeight: 1 }}>
@@ -278,7 +319,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                             <button onClick={() => addSet(ex.id)}
                                 className="text-xs font-bold"
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pink)', padding: 0 }}>
-                                + add set
+                                + {ex.exerciseType === 'hold' ? 'add hold' : 'add set'}
                             </button>
                         </div>
                     ))}

@@ -150,7 +150,11 @@ export async function saveSession(
             set_number: i + 1,
             reps: s.reps ? parseInt(s.reps) : null,
             weight_lbs: s.weight && s.weight !== 'BW' ? parseFloat(s.weight) : null,
-            duration_seconds: s.duration ? parseInt(s.duration) * 60 : null,
+            duration_seconds: s.duration
+                ? s.duration.includes(':')
+                    ? parseInt(s.duration.split(':')[0]) * 60 + parseInt(s.duration.split(':')[1] ?? '0')
+                    : parseInt(s.duration) * 60
+                : null,
             distance: s.distance ? parseFloat(s.distance) : null,
             completed: true,
         }))

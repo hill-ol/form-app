@@ -14,9 +14,10 @@ export interface ActiveExercise {
     exerciseName: string
     muscleGroup: string
     equipment: string
-    exerciseType: 'strength' | 'cardio' | 'bodyweight' | 'yoga'
+    exerciseType: 'strength' | 'cardio' | 'bodyweight' | 'yoga' | 'hold'
     sets: ActiveSet[]
     lastWeight?: string
+    lastReps?: string
 }
 
 export function stripWeight(raw: string): string {
@@ -52,10 +53,12 @@ export function createExercise(
     muscleGroup: string,
     equipment: string,
     lastWeight?: string,
-    dayType?: string
+    dayType?: string,
+    exerciseTypeOverride?: ActiveExercise['exerciseType'],
+    lastReps?: string
 ): ActiveExercise {
     const cleanWeight = lastWeight ? stripWeight(lastWeight) : ''
-    const exerciseType = getExerciseType(dayType ?? '', equipment)
+    const exerciseType = exerciseTypeOverride ?? getExerciseType(dayType ?? '', equipment)
     return {
         exerciseId,
         exerciseName,
@@ -63,6 +66,7 @@ export function createExercise(
         equipment,
         exerciseType,
         lastWeight: cleanWeight,
+        lastReps,
         sets: [createSet({ weight: cleanWeight })],
     }
 }

@@ -25,6 +25,7 @@ export interface Exercise {
     equipment: Equipment[]
     movementType: MovementType
     currentWeight?: string
+    exerciseType?: 'strength' | 'cardio' | 'bodyweight' | 'yoga' | 'hold'
     notes?: string
 }
 
