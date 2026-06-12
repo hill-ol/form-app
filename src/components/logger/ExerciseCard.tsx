@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { ActiveExercise, ActiveSet, createSet } from '@/lib/sessionUtils'
 
 interface Props {
@@ -74,6 +74,30 @@ export default function ExerciseCard({
     }
 
     const completedCount = exercise.sets.filter(s => s.completed).length
+
+    // Swipe-to-delete state: maps set id → current swipe offset
+    const [swipeOffsets, setSwipeOffsets] = useState<Record<string, number>>({})
+    const swipeTouchStart = useRef<Record<string, number>>({})
+    const DELETE_THRESHOLD = 80
+
+    function onSwipeTouchStart(id: string, e: React.TouchEvent) {
+        swipeTouchStart.current[id] = e.touches[0].clientX
+    }
+
+    function onSwipeTouchMove(id: string, e: React.TouchEvent) {
+        const dx = e.touches[0].clientX - (swipeTouchStart.current[id] ?? 0)
+        if (dx < 0) {
+            setSwipeOffsets(prev => ({ ...prev, [id]: Math.max(dx, -DELETE_THRESHOLD - 20) }))
+        }
+    }
+
+    function onSwipeTouchEnd(id: string) {
+        const offset = swipeOffsets[id] ?? 0
+        if (offset <= -DELETE_THRESHOLD) {
+            removeSet(id)
+        }
+        setSwipeOffsets(prev => ({ ...prev, [id]: 0 }))
+    }
 
     const inputStyle = (active: boolean, completed: boolean) => ({
         flex: 1,
@@ -207,7 +231,29 @@ export default function ExerciseCard({
                         </div>
 
                         {exercise.sets.map((set, i) => (
-                            <div key={set.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                            <div key={set.id} style={{ position: 'relative', marginBottom: '10px', borderRadius: '12px', overflow: 'hidden' }}>
+                                {/* Red delete layer shown on swipe */}
+                                <div style={{
+                                    position: 'absolute', inset: 0,
+                                    background: '#FEE2E2',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+                                    paddingRight: '16px',
+                                    borderRadius: '12px',
+                                }}>
+                                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#DC2626' }}>Delete</span>
+                                </div>
+                            <div
+                                onTouchStart={e => onSwipeTouchStart(set.id, e)}
+                                onTouchMove={e => onSwipeTouchMove(set.id, e)}
+                                onTouchEnd={() => onSwipeTouchEnd(set.id)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '8px',
+                                    transform: `translateX(${swipeOffsets[set.id] ?? 0}px)`,
+                                    transition: (swipeOffsets[set.id] ?? 0) === 0 ? 'transform 0.25s ease' : 'none',
+                                    background: '#fff',
+                                    borderRadius: '12px',
+                                    position: 'relative',
+                                }}>
                                 <div style={{
                                     width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
                                     background: set.completed ? 'var(--pink)' : 'var(--pink-light)',
@@ -317,6 +363,7 @@ export default function ExerciseCard({
                                         ✓
                                     </button>
                                 )}
+                            </div>
                             </div>
                         ))}
                     </div>
