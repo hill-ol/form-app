@@ -18,52 +18,96 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
     const router = useRouter()
     const [saving, setSaving] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [streak, setStreak] = useState<number | undefined>(undefined)
 
     const totalSets = exercises.reduce((acc, ex) =>
         acc + ex.sets.filter(s => s.completed).length, 0)
     const totalExercises = exercises.filter(ex => ex.sets.some(s => s.completed)).length
     const mins = Math.floor(duration / 60)
-
     const completedExercises = exercises.filter(ex => ex.sets.some(s => s.completed))
+
+    // Build per-exercise summary using all completed sets (best weight, avg reps)
+    const exerciseSummary = completedExercises.map(ex => {
+        const done = ex.sets.filter(s => s.completed)
+        const weights = done.map(s => parseFloat(s.weight) || 0)
+        const bestWeight = Math.max(...weights)
+        const avgReps = Math.round(
+            done.reduce((sum, s) => sum + (parseInt(s.reps) || 0), 0) / done.length
+        )
+        return {
+            name: ex.exerciseName,
+            sets: done.length,
+            reps: avgReps,
+            weight: bestWeight > 0 ? `${bestWeight} lbs` : 'BW',
+        }
+    })
 
     const { insight: coachInsight, loading: coachLoading } = useCoachInsight(
         'post-session',
-        { streak: undefined },
-        [],
+        { streak },
+        [streak],
         {
             dayName,
             totalSets,
             totalExercises,
             durationMins: mins,
-            exercises: completedExercises.map(ex => {
-                const done = ex.sets.filter(s => s.completed)
-                return {
-                    name: ex.exerciseName,
-                    sets: done.length,
-                    reps: parseInt(done[0]?.reps ?? '0'),
-                    weight: done[0]?.weight ?? 'BW',
-                }
-            }),
+            exercises: exerciseSummary,
         }
     )
 
     useEffect(() => {
-        async function save() {
+        async function saveAndUpdate() {
             try {
-                await saveSession(
-                    {
-                        date: new Date().toISOString().split('T')[0],
-                        dayType,
-                        workoutType: dayType === 'cardio' ? 'cardio'
-                            : dayType === 'yoga' ? 'yoga'
-                                : dayType === 'full body' ? 'bodyweight'
-                                    : 'strength',
-                        name: dayName,
-                        durationSeconds: duration,
-                        mood,
-                    },
-                    exercises
-                )
+                const { getExerciseWeights, saveExerciseToLibrary, getCurrentStreak } = await import('@/lib/db')
+                const { EXERCISE_LIBRARY } = await import('@/lib/placeholder')
+
+                // Fire save and weight fetch in parallel
+                const [, storedWeights, currentStreak] = await Promise.all([
+                    saveSession(
+                        {
+                            date: new Date().toISOString().split('T')[0],
+                            dayType,
+                            workoutType: dayType === 'cardio' ? 'cardio'
+                                : dayType === 'yoga' ? 'yoga'
+                                    : dayType === 'full body' ? 'bodyweight'
+                                        : 'strength',
+                            name: dayName,
+                            durationSeconds: duration,
+                            mood,
+                        },
+                        exercises
+                    ),
+                    getExerciseWeights(),
+                    getCurrentStreak(),
+                ])
+
+                setStreak(currentStreak)
+
+                // Update current_weight for any exercise where a completed set hit a new high
+                for (const ex of completedExercises) {
+                    const completedWeights = ex.sets
+                        .filter(s => s.completed)
+                        .map(s => parseFloat(s.weight) || 0)
+                    const maxLogged = Math.max(...completedWeights)
+                    const stored = storedWeights[ex.exerciseId] ?? 0
+                    if (maxLogged > stored) {
+                        const libEntry = EXERCISE_LIBRARY.find(e => e.id === ex.exerciseId)
+                        if (libEntry) {
+                            await saveExerciseToLibrary({
+                                id: ex.exerciseId,
+                                name: ex.exerciseName,
+                                dayTypes: libEntry.dayType as string[],
+                                muscleGroups: libEntry.muscleGroups as string[],
+                                primaryMuscle: ex.muscleGroup,
+                                equipment: libEntry.equipment as string[],
+                                movementType: libEntry.movementType,
+                                currentWeight: String(maxLogged),
+                                notes: libEntry.notes,
+                                isCustom: false,
+                            })
+                        }
+                    }
+                }
             } catch (e) {
                 setError('Could not save session — check your connection.')
                 console.error(e)
@@ -71,7 +115,7 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                 setSaving(false)
             }
         }
-        save()
+        saveAndUpdate()
     }, [])
 
     return (
@@ -140,8 +184,8 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                                  style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
                                 <span className="text-sm font-semibold">{ex.exerciseName}</span>
                                 <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                  {done.length} × {done[0]?.reps} · {done[0]?.weight || 'BW'}
-                </span>
+                                    {done.length} × {done[0]?.reps} · {done[0]?.weight || 'BW'}
+                                </span>
                             </div>
                         )
                     })}
