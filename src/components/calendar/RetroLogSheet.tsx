@@ -46,13 +46,34 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
     const [dbWeights, setDbWeights] = useState<Record<string, number>>({})
 
     useEffect(() => {
-        async function loadWeights() {
+        async function loadWeightsAndTemplate() {
             try {
-                const { getExerciseWeights } = await import('@/lib/db')
-                setDbWeights(await getExerciseWeights())
+                const { getExerciseWeights, getDayTypeTemplates } = await import('@/lib/db')
+                const [weights, allTemplates] = await Promise.all([getExerciseWeights(), getDayTypeTemplates()])
+                setDbWeights(weights)
+
+                const dayTemplates = allTemplates.filter(t => t.day_type === dayType)
+                if (dayTemplates.length > 0) {
+                    const prebuilt: RetroExercise[] = dayTemplates.map(t => {
+                        const lib = EXERCISE_LIBRARY.find(e => e.id === t.exercise_id)
+                        const w = weights[t.exercise_id] ? String(weights[t.exercise_id])
+                            : lib?.currentWeight ? String(parseFloat(lib.currentWeight) || '') : ''
+                        const exerciseType = lib?.exerciseType ?? 'strength'
+                        return {
+                            id: t.exercise_id,
+                            name: t.exercise_name,
+                            muscleGroup: lib?.primaryMuscle ?? 'general',
+                            equipment: lib?.equipment[0] ?? 'bodyweight',
+                            exerciseType,
+                            libraryWeight: w,
+                            sets: Array.from({ length: t.sets }, () => blankSet(w)),
+                        }
+                    })
+                    setExercises(prebuilt)
+                }
             } catch { /* fall back to placeholder weights */ }
         }
-        loadWeights()
+        loadWeightsAndTemplate()
     }, [])
 
     const displayDate = new Date(date + 'T12:00:00').toLocaleDateString('en-US', {

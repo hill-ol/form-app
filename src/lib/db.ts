@@ -494,6 +494,42 @@ export async function getDayOverrides(
     return (data ?? []) as { date: string; day_type: string; label: string }[]
 }
 
+export interface DayTypeExercise {
+    id?: string
+    day_type: string
+    exercise_id: string
+    exercise_name: string
+    sets: number
+    display_order: number
+}
+
+export async function getDayTypeTemplates(): Promise<DayTypeExercise[]> {
+    const { data, error } = await supabase
+        .from('day_type_templates')
+        .select('*')
+        .order('day_type')
+        .order('display_order')
+    if (error) return []
+    return (data ?? []) as DayTypeExercise[]
+}
+
+export async function saveDayTypeTemplate(exercises: DayTypeExercise[]): Promise<void> {
+    if (exercises.length === 0) return
+    const { error } = await supabase
+        .from('day_type_templates')
+        .upsert(exercises, { onConflict: 'day_type,exercise_id' })
+    if (error) throw error
+}
+
+export async function deleteDayTypeExercise(dayType: string, exerciseId: string): Promise<void> {
+    const { error } = await supabase
+        .from('day_type_templates')
+        .delete()
+        .eq('day_type', dayType)
+        .eq('exercise_id', exerciseId)
+    if (error) throw error
+}
+
 export async function getSessionById(sessionId: string): Promise<SupabaseSession | null> {
     const { data, error } = await supabase
         .from('workout_sessions')

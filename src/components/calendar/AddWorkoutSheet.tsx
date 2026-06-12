@@ -44,13 +44,14 @@ export default function AddWorkoutSheet({ onClose, onSaved }: Props) {
         setSaving(true)
         try {
             const { supabase } = await import('@/lib/supabase')
-            await supabase.from('day_overrides').insert({
+            const { error } = await supabase.from('day_overrides').upsert({
                 date: selectedDate,
                 day_type: selectedType,
                 label: DAY_LABEL[selectedType],
                 is_logged: false,
                 updated_at: new Date().toISOString(),
-            })
+            }, { onConflict: 'date' })
+            if (error) throw error
             setSaved(true)
             onSaved?.()
             setTimeout(() => onClose(), 700)
@@ -138,9 +139,12 @@ export default function AddWorkoutSheet({ onClose, onSaved }: Props) {
                     {DAY_EMOJI[selectedType]} {DAY_LABEL[selectedType]}
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-                    {isToday ? 'Today' : isPast ? 'Past date' : new Date(selectedDate).toLocaleDateString('en-US', {
-                        weekday: 'long', month: 'long', day: 'numeric'
-                    })}
+                    {isToday ? 'Today' : isPast ? 'Past date' : (() => {
+                        const [y, m, d] = selectedDate.split('-').map(Number)
+                        return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+                            weekday: 'long', month: 'long', day: 'numeric'
+                        })
+                    })()}
                 </p>
             </div>
 

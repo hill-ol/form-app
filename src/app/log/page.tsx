@@ -111,6 +111,29 @@ export default function LogPage() {
                 const last = await getLastSessionByDayType(selectedDayType)
 
                 if (!last || !(last as any).exercise_logs?.length) {
+                    // Try day type template before falling back to placeholder library
+                    const { getDayTypeTemplates } = await import('@/lib/db')
+                    const allTemplates = await getDayTypeTemplates()
+                    const dayTemplates = allTemplates.filter(t => t.day_type === selectedDayType)
+                    if (dayTemplates.length > 0) {
+                        const libEntry = (id: string) => EXERCISE_LIBRARY.find(e => e.id === id)
+                        setExercises(dayTemplates.map(t => {
+                            const lib = libEntry(t.exercise_id)
+                            const exerciseType = (lib?.exerciseType ?? 'strength') as ActiveExercise['exerciseType']
+                            const sets: ActiveSet[] = Array.from({ length: t.sets }, () => ({
+                                id: crypto.randomUUID(), reps: '', weight: '', duration: '', distance: '', completed: false,
+                            }))
+                            return {
+                                exerciseId: t.exercise_id,
+                                exerciseName: t.exercise_name,
+                                muscleGroup: lib?.primaryMuscle ?? 'general',
+                                equipment: lib?.equipment[0] ?? 'bodyweight',
+                                exerciseType,
+                                sets,
+                            }
+                        }))
+                        return
+                    }
                     setExercises(buildExercisesForDayType(selectedDayType))
                     return
                 }

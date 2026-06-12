@@ -1,6 +1,7 @@
 import TopNav from '@/components/layout/TopNav'
 import BottomNav from '@/components/layout/BottomNav'
 import WeeklyTemplateEditor from '@/components/settings/WeeklyTemplateEditor'
+import DayTypeTemplateEditor from '@/components/settings/DayTypeTemplateEditor'
 import ExerciseLibraryEditor from '@/components/settings/ExerciseLibraryEditor'
 import TrainingPreferences from '@/components/settings/TrainingPreferences'
 import DataSection from '@/components/settings/DataSection'
@@ -29,6 +30,7 @@ export default function SettingsPage() {
                 </div>
 
                 <WeeklyTemplateEditor />
+                <DayTypeTemplateEditor />
                 <TrainingPreferences />
                 <ExerciseLibraryEditor />
                 <DataSection />
