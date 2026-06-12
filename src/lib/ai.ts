@@ -115,6 +115,10 @@ function buildDashboardPrompt(ctx: CoachContext): string {
     if (ctx.lastSleep) {
         parts.push(`She slept ${ctx.lastSleep.hours}h last night with a mood of ${ctx.lastSleep.mood}/5.`)
     }
+    if (ctx.currentMood !== undefined) {
+        const energyLabels: Record<number, string> = { 1: 'very low', 2: 'low', 3: 'moderate', 4: 'high', 5: 'very high' }
+        parts.push(`Her energy level today is ${energyLabels[ctx.currentMood] ?? ctx.currentMood}/5.`)
+    }
     if (ctx.streak) {
         parts.push(`She is on a ${ctx.streak}-day workout streak.`)
     }

@@ -293,6 +293,23 @@ export async function getPreferences(): Promise<SupabasePreferences | null> {
     return data as SupabasePreferences
 }
 
+export async function saveDailyCheckin(date: string, energyLevel: number) {
+    const { error } = await supabase
+        .from('daily_checkins')
+        .upsert({ date, energy_level: energyLevel }, { onConflict: 'date' })
+    if (error) throw error
+}
+
+export async function getTodayCheckin(): Promise<number | null> {
+    const today = new Date().toISOString().split('T')[0]
+    const { data } = await supabase
+        .from('daily_checkins')
+        .select('energy_level')
+        .eq('date', today)
+        .single()
+    return data?.energy_level ?? null
+}
+
 export async function savePreferences(prefs: {
     weeklyGoal: number
     restDurationSeconds: number

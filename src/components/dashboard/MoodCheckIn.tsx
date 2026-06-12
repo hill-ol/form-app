@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const moods = [
     { emoji: '😴', level: 1 },
@@ -11,7 +11,29 @@ const moods = [
 ]
 
 export default function MoodCheckIn() {
-    const [selected, setSelected] = useState<number>(3)
+    const [selected, setSelected] = useState<number | null>(null)
+
+    useEffect(() => {
+        async function loadCheckin() {
+            try {
+                const { getTodayCheckin } = await import('@/lib/db')
+                const saved = await getTodayCheckin()
+                if (saved !== null) setSelected(saved)
+            } catch { /* keep null — no checkin yet */ }
+        }
+        loadCheckin()
+    }, [])
+
+    async function handleSelect(level: number) {
+        setSelected(level)
+        try {
+            const { saveDailyCheckin } = await import('@/lib/db')
+            const today = new Date().toISOString().split('T')[0]
+            await saveDailyCheckin(today, level)
+        } catch (e) {
+            console.error('Failed to save checkin:', e)
+        }
+    }
 
     return (
         <div className="bg-white rounded-2xl p-3 md:p-4" style={{ border: '0.5px solid var(--border)' }}>
@@ -22,17 +44,22 @@ export default function MoodCheckIn() {
                 {moods.map(({ emoji, level }) => (
                     <button
                         key={level}
-                        onClick={() => setSelected(level)}
-                        className="flex-1 py-2 rounded-full text-lg transition-all"
+                        onClick={() => handleSelect(level)}
+                        className="flex-1 py-2 rounded-full text-lg transition-all active:scale-95"
                         style={{
                             border: selected === level ? '1.5px solid var(--pink)' : '1.5px solid var(--border)',
                             background: selected === level ? 'var(--pink-light)' : 'var(--cream)',
-                        }}
-                    >
+                            cursor: 'pointer',
+                        }}>
                         {emoji}
                     </button>
                 ))}
             </div>
+            {selected !== null && (
+                <p className="text-xs mt-2 text-center font-semibold" style={{ color: 'var(--pink)' }}>
+                    Saved ✓
+                </p>
+            )}
         </div>
     )
 }

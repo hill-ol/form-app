@@ -8,6 +8,7 @@ import {
     getSessionsForMonth,
     getPreferences,
     getLastSessionByDayType,
+    getTodayCheckin,
 } from '@/lib/db'
 import TopNav from '@/components/layout/TopNav'
 import BottomNav from '@/components/layout/BottomNav'
@@ -28,7 +29,7 @@ export default async function DashboardPage() {
     const year = today.getFullYear()
     const month = today.getMonth()
 
-    const [recentSessions, lastSleep, streak, template, monthSessions, prefs, progressionSuggestions] =
+    const [recentSessions, lastSleep, streak, template, monthSessions, prefs, progressionSuggestions, todayEnergyLevel] =
         await Promise.all([
             getRecentSessions(10).catch(() => []),
             getLastSleep().catch(() => null),
@@ -37,6 +38,7 @@ export default async function DashboardPage() {
             getSessionsForMonth(year, month).catch(() => []),
             getPreferences().catch(() => null),
             getProgressionSuggestions().catch(() => ({})),
+            getTodayCheckin().catch(() => null),
         ])
 
     const weeklyGoal = prefs?.weekly_goal ?? 5
@@ -209,6 +211,7 @@ export default async function DashboardPage() {
                     weeklyGoal,
                     weeklyCompleted,
                     todayPlan: todayTemplate?.label,
+                    currentMood: todayEnergyLevel ?? undefined,
                     recentSessions: mappedRecent.slice(0, 3).map(s => ({
                         date: s.date,
                         name: s.name,
