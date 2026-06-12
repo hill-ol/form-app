@@ -1,3 +1,4 @@
+import { connection } from 'next/server'
 import { PLACEHOLDER_DASHBOARD, DEFAULT_WEEK_TEMPLATE } from '@/lib/placeholder'
 import {
     getRecentSessions,
@@ -22,6 +23,7 @@ import { getProgressionSuggestions } from '@/lib/db'
 import { WorkoutSession, DayTemplate } from '@/types'
 
 export default async function DashboardPage() {
+    await connection() // opt out of prerender cache — always fetch fresh data per request
     const today = new Date()
     const year = today.getFullYear()
     const month = today.getMonth()
