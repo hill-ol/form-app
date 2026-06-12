@@ -39,6 +39,11 @@ export default function AddWorkoutSheet({ onClose, onSaved }: Props) {
     }
 
     async function handleSavePlan() {
+        if (isPast) {
+            router.push(`/log?date=${selectedDate}&type=${selectedType}`)
+            onClose()
+            return
+        }
         setSaving(true)
         try {
             const { supabase } = await import('@/lib/supabase')

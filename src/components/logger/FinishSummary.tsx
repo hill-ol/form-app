@@ -12,9 +12,10 @@ interface Props {
     dayName: string
     dayType: string
     mood?: number
+    date?: string
 }
 
-export default function FinishSummary({ exercises, duration, dayName, dayType, mood }: Props) {
+export default function FinishSummary({ exercises, duration, dayName, dayType, mood, date }: Props) {
     const router = useRouter()
     const [saving, setSaving] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -52,7 +53,7 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
             try {
                 await saveSession(
                     {
-                        date: new Date().toISOString().split('T')[0],
+                        date: date ?? new Date().toISOString().split('T')[0],
                         dayType,
                         workoutType: dayType === 'cardio' ? 'cardio'
                             : dayType === 'yoga' ? 'yoga'
