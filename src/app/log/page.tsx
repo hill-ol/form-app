@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { PLACEHOLDER_DASHBOARD, DEFAULT_WEEK_TEMPLATE, EXERCISE_LIBRARY } from '@/lib/placeholder'
+import { EXERCISE_LIBRARY } from '@/lib/placeholder'
 import { Exercise } from '@/types'
 import { ActiveExercise, createExercise } from '@/lib/sessionUtils'
 import SessionHeader from '@/components/logger/SessionHeader'
@@ -26,8 +26,6 @@ const DAY_LABEL: Record<string, string> = {
     cardio: 'Cardio', yoga: 'Yoga', 'full body': 'Full Body', rest: 'Rest Day',
 }
 
-const todayWorkout = PLACEHOLDER_DASHBOARD.todayWorkout
-
 function buildExercisesForDayType(dayType: string): ActiveExercise[] {
     const suggestions = EXERCISE_LIBRARY.filter(ex =>
         ex.dayType.includes(dayType as never)
@@ -42,25 +40,11 @@ function buildExercisesForDayType(dayType: string): ActiveExercise[] {
     )
 }
 
-function buildInitialExercises(): ActiveExercise[] {
-    return (todayWorkout.exercises ?? []).map(ex => {
-        const lib = EXERCISE_LIBRARY.find(e => e.id === ex.exerciseId)
-        return createExercise(
-            ex.exerciseId,
-            ex.exerciseName,
-            lib?.primaryMuscle ?? 'general',
-            lib?.equipment?.[0] ?? 'bodyweight',
-            ex.weight !== 'BW' ? ex.weight : lib?.currentWeight,
-            todayWorkout.dayType
-        )
-    })
-}
-
 type Screen = 'pre' | 'active' | 'done'
 
 export default function LogPage() {
     const [screen, setScreen] = useState<Screen>('pre')
-    const [selectedDayType, setSelectedDayType] = useState<string>(todayWorkout.dayType)
+    const [selectedDayType, setSelectedDayType] = useState<string>('push')
     const [exercises, setExercises] = useState<ActiveExercise[]>([])
     const [showAddSheet, setShowAddSheet] = useState(false)
     const [restTimerOn, setRestTimerOn] = useState(false)
@@ -73,16 +57,20 @@ export default function LogPage() {
 
     const dayLabel = DAY_LABEL[selectedDayType] ?? 'Workout'
     const dayEmoji = DAY_EMOJI[selectedDayType] ?? '🏋️'
-    const isDefaultPlan = selectedDayType === todayWorkout.dayType
 
     useEffect(() => {
         async function loadPreferences() {
             try {
-                const { getPreferences } = await import('@/lib/db')
-                const prefs = await getPreferences()
+                const { getPreferences, getWeeklyTemplate } = await import('@/lib/db')
+                const [prefs, tmpl] = await Promise.all([getPreferences(), getWeeklyTemplate()])
                 if (prefs) {
                     setRestDuration(prefs.rest_duration_seconds ?? 90)
                     setRestTimerOn(prefs.rest_timer_default ?? false)
+                }
+                if (tmpl?.length) {
+                    const todayDow = new Date().getDay()
+                    const todayEntry = tmpl.find((t: any) => t.dayOfWeek === todayDow)
+                    if (todayEntry?.dayType) setSelectedDayType(todayEntry.dayType)
                 }
             } catch { /* keep defaults */ }
         }
@@ -190,11 +178,6 @@ export default function LogPage() {
     function selectDayType(dayType: string) {
         setSelectedDayType(dayType)
         setCoachInsight(null)
-        if (dayType === todayWorkout.dayType) {
-            setExercises(buildInitialExercises())
-        } else {
-            setExercises(buildExercisesForDayType(dayType))
-        }
     }
 
     function startSession() {
@@ -328,15 +311,13 @@ export default function LogPage() {
         )
     }
 
-    const displayExercises = isDefaultPlan
-        ? (todayWorkout.exercises ?? [])
-        : exercises.map(ex => ({
-            exerciseId: ex.exerciseId,
-            exerciseName: ex.exerciseName,
-            sets: ex.sets.length,
-            reps: 0,
-            weight: ex.lastWeight ?? 'BW',
-        }))
+    const displayExercises = exercises.map(ex => ({
+        exerciseId: ex.exerciseId,
+        exerciseName: ex.exerciseName,
+        sets: ex.sets.length,
+        reps: 0,
+        weight: ex.lastWeight ?? 'BW',
+    }))
 
     return (
         <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--cream)' }}>
@@ -361,7 +342,7 @@ export default function LogPage() {
                     }}>
                     <p className="text-xs font-bold uppercase tracking-widest mb-1"
                        style={{ color: 'var(--muted)', fontSize: '10px' }}>
-                        {isDefaultPlan ? "Today's plan" : 'Custom session'}
+                        Today&apos;s session
                     </p>
                     <p className="text-2xl font-black mb-1">{dayLabel} {dayEmoji}</p>
                     <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
