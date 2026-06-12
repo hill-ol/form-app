@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { ScatterPoint, linearRegression } from '@/lib/progressUtils'
+import { linearRegression } from '@/lib/progressUtils'
 import { ScatterPoint as ProgressScatterPoint } from '@/lib/progressData'
 
 interface Props {
@@ -12,7 +12,7 @@ export default function SleepVsPerformance({ scatterData }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const chartRef = useRef<unknown>(null)
 
-    const points: ScatterPoint[] = scatterData.map(p => ({ x: p.x, y: p.y }))
+    const points: { x: number; y: number }[] = scatterData.map(p => ({ x: p.x, y: p.y }))
     const { m, b } = linearRegression(points)
 
     const under6 = scatterData.filter(p => p.x < 6)
