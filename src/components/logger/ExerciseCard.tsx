@@ -42,6 +42,7 @@ export default function ExerciseCard({
         } else {
             if (!set.reps) return
         }
+        import('@/lib/haptics').then(({ haptics }) => haptics.setComplete())
         onChange({
             ...exercise,
             sets: exercise.sets.map(s =>
@@ -89,10 +90,20 @@ export default function ExerciseCard({
         swipeTouchStart.current[id] = e.touches[0].clientX
     }
 
+    const hapticFiredRef = useRef<Record<string, boolean>>({})
+
     function onSwipeTouchMove(id: string, e: React.TouchEvent) {
         const dx = e.touches[0].clientX - (swipeTouchStart.current[id] ?? 0)
         if (dx < 0) {
-            setSwipeOffsets(prev => ({ ...prev, [id]: Math.max(dx, -DELETE_THRESHOLD - 20) }))
+            const clamped = Math.max(dx, -DELETE_THRESHOLD - 20)
+            setSwipeOffsets(prev => ({ ...prev, [id]: clamped }))
+            if (clamped <= -DELETE_THRESHOLD && !hapticFiredRef.current[id]) {
+                hapticFiredRef.current[id] = true
+                import('@/lib/haptics').then(({ haptics }) => haptics.deleteReady())
+            }
+            if (clamped > -DELETE_THRESHOLD) {
+                hapticFiredRef.current[id] = false
+            }
         }
     }
 
@@ -101,6 +112,7 @@ export default function ExerciseCard({
         if (offset <= -DELETE_THRESHOLD) {
             removeSet(id)
         }
+        hapticFiredRef.current[id] = false
         setSwipeOffsets(prev => ({ ...prev, [id]: 0 }))
     }
 

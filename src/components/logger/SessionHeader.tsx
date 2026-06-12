@@ -37,7 +37,10 @@ export default function SessionHeader({ dayName, restTimerOn, onToggleTimer, onF
                     </p>
                 </div>
                 <button
-                    onClick={onFinish}
+                    onClick={() => {
+                        import('@/lib/haptics').then(({ haptics }) => haptics.sessionComplete())
+                        onFinish()
+                    }}
                     className="text-xs font-black uppercase tracking-wider rounded-full px-4 py-2 transition-all active:scale-95"
                     style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', cursor: 'pointer' }}>
                     Finish

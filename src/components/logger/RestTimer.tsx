@@ -19,6 +19,7 @@ export default function RestTimer({ seconds, onComplete, onSkip }: Props) {
 
     useEffect(() => {
         if (remaining <= 0) {
+            import('@/lib/haptics').then(({ haptics }) => haptics.restTimerDone())
             onCompleteRef.current()
             return
         }
