@@ -49,18 +49,16 @@ export default async function DashboardPage() {
         ? await getLastSessionByDayType(todayTemplate.dayType).catch(() => null)
         : null
 
-    const mappedRecent: WorkoutSession[] = recentSessions.length > 0
-        ? recentSessions.map((s: any) => ({
-            id: s.id,
-            date: s.date.split('T')[0],
-            type: s.workout_type,
-            dayType: s.day_type,
-            name: s.name,
-            duration: s.duration_seconds
-                ? Math.floor(s.duration_seconds / 60)
-                : undefined,
-        }))
-        : PLACEHOLDER_DASHBOARD.recentSessions
+    const mappedRecent: WorkoutSession[] = recentSessions.map((s: any) => ({
+        id: s.id,
+        date: s.date.split('T')[0],
+        type: s.workout_type,
+        dayType: s.day_type,
+        name: s.name,
+        duration: s.duration_seconds
+            ? Math.floor(s.duration_seconds / 60)
+            : undefined,
+    }))
 
     // Monday-first to match WeekCalendar's DAYS = ['M','T','W','T','F','S','S']
     const startOfWeek = new Date(today)

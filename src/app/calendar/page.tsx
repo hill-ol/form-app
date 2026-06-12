@@ -21,7 +21,7 @@ export default function CalendarPage() {
     const [showAddWorkout, setShowAddWorkout] = useState(false)
     const [template, setTemplate] = useState<DayTemplate[]>(DEFAULT_WEEK_TEMPLATE)
     const [overrides, setOverrides] = useState<Record<string, string>>({})
-    const [sessions, setSessions] = useState(PLACEHOLDER_DASHBOARD.recentSessions)
+    const [sessions, setSessions] = useState<any[]>([])
 
     const loadCalendarData = useCallback(async () => {
         try {
@@ -39,18 +39,16 @@ export default function CalendarPage() {
             for (const o of ov) ovMap[o.date] = o.day_type
             setOverrides(ovMap)
 
-            if (sess.length > 0) {
-                setSessions(sess.map((s: any) => ({
-                    id: s.id,
-                    date: s.date.split('T')[0],
-                    type: s.workout_type,
-                    dayType: s.day_type,
-                    name: s.name,
-                    duration: s.duration_seconds
-                        ? Math.floor(s.duration_seconds / 60)
-                        : undefined,
-                })))
-            }
+            setSessions(sess.map((s: any) => ({
+                id: s.id,
+                date: s.date.split('T')[0],
+                type: s.workout_type,
+                dayType: s.day_type,
+                name: s.name,
+                duration: s.duration_seconds
+                    ? Math.floor(s.duration_seconds / 60)
+                    : undefined,
+            })))
         } catch (e) {
             console.error('Failed to load calendar data:', e)
         }
