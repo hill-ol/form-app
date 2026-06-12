@@ -458,6 +458,44 @@ export async function getPersonalRecords(): Promise<{
         .slice(0, 6)
 }
 
+export async function getHoldPersonalRecords(): Promise<{
+    exercise: string; weight: number; date: string; duration: number; isHold: true
+}[]> {
+    const { data, error } = await supabase
+        .from('set_logs')
+        .select(`
+            duration_seconds,
+            exercise_logs!inner(exercise_name),
+            created_at
+        `)
+        .not('duration_seconds', 'is', null)
+        .order('duration_seconds', { ascending: false })
+
+    if (error) return []
+
+    const prs: Record<string, { exercise: string; weight: number; date: string; duration: number; isHold: true }> = {}
+
+    for (const row of (data ?? []) as any[]) {
+        const name = row.exercise_logs.exercise_name
+        const dur = row.duration_seconds as number
+        if (!prs[name] || dur > prs[name].duration) {
+            prs[name] = {
+                exercise: name,
+                weight: 0,
+                duration: dur,
+                isHold: true,
+                date: new Date(row.created_at).toLocaleDateString('en-US', {
+                    month: 'short', day: 'numeric',
+                }),
+            }
+        }
+    }
+
+    return Object.values(prs)
+        .sort((a, b) => b.duration - a.duration)
+        .slice(0, 4)
+}
+
 export async function saveDayOverride(
     date: string,
     dayType: string,

@@ -9,11 +9,16 @@ interface Props {
     onRemove: () => void
     onSetComplete: () => void
     restTimerOn: boolean
+    canMoveUp?: boolean
+    canMoveDown?: boolean
+    onMoveUp?: () => void
+    onMoveDown?: () => void
 }
 
 export default function ExerciseCard({
-                                         exercise, onChange, onRemove, onSetComplete, restTimerOn
-                                     }: Props) {
+    exercise, onChange, onRemove, onSetComplete, restTimerOn,
+    canMoveUp, canMoveDown, onMoveUp, onMoveDown,
+}: Props) {
     const [expanded, setExpanded] = useState(true)
     const [confirmRemove, setConfirmRemove] = useState(false)
 
@@ -166,6 +171,32 @@ export default function ExerciseCard({
                               style={{ background: 'var(--pink-light)', color: 'var(--pink)' }}>
               {completedCount}/{exercise.sets.length}
             </span>
+                    )}
+                    {(canMoveUp || canMoveDown) && (
+                        <div className="flex flex-col" style={{ gap: '2px' }}>
+                            <button
+                                onClick={e => { e.stopPropagation(); onMoveUp?.() }}
+                                disabled={!canMoveUp}
+                                style={{
+                                    width: '22px', height: '18px', borderRadius: '4px', border: 'none',
+                                    background: canMoveUp ? '#f8f8f8' : 'transparent',
+                                    color: canMoveUp ? '#aaa' : '#e0e0e0',
+                                    cursor: canMoveUp ? 'pointer' : 'default',
+                                    fontSize: '10px', lineHeight: 1, display: 'flex',
+                                    alignItems: 'center', justifyContent: 'center',
+                                }}>▲</button>
+                            <button
+                                onClick={e => { e.stopPropagation(); onMoveDown?.() }}
+                                disabled={!canMoveDown}
+                                style={{
+                                    width: '22px', height: '18px', borderRadius: '4px', border: 'none',
+                                    background: canMoveDown ? '#f8f8f8' : 'transparent',
+                                    color: canMoveDown ? '#aaa' : '#e0e0e0',
+                                    cursor: canMoveDown ? 'pointer' : 'default',
+                                    fontSize: '10px', lineHeight: 1, display: 'flex',
+                                    alignItems: 'center', justifyContent: 'center',
+                                }}>▼</button>
+                        </div>
                     )}
                     <button
                         onClick={e => { e.stopPropagation(); handleRemove() }}

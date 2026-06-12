@@ -31,9 +31,12 @@ export default function ExerciseProgressChart({ exerciseHistory, initialExercise
     }, [exercises])
 
     const points = selected ? (exerciseHistory[selected] ?? []) : []
-    const maxVal = points.length ? Math.max(...points.map(p => p.weight)) : 0
-    const firstVal = points.length ? points[0].weight : 0
-    const lastVal = points.length ? points[points.length - 1].weight : 0
+    const isHoldChart = points.length > 0 && points[0].duration != null
+    const getValue = (p: { weight: number; duration?: number }) =>
+        isHoldChart ? (p.duration ?? 0) : p.weight
+    const maxVal = points.length ? Math.max(...points.map(getValue)) : 0
+    const firstVal = points.length ? getValue(points[0]) : 0
+    const lastVal = points.length ? getValue(points[points.length - 1]) : 0
     const gain = lastVal - firstVal
 
     useEffect(() => {
@@ -49,7 +52,7 @@ export default function ExerciseProgressChart({ exerciseHistory, initialExercise
                 data: {
                     labels: points.map(p => p.label),
                     datasets: [{
-                        data: points.map(p => p.weight),
+                        data: points.map(getValue),
                         borderColor: '#E8417A',
                         backgroundColor: '#E8417A22',
                         borderWidth: 2,
@@ -72,7 +75,9 @@ export default function ExerciseProgressChart({ exerciseHistory, initialExercise
                             grid: { color: '#f5f0e8' },
                             ticks: {
                                 font: { size: 9 }, color: '#aaa', maxTicksLimit: 4,
-                                callback: (v: any) => v + ' lbs'
+                                callback: (v: any) => isHoldChart
+                                    ? (v >= 60 ? `${Math.floor(v/60)}:${String(v%60).padStart(2,'0')}` : `${v}s`)
+                                    : v + ' lbs'
                             },
                             border: { display: false }
                         }
@@ -111,13 +116,19 @@ export default function ExerciseProgressChart({ exerciseHistory, initialExercise
                 {gain !== 0 && (
                     <span className="font-bold rounded-full px-2 py-1"
                           style={{ fontSize: '10px', background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
-            {gain > 0 ? '↑' : '↓'} {Math.abs(gain)} lbs
-          </span>
+                        {gain > 0 ? '↑' : '↓'} {isHoldChart
+                            ? (Math.abs(gain) >= 60 ? `${Math.floor(Math.abs(gain)/60)}:${String(Math.abs(gain)%60).padStart(2,'0')}` : `${Math.abs(gain)}s`)
+                            : `${Math.abs(gain)} lbs`}
+                    </span>
                 )}
             </div>
             {maxVal > 0 && (
                 <p className="mb-3" style={{ fontSize: '10px', color: 'var(--muted)' }}>
-                    PR: <span className="font-black" style={{ color: 'var(--pink)' }}>{maxVal} lbs</span>
+                    PR: <span className="font-black" style={{ color: 'var(--pink)' }}>
+                        {isHoldChart
+                            ? (maxVal >= 60 ? `${Math.floor(maxVal/60)}:${String(maxVal%60).padStart(2,'0')}` : `${maxVal}s`)
+                            : `${maxVal} lbs`}
+                    </span>
                 </p>
             )}
             <div style={{ position: 'relative', height: '110px' }}>

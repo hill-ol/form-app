@@ -2,6 +2,7 @@ import {
     getRecentSessions,
     getSleepLogs,
     getPersonalRecords,
+    getHoldPersonalRecords,
     getCurrentStreak,
 } from './db'
 
@@ -25,7 +26,8 @@ export interface MonthlyWorkoutPoint {
 
 export interface ExercisePoint {
     label: string
-    weight: number
+    weight: number       // 0 for hold exercises
+    duration?: number    // seconds, hold exercises only
 }
 
 export interface SleepPoint {
@@ -52,14 +54,15 @@ export interface ProgressData {
     sleepData: SleepPoint[]
     scatterData: ScatterPoint[]
     moodData: MoodPoint[]
-    personalRecords: { exercise: string; weight: number; date: string }[]
+    personalRecords: { exercise: string; weight: number; date: string; duration?: number; isHold?: boolean }[]
 }
 
 export async function loadProgressData(): Promise<ProgressData> {
-    const [sessions, sleepLogs, prs, streak] = await Promise.all([
+    const [sessions, sleepLogs, prs, holdPrs, streak] = await Promise.all([
         getRecentSessions(50).catch(() => []),
         getSleepLogs(60).catch(() => []),
         getPersonalRecords().catch(() => []),
+        getHoldPersonalRecords().catch(() => []),
         getCurrentStreak().catch(() => 0),
     ])
 
@@ -98,7 +101,7 @@ export async function loadProgressData(): Promise<ProgressData> {
         sleepData,
         scatterData,
         moodData,
-        personalRecords: prs,
+        personalRecords: [...prs, ...holdPrs],
     }
 }
 
@@ -131,15 +134,22 @@ function buildExerciseHistory(sessions: any[]): Record<string, ExercisePoint[]> 
     const history: Record<string, ExercisePoint[]> = {}
     sessions.forEach(s => {
         const dateLabel = new Date(s.date).toLocaleDateString('en-US', {
-                month: 'short', day: 'numeric'
-            })
+            month: 'short', day: 'numeric'
+        })
         ;(s.exercise_logs ?? []).forEach((ex: any) => {
             const name = ex.exercise_name
-            const sets = (ex.set_logs ?? []).filter((sl: any) => sl.weight_lbs)
-            if (!sets.length) return
-            const maxWeight = Math.max(...sets.map((sl: any) => sl.weight_lbs))
-            if (!history[name]) history[name] = []
-            history[name].push({ label: dateLabel, weight: maxWeight })
+            const weightSets = (ex.set_logs ?? []).filter((sl: any) => sl.weight_lbs)
+            const holdSets = (ex.set_logs ?? []).filter((sl: any) => sl.duration_seconds)
+
+            if (weightSets.length) {
+                const maxWeight = Math.max(...weightSets.map((sl: any) => sl.weight_lbs))
+                if (!history[name]) history[name] = []
+                history[name].push({ label: dateLabel, weight: maxWeight })
+            } else if (holdSets.length) {
+                const maxDuration = Math.max(...holdSets.map((sl: any) => sl.duration_seconds))
+                if (!history[name]) history[name] = []
+                history[name].push({ label: dateLabel, weight: 0, duration: maxDuration })
+            }
         })
     })
     Object.keys(history).forEach(k => {

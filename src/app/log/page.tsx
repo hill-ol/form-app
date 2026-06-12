@@ -235,6 +235,16 @@ export default function LogPage() {
         setExercises(prev => prev.filter((_, i) => i !== index))
     }
 
+    function moveExercise(index: number, direction: 'up' | 'down') {
+        setExercises(prev => {
+            const next = [...prev]
+            const target = direction === 'up' ? index - 1 : index + 1
+            if (target < 0 || target >= next.length) return prev
+            ;[next[index], next[target]] = [next[target], next[index]]
+            return next
+        })
+    }
+
     function addExercise(ex: Exercise) {
         setExercises(prev => [...prev, createExercise(
             ex.id, ex.name, ex.primaryMuscle,
@@ -299,6 +309,10 @@ export default function LogPage() {
                                 onRemove={() => removeExercise(i)}
                                 onSetComplete={handleSetComplete}
                                 restTimerOn={restTimerOn}
+                                canMoveUp={i > 0}
+                                canMoveDown={i < exercises.length - 1}
+                                onMoveUp={() => moveExercise(i, 'up')}
+                                onMoveDown={() => moveExercise(i, 'down')}
                             />
                         </div>
                     ))}
