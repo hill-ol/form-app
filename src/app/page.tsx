@@ -60,8 +60,10 @@ export default async function DashboardPage() {
         }))
         : PLACEHOLDER_DASHBOARD.recentSessions
 
+    // Monday-first to match WeekCalendar's DAYS = ['M','T','W','T','F','S','S']
     const startOfWeek = new Date(today)
-    startOfWeek.setDate(today.getDate() - today.getDay())
+    const dayOfWeek = today.getDay() === 0 ? 7 : today.getDay() // treat Sunday as 7
+    startOfWeek.setDate(today.getDate() - (dayOfWeek - 1))
     startOfWeek.setHours(0, 0, 0, 0)
 
     const weekSessions: (WorkoutSession | null)[] = Array.from({ length: 7 }, (_, i) => {
