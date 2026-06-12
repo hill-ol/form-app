@@ -310,6 +310,24 @@ export async function getTodayCheckin(): Promise<number | null> {
     return data?.energy_level ?? null
 }
 
+export async function getTodayInsight(): Promise<string | null> {
+    const today = new Date().toISOString().split('T')[0]
+    const { data } = await supabase
+        .from('daily_checkins')
+        .select('coach_insight')
+        .eq('date', today)
+        .single()
+    return data?.coach_insight ?? null
+}
+
+export async function saveDailyInsight(insight: string) {
+    const today = new Date().toISOString().split('T')[0]
+    const { error } = await supabase
+        .from('daily_checkins')
+        .upsert({ date: today, coach_insight: insight }, { onConflict: 'date' })
+    if (error) throw error
+}
+
 export async function savePreferences(prefs: {
     weeklyGoal: number
     restDurationSeconds: number

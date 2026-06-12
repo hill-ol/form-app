@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CoachContext } from '@/lib/ai'
 import { getCache, setCache, getCacheKey } from '@/lib/coachCache'
 
@@ -13,6 +13,22 @@ export default function AiCoachCard({ context = {} }: Props) {
     const [insight, setInsight] = useState<string | null>(getCache(cacheKey))
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(false)
+
+    // On mount, fall back to DB if localStorage missed (e.g. different device)
+    useEffect(() => {
+        if (insight) return
+        async function loadFromDb() {
+            try {
+                const { getTodayInsight } = await import('@/lib/db')
+                const saved = await getTodayInsight()
+                if (saved) {
+                    setInsight(saved)
+                    setCache(cacheKey, saved)
+                }
+            } catch { /* silently skip — DB miss is fine */ }
+        }
+        loadFromDb()
+    }, [])
 
     async function fetchInsight() {
         if (loading) return
@@ -28,6 +44,11 @@ export default function AiCoachCard({ context = {} }: Props) {
             const text = data.insight ?? 'Keep going — you\'re doing great.'
             setInsight(text)
             setCache(cacheKey, text)
+            // Persist to DB so other devices get the same insight today
+            try {
+                const { saveDailyInsight } = await import('@/lib/db')
+                await saveDailyInsight(text)
+            } catch { /* non-critical */ }
         } catch {
             setError(true)
         } finally {

@@ -27,6 +27,7 @@ export function getCacheKey(type: string, context: CoachContext): string {
         plan: context.todayPlan,
         sessions: context.recentSessions?.length,
         weekly: context.weeklyCompleted,
+        mood: context.currentMood,
     })
     return `form_coach_${btoa(hash).slice(0, 32)}`
 }
