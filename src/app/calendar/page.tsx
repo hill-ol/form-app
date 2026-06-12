@@ -18,6 +18,7 @@ export default function CalendarPage() {
     const today = new Date()
     const [month, setMonth] = useState(today.getMonth())
     const [year, setYear] = useState(today.getFullYear())
+    const [view, setView] = useState<'calendar' | 'list'>('calendar')
     const [showAddWorkout, setShowAddWorkout] = useState(false)
     const [template, setTemplate] = useState<DayTemplate[]>(DEFAULT_WEEK_TEMPLATE)
     const [overrides, setOverrides] = useState<Record<string, string>>({})
@@ -107,37 +108,107 @@ export default function CalendarPage() {
                                 ›
                             </button>
                         </div>
-                        <button
-                            onClick={() => setShowAddWorkout(true)}
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-black transition-all duration-150 hover:scale-110 active:scale-95"
-                            style={{ background: 'var(--pink-light)', color: 'var(--pink)', border: 'none', cursor: 'pointer' }}>
-                            +
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <div className="flex rounded-full overflow-hidden"
+                                 style={{ border: '1px solid var(--border)', background: 'var(--cream)' }}>
+                                {(['calendar', 'list'] as const).map(v => (
+                                    <button
+                                        key={v}
+                                        onClick={() => setView(v)}
+                                        className="px-3 py-1 text-xs font-bold transition-all"
+                                        style={{
+                                            background: view === v ? 'var(--pink)' : 'transparent',
+                                            color: view === v ? '#fff' : 'var(--muted)',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            textTransform: 'capitalize',
+                                        }}>
+                                        {v}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => setShowAddWorkout(true)}
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-black transition-all duration-150 hover:scale-110 active:scale-95"
+                                style={{ background: 'var(--pink-light)', color: 'var(--pink)', border: 'none', cursor: 'pointer' }}>
+                                +
+                            </button>
+                        </div>
                     </div>
 
                     <div className="px-4 pb-2">
                         <p className="text-3xl font-black tracking-tight">{monthLabel}</p>
                     </div>
 
-                    <CalendarGrid
-                        days={days}
-                        onOverrideSaved={handleOverrideSaved}
-                    />
-
-                    <div className="flex gap-3 flex-wrap px-4 pb-4">
-                        {WORKOUT_TYPES.map(type => {
-                            const c = WORKOUT_COLORS[type]
-                            return (
-                                <div key={type} className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm inline-block"
-                        style={{ background: c.bg, border: `1.5px solid ${c.border}` }} />
-                                    <span className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>
-                    {WORKOUT_LABELS[type]}
-                  </span>
+                    {view === 'calendar' ? (
+                        <>
+                            <CalendarGrid
+                                days={days}
+                                onOverrideSaved={handleOverrideSaved}
+                            />
+                            <div className="flex gap-3 flex-wrap px-4 pb-4">
+                                {WORKOUT_TYPES.map(type => {
+                                    const c = WORKOUT_COLORS[type]
+                                    return (
+                                        <div key={type} className="flex items-center gap-1.5">
+                                            <span className="w-2.5 h-2.5 rounded-sm inline-block"
+                                                  style={{ background: c.bg, border: `1.5px solid ${c.border}` }} />
+                                            <span className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>
+                                                {WORKOUT_LABELS[type]}
+                                            </span>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </>
+                    ) : (
+                        <div style={{ minHeight: '200px' }}>
+                            {sessions.length === 0 ? (
+                                <div className="py-12 text-center">
+                                    <p className="font-bold" style={{ fontSize: '13px', color: 'var(--muted)' }}>
+                                        No sessions logged this month.
+                                    </p>
+                                    <p className="text-xs mt-1" style={{ color: 'var(--muted)', opacity: 0.6 }}>
+                                        Tap + to log a workout.
+                                    </p>
                                 </div>
-                            )
-                        })}
-                    </div>
+                            ) : (
+                                [...sessions]
+                                    .sort((a, b) => b.date.localeCompare(a.date))
+                                    .map((s, i) => {
+                                        const d = new Date(s.date + 'T12:00:00')
+                                        const dateLabel = d.toLocaleDateString('en-US', {
+                                            weekday: 'short', month: 'short', day: 'numeric',
+                                        })
+                                        const c = WORKOUT_COLORS[s.type as keyof typeof WORKOUT_COLORS] ?? WORKOUT_COLORS.strength
+                                        return (
+                                            <div
+                                                key={s.id}
+                                                className="flex items-center justify-between px-4 py-3 cursor-pointer transition-all hover:bg-gray-50"
+                                                style={{ borderBottom: i < sessions.length - 1 ? '0.5px solid #f5f0e8' : 'none' }}
+                                                onClick={() => setShowAddWorkout(true)}>
+                                                <div>
+                                                    <p className="text-xs font-bold" style={{ color: 'var(--muted)' }}>{dateLabel}</p>
+                                                    <p className="font-semibold" style={{ fontSize: '13px' }}>{s.name}</p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {s.duration && (
+                                                        <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                                                            {s.duration} min
+                                                        </span>
+                                                    )}
+                                                    <span className="font-bold rounded-full px-2 py-0.5"
+                                                          style={{ fontSize: '10px', background: c.bg, color: c.border }}>
+                                                        {s.dayType}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )
+                                    })
+                            )}
+                            <div className="pb-4" />
+                        </div>
+                    )}
 
                     {showAddWorkout && (
                         <AddWorkoutSheet

@@ -38,16 +38,27 @@ function PinkSlider({
     )
 }
 
+function toLocalDateString(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function SleepLogSheet({ onClose }: Props) {
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+
     const [hours, setHours] = useState(7)
     const [mood, setMood] = useState(3)
+    const [date, setDate] = useState(toLocalDateString(yesterday))
     const [saved, setSaved] = useState(false)
+
+    const displayDate = new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric',
+    })
 
     async function handleSave() {
         try {
             const { logSleep } = await import('@/lib/db')
-            const today = new Date().toISOString().split('T')[0]
-            await logSleep(today, hours, mood)
+            await logSleep(date, hours, mood)
         } catch (e) {
             console.error('Failed to save sleep:', e)
         }
@@ -60,13 +71,26 @@ export default function SleepLogSheet({ onClose }: Props) {
             <div className="w-10 h-1 rounded-full mx-auto mb-5"
                  style={{ background: '#e8e0d0' }} />
             <p className="font-black mb-1" style={{ fontSize: '17px' }}>
-                Log last night&apos;s sleep
+                Log sleep
             </p>
-            <p className="text-xs mb-5" style={{ color: 'var(--muted)' }}>
-                {new Date().toLocaleDateString('en-US', {
-                    weekday: 'long', month: 'long', day: 'numeric'
-                })}
-            </p>
+            <div className="flex items-center gap-2 mb-5">
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>{displayDate}</p>
+                <input
+                    type="date"
+                    value={date}
+                    max={toLocalDateString(yesterday)}
+                    onChange={e => setDate(e.target.value)}
+                    className="text-xs font-bold rounded-full px-2 py-0.5"
+                    style={{
+                        border: '1px solid var(--border)',
+                        background: 'var(--cream)',
+                        color: 'var(--pink-dark)',
+                        outline: 'none',
+                        fontFamily: 'Inter, sans-serif',
+                        cursor: 'pointer',
+                    }}
+                />
+            </div>
 
             <div className="mb-5">
                 <p className="font-bold uppercase tracking-widest mb-3"

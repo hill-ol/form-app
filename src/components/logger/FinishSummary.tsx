@@ -19,6 +19,8 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
     const [saving, setSaving] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [streak, setStreak] = useState<number | undefined>(undefined)
+    const [notes, setNotes] = useState('')
+    const [sessionId, setSessionId] = useState<string | null>(null)
 
     const totalSets = exercises.reduce((acc, ex) =>
         acc + ex.sets.filter(s => s.completed).length, 0)
@@ -62,7 +64,7 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                 const { EXERCISE_LIBRARY } = await import('@/lib/placeholder')
 
                 // Fire save and weight fetch in parallel
-                const [, storedWeights, currentStreak] = await Promise.all([
+                const [savedSession, storedWeights, currentStreak] = await Promise.all([
                     saveSession(
                         {
                             date: new Date().toISOString().split('T')[0],
@@ -81,6 +83,7 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                     getCurrentStreak(),
                 ])
 
+                if (savedSession?.id) setSessionId(savedSession.id)
                 setStreak(currentStreak)
 
                 // Update current_weight for any exercise where a completed set hit a new high
@@ -191,8 +194,38 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                     })}
                 </div>
 
+                <div className="mb-4">
+                    <p className="font-bold uppercase tracking-widest mb-2"
+                       style={{ fontSize: '10px', color: 'var(--muted)' }}>
+                        Session notes
+                    </p>
+                    <textarea
+                        value={notes}
+                        onChange={e => setNotes(e.target.value)}
+                        placeholder="How did it feel? Any PRs, cues, or things to remember…"
+                        rows={3}
+                        className="w-full rounded-2xl px-4 py-3 text-sm"
+                        style={{
+                            border: '0.5px solid var(--border)',
+                            background: '#fff',
+                            fontFamily: 'Inter, sans-serif',
+                            resize: 'none',
+                            outline: 'none',
+                            color: '#1a1a1a',
+                        }}
+                    />
+                </div>
+
                 <button
-                    onClick={() => router.push('/')}
+                    onClick={async () => {
+                        if (notes.trim() && sessionId) {
+                            try {
+                                const { supabase } = await import('@/lib/supabase')
+                                await supabase.from('workout_sessions').update({ notes: notes.trim() }).eq('id', sessionId)
+                            } catch { /* non-critical — navigate anyway */ }
+                        }
+                        router.push('/')
+                    }}
                     disabled={saving}
                     className="w-full py-4 rounded-full text-white font-black uppercase tracking-widest text-sm transition-all active:scale-95"
                     style={{
