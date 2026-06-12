@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import SleepLogSheet from '@/components/progress/SleepLogSheet'
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function SleepStatCard({ hours }: Props) {
+    const router = useRouter()
     const [showLog, setShowLog] = useState(false)
 
     return (
@@ -26,7 +28,7 @@ export default function SleepStatCard({ hours }: Props) {
                 </p>
             </div>
 
-            {showLog && <SleepLogSheet onClose={() => setShowLog(false)} />}
+            {showLog && <SleepLogSheet onClose={() => { setShowLog(false); router.refresh() }} />}
         </>
     )
 }
