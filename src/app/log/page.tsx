@@ -9,6 +9,7 @@ import ExerciseCard from '@/components/logger/ExerciseCard'
 import AddExerciseSheet from '@/components/logger/AddExerciseSheet'
 import RestTimer from '@/components/logger/RestTimer'
 import FinishSummary from '@/components/logger/FinishSummary'
+import TopNav from '@/components/layout/TopNav'
 import BottomNav from '@/components/layout/BottomNav'
 import { ActiveSet } from '@/lib/sessionUtils'
 
@@ -232,6 +233,7 @@ export default function LogPage() {
     if (screen === 'active') {
         return (
             <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--cream)' }}>
+                <TopNav/>
                 <SessionHeader
                     dayName={`${dayLabel} ${dayEmoji}`}
                     restTimerOn={restTimerOn}
@@ -321,15 +323,7 @@ export default function LogPage() {
 
     return (
         <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--cream)' }}>
-            <div className="md:hidden flex items-center justify-between px-4 pt-5 pb-2">
-                <p className="text-xl font-black tracking-tight">
-                    FORM <span style={{ color: 'var(--pink)' }}>.</span>
-                </p>
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                     style={{ background: 'var(--pink-light)', color: 'var(--pink)' }}>
-                    O
-                </div>
-            </div>
+            <TopNav />
 
             <div className="flex-1 flex flex-col px-4 pt-4 pb-24 max-w-2xl mx-auto w-full">
 
