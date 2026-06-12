@@ -10,6 +10,12 @@ const MUSCLE_GROUPS = ['chest', 'shoulders', 'triceps', 'back', 'biceps', 'forea
 const EQUIPMENT_OPTIONS = ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight', 'kettlebell', 'resistance band']
 const MOVEMENT_TYPES = ['compound', 'isolation']
 const DAY_TYPE_OPTIONS = ['push', 'pull', 'legs', 'cardio', 'yoga', 'full body']
+const EXERCISE_TYPES: { value: string; label: string; description: string }[] = [
+    { value: 'strength',   label: 'Strength',   description: 'Reps + weight (e.g. bench press)' },
+    { value: 'bodyweight', label: 'Bodyweight',  description: 'Reps + optional band/vest (e.g. pull-ups)' },
+    { value: 'hold',       label: 'Hold',        description: 'MM:SS duration (e.g. plank)' },
+    { value: 'cardio',     label: 'Cardio',      description: 'Duration + distance' },
+]
 
 interface EditState {
     exercise: Exercise
@@ -45,6 +51,7 @@ export default function ExerciseLibraryEditor() {
                         equipment: ex.equipment,
                         movementType: ex.movement_type,
                         currentWeight: ex.current_weight ? String(ex.current_weight) : undefined,
+                        exerciseType: ex.exercise_type ?? undefined,
                         notes: ex.notes,
                     }))
                     setLibrary(prev => {
@@ -84,6 +91,7 @@ export default function ExerciseLibraryEditor() {
                 equipment: ['barbell'],
                 movementType: 'compound',
                 currentWeight: '',
+                exerciseType: 'strength',
             },
         })
     }
@@ -109,6 +117,7 @@ export default function ExerciseLibraryEditor() {
                 equipment: editing.exercise.equipment,
                 movementType: editing.exercise.movementType,
                 currentWeight: editing.exercise.currentWeight,
+                exerciseType: editing.exercise.exerciseType,
                 notes: editing.exercise.notes,
                 isCustom: editing.isNew,
             })
@@ -218,11 +227,17 @@ export default function ExerciseLibraryEditor() {
                             <div style={{ flex: 1 }}>
                                 <div className="flex items-center gap-2">
                                     <p className="font-semibold" style={{ fontSize: '13px' }}>{ex.name}</p>
-                                    {ex.currentWeight && (
+                                    {ex.exerciseType === 'hold' && (
+                                        <span className="font-bold rounded-full px-2 py-0.5"
+                                              style={{ fontSize: '9px', background: '#EDE9FE', color: '#6D28D9' }}>
+                                            hold
+                                        </span>
+                                    )}
+                                    {ex.currentWeight && ex.exerciseType !== 'hold' && (
                                         <span className="font-bold rounded-full px-2 py-0.5"
                                               style={{ fontSize: '9px', background: '#FEF6DC', color: '#9A6F00' }}>
-                      {ex.currentWeight} lbs
-                    </span>
+                                            {ex.currentWeight} lbs
+                                        </span>
                                     )}
                                 </div>
                                 <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
@@ -303,6 +318,40 @@ export default function ExerciseLibraryEditor() {
                         <div>
                             <p className="font-bold uppercase tracking-widest mb-2"
                                style={{ fontSize: '10px', color: 'var(--muted)' }}>
+                                Tracking type
+                            </p>
+                            <div className="space-y-2">
+                                {EXERCISE_TYPES.map(et => (
+                                    <button
+                                        key={et.value}
+                                        onClick={() => updateEditing('exerciseType', et.value)}
+                                        className="w-full text-left rounded-xl px-3 py-2.5 transition-all"
+                                        style={{
+                                            border: editing.exercise.exerciseType === et.value
+                                                ? '1.5px solid var(--pink)'
+                                                : '1.5px solid var(--border)',
+                                            background: editing.exercise.exerciseType === et.value
+                                                ? 'var(--pink-light)' : 'var(--cream)',
+                                            cursor: 'pointer',
+                                        }}>
+                                        <p className="font-bold" style={{
+                                            fontSize: '12px',
+                                            color: editing.exercise.exerciseType === et.value ? 'var(--pink-dark)' : '#1a1a1a',
+                                        }}>
+                                            {et.label}
+                                        </p>
+                                        <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                                            {et.description}
+                                        </p>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {editing.exercise.exerciseType !== 'hold' && (
+                        <div>
+                            <p className="font-bold uppercase tracking-widest mb-2"
+                               style={{ fontSize: '10px', color: 'var(--muted)' }}>
                                 Current working weight
                             </p>
                             <div className="flex items-center gap-3">
@@ -325,8 +374,8 @@ export default function ExerciseLibraryEditor() {
                                     }}
                                 />
                                 <span className="font-bold" style={{ color: 'var(--muted)', fontSize: '13px' }}>
-                  lbs
-                </span>
+                                    lbs
+                                </span>
                             </div>
                             {editing.exercise.currentWeight && (
                                 <p className="text-xs mt-1.5" style={{ color: 'var(--muted)' }}>
@@ -334,6 +383,7 @@ export default function ExerciseLibraryEditor() {
                                 </p>
                             )}
                         </div>
+                        )}
 
                         <div>
                             <p className="font-bold uppercase tracking-widest mb-2"

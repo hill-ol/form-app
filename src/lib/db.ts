@@ -336,6 +336,7 @@ export async function saveExerciseToLibrary(ex: {
     equipment: string[]
     movementType: string
     currentWeight?: string
+    exerciseType?: string
     notes?: string
     isCustom?: boolean
 }) {
@@ -350,6 +351,7 @@ export async function saveExerciseToLibrary(ex: {
             equipment: ex.equipment,
             movement_type: ex.movementType,
             current_weight: ex.currentWeight ? parseFloat(ex.currentWeight) : null,
+            exercise_type: ex.exerciseType ?? null,
             notes: ex.notes,
             is_custom: ex.isCustom ?? false,
         }, { onConflict: 'id' })
