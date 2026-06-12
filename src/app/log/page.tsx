@@ -65,6 +65,7 @@ export default function LogPage() {
     const [showAddSheet, setShowAddSheet] = useState(false)
     const [restTimerOn, setRestTimerOn] = useState(false)
     const [restActive, setRestActive] = useState(false)
+    const [restDuration, setRestDuration] = useState(90)
     const [startTime, setStartTime] = useState<number>(0)
     const [coachInsight, setCoachInsight] = useState<string | null>(null)
     const [coachLoading, setCoachLoading] = useState(false)
@@ -73,6 +74,20 @@ export default function LogPage() {
     const dayLabel = DAY_LABEL[selectedDayType] ?? 'Workout'
     const dayEmoji = DAY_EMOJI[selectedDayType] ?? '🏋️'
     const isDefaultPlan = selectedDayType === todayWorkout.dayType
+
+    useEffect(() => {
+        async function loadPreferences() {
+            try {
+                const { getPreferences } = await import('@/lib/db')
+                const prefs = await getPreferences()
+                if (prefs) {
+                    setRestDuration(prefs.rest_duration_seconds ?? 90)
+                    setRestTimerOn(prefs.rest_timer_default ?? false)
+                }
+            } catch { /* keep defaults */ }
+        }
+        loadPreferences()
+    }, [])
 
     useEffect(() => {
         if (startTime > 0) {
@@ -244,7 +259,7 @@ export default function LogPage() {
                 <div className="flex-1 overflow-y-auto px-4 pt-3" style={{ paddingBottom: '140px' }}>
                     {restActive && restTimerOn && (
                         <RestTimer
-                            seconds={90}
+                            seconds={restDuration}
                             onComplete={() => setRestActive(false)}
                             onSkip={() => setRestActive(false)}
                         />
