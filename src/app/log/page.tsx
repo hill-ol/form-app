@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { EXERCISE_LIBRARY } from '@/lib/placeholder'
 import { Exercise } from '@/types'
 import { ActiveExercise, createExercise } from '@/lib/sessionUtils'
@@ -44,10 +44,30 @@ function buildExercisesForDayType(dayType: string): ActiveExercise[] {
 
 type Screen = 'pre' | 'active' | 'done'
 
+const SESSION_KEY = 'form_active_session'
+
+function loadSavedSession(): { screen: Screen; dayType: string; exercises: ActiveExercise[] } | null {
+    try {
+        const raw = sessionStorage.getItem(SESSION_KEY)
+        if (!raw) return null
+        return JSON.parse(raw)
+    } catch { return null }
+}
+
+function saveSession(screen: Screen, dayType: string, exercises: ActiveExercise[]) {
+    if (screen === 'done') {
+        sessionStorage.removeItem(SESSION_KEY)
+    } else {
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify({ screen, dayType, exercises }))
+    }
+}
+
 export default function LogPage() {
-    const [screen, setScreen] = useState<Screen>('pre')
-    const [selectedDayType, setSelectedDayType] = useState<string>('push')
-    const [exercises, setExercises] = useState<ActiveExercise[]>([])
+    const saved = typeof window !== 'undefined' ? loadSavedSession() : null
+
+    const [screen, setScreenState] = useState<Screen>(saved?.screen ?? 'pre')
+    const [selectedDayType, setSelectedDayType] = useState<string>(saved?.dayType ?? 'push')
+    const [exercises, setExercisesState] = useState<ActiveExercise[]>(saved?.exercises ?? [])
     const [showAddSheet, setShowAddSheet] = useState(false)
     const [restTimerOn, setRestTimerOn] = useState(false)
     const [restActive, setRestActive] = useState(false)
@@ -57,10 +77,31 @@ export default function LogPage() {
     const [coachLoading, setCoachLoading] = useState(false)
     const [estimatedDuration, setEstimatedDuration] = useState('45–60 min')
 
+    // Use refs so closure-based setters always see the latest values
+    const screenRef = useRef(screen)
+    const dayTypeRef = useRef(selectedDayType)
+    screenRef.current = screen
+    dayTypeRef.current = selectedDayType
+
+    function setScreen(s: Screen) {
+        setScreenState(s)
+        saveSession(s, dayTypeRef.current, [])
+    }
+
+    function setExercises(updater: ActiveExercise[] | ((prev: ActiveExercise[]) => ActiveExercise[])) {
+        setExercisesState(prev => {
+            const next = typeof updater === 'function' ? updater(prev) : updater
+            saveSession(screenRef.current, dayTypeRef.current, next)
+            return next
+        })
+    }
+
     const dayLabel = DAY_LABEL[selectedDayType] ?? 'Workout'
     const dayEmoji = DAY_EMOJI[selectedDayType] ?? '🏋️'
 
     useEffect(() => {
+        // Only load preferences + template if no saved session (pre-screen, no exercises yet)
+        if (saved?.screen === 'active') return
         async function loadPreferences() {
             try {
                 const { getPreferences, getWeeklyTemplate } = await import('@/lib/db')
@@ -218,13 +259,15 @@ export default function LogPage() {
     function selectDayType(dayType: string) {
         setSelectedDayType(dayType)
         setCoachInsight(null)
+        saveSession(screen, dayType, exercises)
     }
 
     function startSession() {
         const now = Date.now()
         setStartTime(now)
         sessionStorage.setItem('form_session_start', String(now))
-        setScreen('active')
+        setScreenState('active')
+        saveSession('active', selectedDayType, exercises)
     }
 
     function updateExercise(index: number, updated: ActiveExercise) {
@@ -269,6 +312,7 @@ export default function LogPage() {
         const savedStart = parseInt(sessionStorage.getItem('form_session_start') ?? '0')
         const duration = Math.floor((Date.now() - (startTime || savedStart)) / 1000)
         sessionStorage.removeItem('form_session_start')
+        sessionStorage.removeItem(SESSION_KEY)
         return (
             <FinishSummary
                 exercises={exercises}
