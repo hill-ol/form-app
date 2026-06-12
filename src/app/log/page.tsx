@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useCallback, useEffect } from 'react'
 import { PLACEHOLDER_DASHBOARD, DEFAULT_WEEK_TEMPLATE, EXERCISE_LIBRARY } from '@/lib/placeholder'
 import { Exercise } from '@/types'
 import { ActiveExercise, createExercise } from '@/lib/sessionUtils'
@@ -59,13 +58,9 @@ function buildInitialExercises(): ActiveExercise[] {
 
 type Screen = 'pre' | 'active' | 'done'
 
-function LogPageInner() {
-    const searchParams = useSearchParams()
-    const retroDate = searchParams.get('date') ?? undefined
-    const retroType = searchParams.get('type') ?? undefined
-
+export default function LogPage() {
     const [screen, setScreen] = useState<Screen>('pre')
-    const [selectedDayType, setSelectedDayType] = useState<string>(retroType ?? todayWorkout.dayType)
+    const [selectedDayType, setSelectedDayType] = useState<string>(todayWorkout.dayType)
     const [exercises, setExercises] = useState<ActiveExercise[]>([])
     const [showAddSheet, setShowAddSheet] = useState(false)
     const [restTimerOn, setRestTimerOn] = useState(false)
@@ -224,7 +219,7 @@ function LogPageInner() {
 
     if (screen === 'done') {
         const savedStart = parseInt(sessionStorage.getItem('form_session_start') ?? '0')
-        const duration = retroDate ? 0 : Math.floor((Date.now() - (startTime || savedStart)) / 1000)
+        const duration = Math.floor((Date.now() - (startTime || savedStart)) / 1000)
         sessionStorage.removeItem('form_session_start')
         return (
             <FinishSummary
@@ -232,7 +227,6 @@ function LogPageInner() {
                 duration={duration}
                 dayName={dayLabel}
                 dayType={selectedDayType}
-                date={retroDate}
             />
         )
     }
@@ -492,13 +486,5 @@ function LogPageInner() {
 
             <BottomNav />
         </div>
-    )
-}
-
-export default function LogPage() {
-    return (
-        <Suspense>
-            <LogPageInner />
-        </Suspense>
     )
 }

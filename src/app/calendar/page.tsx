@@ -23,41 +23,42 @@ export default function CalendarPage() {
     const [overrides, setOverrides] = useState<Record<string, string>>({})
     const [sessions, setSessions] = useState(PLACEHOLDER_DASHBOARD.recentSessions)
 
-    useEffect(() => {
-        async function load() {
-            try {
-                const { getWeeklyTemplate, getSessionsForMonth, getDayOverrides } = await import('@/lib/db')
-                const [tmpl, sess] = await Promise.all([
-                    getWeeklyTemplate(),
-                    getSessionsForMonth(year, month),
-                ])
-                if (tmpl.length > 0) setTemplate(tmpl)
+    const loadCalendarData = useCallback(async () => {
+        try {
+            const { getWeeklyTemplate, getSessionsForMonth, getDayOverrides } = await import('@/lib/db')
+            const [tmpl, sess] = await Promise.all([
+                getWeeklyTemplate(),
+                getSessionsForMonth(year, month),
+            ])
+            if (tmpl.length > 0) setTemplate(tmpl)
 
-                const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
-                const end = `${year}-${String(month + 1).padStart(2, '0')}-31`
-                const ov = await getDayOverrides(start, end)
-                const ovMap: Record<string, string> = {}
-                for (const o of ov) ovMap[o.date] = o.day_type
-                setOverrides(ovMap)
+            const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
+            const end = `${year}-${String(month + 1).padStart(2, '0')}-31`
+            const ov = await getDayOverrides(start, end)
+            const ovMap: Record<string, string> = {}
+            for (const o of ov) ovMap[o.date] = o.day_type
+            setOverrides(ovMap)
 
-                if (sess.length > 0) {
-                    setSessions(sess.map((s: any) => ({
-                        id: s.id,
-                        date: s.date.split('T')[0],
-                        type: s.workout_type,
-                        dayType: s.day_type,
-                        name: s.name,
-                        duration: s.duration_seconds
-                            ? Math.floor(s.duration_seconds / 60)
-                            : undefined,
-                    })))
-                }
-            } catch (e) {
-                console.error('Failed to load calendar data:', e)
+            if (sess.length > 0) {
+                setSessions(sess.map((s: any) => ({
+                    id: s.id,
+                    date: s.date.split('T')[0],
+                    type: s.workout_type,
+                    dayType: s.day_type,
+                    name: s.name,
+                    duration: s.duration_seconds
+                        ? Math.floor(s.duration_seconds / 60)
+                        : undefined,
+                })))
             }
+        } catch (e) {
+            console.error('Failed to load calendar data:', e)
         }
-        load()
     }, [year, month])
+
+    useEffect(() => {
+        loadCalendarData()
+    }, [loadCalendarData])
 
     const handleOverrideSaved = useCallback((date: string, dayType: string) => {
         setOverrides(prev => ({ ...prev, [date]: dayType }))
@@ -143,19 +144,7 @@ export default function CalendarPage() {
                     {showAddWorkout && (
                         <AddWorkoutSheet
                             onClose={() => setShowAddWorkout(false)}
-                            onSaved={async () => {
-                                const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
-                                const end = `${year}-${String(month + 1).padStart(2, '0')}-31`
-                                try {
-                                    const { getDayOverrides } = await import('@/lib/db')
-                                    const ov = await getDayOverrides(start, end)
-                                    const ovMap: Record<string, string> = {}
-                                    for (const o of ov) ovMap[o.date] = o.day_type
-                                    setOverrides(ovMap)
-                                } catch (e) {
-                                    console.error('Failed to refresh overrides:', e)
-                                }
-                            }}
+                            onSaved={loadCalendarData}
                         />
                     )}
                 </div>

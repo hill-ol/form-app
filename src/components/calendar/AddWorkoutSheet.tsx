@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import CalendarPopupPortal from './CalendarPopupPortal'
+import RetroLogSheet from './RetroLogSheet'
 
 const DAY_TYPE_OPTIONS = ['push', 'pull', 'legs', 'cardio', 'yoga', 'full body']
 
@@ -29,6 +30,7 @@ export default function AddWorkoutSheet({ onClose, onSaved }: Props) {
     const [selectedDate, setSelectedDate] = useState(today)
     const [saving, setSaving] = useState(false)
     const [saved, setSaved] = useState(false)
+    const [showRetroLog, setShowRetroLog] = useState(false)
 
     const isToday = selectedDate === today
     const isPast = selectedDate < today
@@ -39,11 +41,6 @@ export default function AddWorkoutSheet({ onClose, onSaved }: Props) {
     }
 
     async function handleSavePlan() {
-        if (isPast) {
-            router.push(`/log?date=${selectedDate}&type=${selectedType}`)
-            onClose()
-            return
-        }
         setSaving(true)
         try {
             const { supabase } = await import('@/lib/supabase')
@@ -61,6 +58,17 @@ export default function AddWorkoutSheet({ onClose, onSaved }: Props) {
             console.error('Failed to save plan:', e)
             setSaving(false)
         }
+    }
+
+    if (showRetroLog) {
+        return (
+            <RetroLogSheet
+                date={selectedDate}
+                dayType={selectedType}
+                onClose={onClose}
+                onSaved={() => onSaved?.()}
+            />
+        )
     }
 
     return (
@@ -146,6 +154,18 @@ export default function AddWorkoutSheet({ onClose, onSaved }: Props) {
                     }}>
                     Start Session Now 🏋️
                 </button>
+            ) : isPast ? (
+                <button
+                    onClick={() => setShowRetroLog(true)}
+                    className="w-full py-3.5 rounded-full font-black uppercase tracking-widest text-xs transition-all active:scale-95"
+                    style={{
+                        background: 'var(--pink-light)',
+                        color: 'var(--pink)',
+                        border: '1.5px solid var(--pink)',
+                        cursor: 'pointer',
+                    }}>
+                    Log Retroactively →
+                </button>
             ) : (
                 <button
                     onClick={handleSavePlan}
@@ -157,7 +177,7 @@ export default function AddWorkoutSheet({ onClose, onSaved }: Props) {
                         border: `1.5px solid ${saved ? '#6EE7B7' : 'var(--pink)'}`,
                         cursor: saving ? 'default' : 'pointer',
                     }}>
-                    {saved ? 'Saved ✓' : saving ? 'Saving...' : isPast ? 'Log Retroactively' : 'Save Plan'}
+                    {saved ? 'Saved ✓' : saving ? 'Saving...' : 'Save Plan'}
                 </button>
             )}
         </CalendarPopupPortal>
