@@ -44,23 +44,34 @@ export default function TodayWorkout({ workout, estimatedDuration = '45–60 min
             </div>
 
             <div className="space-y-0">
-                {workout.exercises?.map((ex) => (
-                    <div key={ex.exerciseId} className="flex justify-between items-center py-2"
-                         style={{ borderBottom: '0.5px solid #f0e8da' }}>
-                        <span className="text-sm font-medium">{ex.exerciseName}</span>
-                        <div className="flex items-center gap-2">
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                {ex.sets} × {ex.reps} · {ex.weight}
-              </span>
-                            {ex.progressReady && (
-                                <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full"
-                                      style={{ background: 'var(--pink)', fontSize: '10px' }}>
-    ↑ {ex.suggestedWeight ? `try ${ex.suggestedWeight}` : 'level up'}
-  </span>
-                            )}
+                {workout.exercises && workout.exercises.length > 0 ? (
+                    workout.exercises.map((ex) => (
+                        <div key={ex.exerciseId} className="flex justify-between items-center py-2"
+                             style={{ borderBottom: '0.5px solid #f0e8da' }}>
+                            <span className="text-sm font-medium">{ex.exerciseName}</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                                    {ex.sets} × {ex.reps} · {ex.weight}
+                                </span>
+                                {ex.progressReady && (
+                                    <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full"
+                                          style={{ background: 'var(--pink)', fontSize: '10px' }}>
+                                        ↑ {ex.suggestedWeight ? `try ${ex.suggestedWeight}` : 'level up'}
+                                    </span>
+                                )}
+                            </div>
                         </div>
+                    ))
+                ) : (
+                    <div className="py-4 text-center">
+                        <p className="text-sm font-medium" style={{ color: 'var(--muted)' }}>
+                            No previous session found for this day type.
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: 'var(--muted)', opacity: 0.7 }}>
+                            Log a workout to see your exercises here.
+                        </p>
                     </div>
-                ))}
+                )}
             </div>
 
             <button className="md:hidden w-full mt-4 py-3 rounded-full text-white text-xs font-bold uppercase tracking-wider"

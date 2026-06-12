@@ -121,10 +121,10 @@ export default async function DashboardPage() {
             }]
         }
 
-        if (!lastSameDaySession) return PLACEHOLDER_DASHBOARD.todayWorkout.exercises
+        if (!lastSameDaySession) return []
 
         const exLogs = (lastSameDaySession as any).exercise_logs ?? []
-        if (exLogs.length === 0) return PLACEHOLDER_DASHBOARD.todayWorkout.exercises
+        if (exLogs.length === 0) return []
 
         return exLogs.map((ex: any) => {
             const sets = (ex.set_logs ?? []).filter((s: any) => s.completed)

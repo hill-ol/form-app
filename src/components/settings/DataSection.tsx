@@ -13,11 +13,13 @@ export default function DataSection() {
         setError(null)
         try {
             const { supabase } = await import('@/lib/supabase')
-            // Delete in dependency order: set_logs → exercise_logs → workout_sessions → sleep_logs
+            // Delete session data in dependency order
             await supabase.from('set_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000')
             await supabase.from('exercise_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000')
             await supabase.from('workout_sessions').delete().neq('id', '00000000-0000-0000-0000-000000000000')
             await supabase.from('sleep_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+            // Reset working weights in the exercise library (keep exercises, clear logged weights)
+            await supabase.from('exercise_library').update({ current_weight: null }).neq('id', '00000000-0000-0000-0000-000000000000')
             setCleared(true)
             setConfirmClear(false)
         } catch (e) {
