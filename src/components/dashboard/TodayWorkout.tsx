@@ -1,3 +1,6 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
 import { WorkoutSession } from '@/types'
 
 const WORKOUT_EMOJI: Record<string, string> = {
@@ -13,6 +16,7 @@ interface Props {
 }
 
 export default function TodayWorkout({ workout, estimatedDuration = '45–60 min' }: Props) {
+    const router = useRouter()
     const emoji = WORKOUT_EMOJI[workout.type]
 
     return (
@@ -32,7 +36,8 @@ export default function TodayWorkout({ workout, estimatedDuration = '45–60 min
           {workout.type.charAt(0).toUpperCase() + workout.type.slice(1)}
         </span>
                     <button className="hidden md:block text-xs font-bold uppercase tracking-wider text-white px-4 py-2 rounded-full"
-                            style={{ background: 'var(--pink)' }}>
+                            style={{ background: 'var(--pink)', cursor: 'pointer', border: 'none' }}
+                            onClick={() => router.push('/log')}>
                         Start Session
                     </button>
                 </div>
