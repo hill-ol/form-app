@@ -10,7 +10,10 @@ interface Props {
 }
 
 export default function SessionHeader({ dayName, restTimerOn, onToggleTimer, onFinish }: Props) {
-    const [elapsed, setElapsed] = useState(0)
+    const [elapsed, setElapsed] = useState(() => {
+        const start = parseInt(sessionStorage.getItem('form_session_start') ?? '0')
+        return start > 0 ? Math.floor((Date.now() - start) / 1000) : 0
+    })
 
     useEffect(() => {
         const t = setInterval(() => setElapsed(e => e + 1), 1000)
