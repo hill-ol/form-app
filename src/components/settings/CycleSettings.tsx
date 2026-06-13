@@ -134,7 +134,9 @@ export default function CycleSettings() {
         try {
             const { logPeriodDay, unlogPeriodDay } = await import('@/lib/db')
             isLogged ? await unlogPeriodDay(date) : await logPeriodDay(date)
-        } catch {
+        } catch (err) {
+            console.error('[CycleSettings] toggle failed for', date, err)
+            setDbError(true)
             setPeriodDays(prev => {
                 const next = new Set(prev)
                 isLogged ? next.add(date) : next.delete(date)
@@ -210,7 +212,7 @@ export default function CycleSettings() {
                         <div style={{ padding: '16px', background: '#FEF2F2', borderRadius: '12px', border: '1px solid #FECACA' }}>
                             <p style={{ fontSize: '12px', fontWeight: 700, color: '#DC2626', marginBottom: '4px' }}>Setup required</p>
                             <p style={{ fontSize: '11px', color: '#991B1B', lineHeight: 1.5 }}>
-                                Run this in your Supabase SQL editor to enable period tracking:
+                                Run this in your Supabase SQL editor, then refresh this page:
                             </p>
                             <pre style={{ fontSize: '10px', color: '#7F1D1D', marginTop: '8px', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
 {`create table if not exists period_logs (
@@ -218,9 +220,8 @@ export default function CycleSettings() {
   date date not null unique,
   created_at timestamptz default now()
 );
-alter table period_logs enable row level security;
-create policy "period_logs_all" on period_logs
-  for all using (auth.role() = 'authenticated');`}
+-- disable RLS so the anon key can read/write
+alter table period_logs disable row level security;`}
                             </pre>
                         </div>
                     ) : (

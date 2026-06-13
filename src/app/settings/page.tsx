@@ -34,8 +34,8 @@ export default function SettingsPage() {
                 <WeeklyTemplateEditor />
                 <DayTypeTemplateEditor />
                 <TrainingPreferences />
-                <CycleSettings />
                 <ExerciseLibraryEditor />
+                <CycleSettings />
                 <DataSection />
 
                 <div className="rounded-2xl px-4 py-3 text-center"
