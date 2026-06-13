@@ -30,6 +30,7 @@ export default function ExerciseLibraryEditor() {
     const [query, setQuery] = useState('')
     const [editing, setEditing] = useState<EditState | null>(null)
     const [saved, setSaved] = useState(false)
+    const [saveError, setSaveError] = useState<string | null>(null)
 
     const filtered = library.filter(ex => {
         const matchesQuery = ex.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -100,6 +101,7 @@ export default function ExerciseLibraryEditor() {
 
     async function saveEdit() {
         if (!editing) return
+        setSaveError(null)
         try {
             const { saveExerciseToLibrary } = await import('@/lib/db')
             await saveExerciseToLibrary({
@@ -115,8 +117,9 @@ export default function ExerciseLibraryEditor() {
                 notes: editing.exercise.notes,
                 isCustom: editing.isNew,
             })
-        } catch (e) {
+        } catch (e: any) {
             console.error('Failed to save exercise to Supabase:', e)
+            setSaveError(e?.message ?? 'Failed to save — check your connection.')
             return
         }
 
@@ -277,7 +280,7 @@ export default function ExerciseLibraryEditor() {
             </div>
 
             {editing && (
-                <CalendarPopupPortal onClose={() => setEditing(null)}>
+                <CalendarPopupPortal onClose={() => { setEditing(null); setSaveError(null) }}>
                     <div className="w-10 h-1 rounded-full mx-auto mb-4"
                          style={{ background: '#e8e0d0' }} />
 
@@ -523,6 +526,10 @@ export default function ExerciseLibraryEditor() {
                             </div>
                         )}
                     </div>
+
+                    {saveError && (
+                        <p className="text-xs mb-3 text-center" style={{ color: '#DC2626' }}>{saveError}</p>
+                    )}
 
                     <button
                         onClick={saveEdit}
