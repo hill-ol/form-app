@@ -80,9 +80,18 @@ export default function LogPage() {
     const [exercisesLoading, setExercisesLoading] = useState(!saved?.exercises?.length)
     const [quickMode, setQuickMode] = useState(false)
     const [focusMode, setFocusMode] = useState(false)
-    const [draggingIdx, setDraggingIdx] = useState<number | null>(null)
-    const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+    const [draggingIdx, setDraggingIdxState] = useState<number | null>(null)
+    const [hoverIdx, setHoverIdxState] = useState<number | null>(null)
     const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+    const ghostRef = useRef<HTMLDivElement | null>(null)
+    const dragInitialRef = useRef<{
+        touchY: number; cardTop: number; cardLeft: number; cardWidth: number; cardHeight: number
+    } | null>(null)
+    const draggingIdxRef = useRef<number | null>(null)
+    const hoverIdxRef = useRef<number | null>(null)
+
+    function setDraggingIdx(v: number | null) { draggingIdxRef.current = v; setDraggingIdxState(v) }
+    function setHoverIdx(v: number | null) { hoverIdxRef.current = v; setHoverIdxState(v) }
 
     useKeyboardAvoid()
 
@@ -349,39 +358,52 @@ export default function LogPage() {
         })
     }
 
-    // Drag-to-reorder: global touch listeners active only while dragging
+    // Drag-to-reorder: ghost follows finger, other cards shift with translateY
     useEffect(() => {
         if (draggingIdx === null) return
 
         function onTouchMove(e: TouchEvent) {
             e.preventDefault()
+            if (!dragInitialRef.current) return
             const y = e.touches[0].clientY
-            let next = draggingIdx!
+            const delta = y - dragInitialRef.current.touchY
+
+            // Update ghost position directly (no setState = no re-render lag)
+            if (ghostRef.current) {
+                ghostRef.current.style.top = `${dragInitialRef.current.cardTop + delta}px`
+            }
+
+            // Compute hover index from midpoint of ghost
+            const ghostMid = dragInitialRef.current.cardTop + delta + dragInitialRef.current.cardHeight / 2
+            const di = draggingIdxRef.current!
+            let next = di
             for (let i = 0; i < cardRefs.current.length; i++) {
                 const el = cardRefs.current[i]
                 if (!el) continue
                 const rect = el.getBoundingClientRect()
-                if (y < rect.top + rect.height / 2) { next = i; break }
+                if (ghostMid < rect.top + rect.height / 2) { next = i; break }
                 next = i
             }
-            setHoverIdx(next)
+            if (next !== hoverIdxRef.current) {
+                setHoverIdx(next)
+                import('@/lib/haptics').then(({ haptics }) => haptics.light())
+            }
         }
 
         function onTouchEnd() {
-            setDraggingIdx(di => {
-                setHoverIdx(hi => {
-                    if (di !== null && hi !== null && di !== hi) {
-                        setExercises(prev => {
-                            const arr = [...prev]
-                            const [item] = arr.splice(di, 1)
-                            arr.splice(hi, 0, item)
-                            return arr
-                        })
-                    }
-                    return null
+            const di = draggingIdxRef.current
+            const hi = hoverIdxRef.current
+            if (di !== null && hi !== null && di !== hi) {
+                setExercises(prev => {
+                    const arr = [...prev]
+                    const [item] = arr.splice(di, 1)
+                    arr.splice(hi, 0, item)
+                    return arr
                 })
-                return null
-            })
+            }
+            dragInitialRef.current = null
+            setDraggingIdx(null)
+            setHoverIdx(null)
         }
 
         document.addEventListener('touchmove', onTouchMove, { passive: false })
@@ -391,17 +413,6 @@ export default function LogPage() {
             document.removeEventListener('touchend', onTouchEnd)
         }
     }, [draggingIdx])
-
-    // Reordered display order while dragging
-    const dragDisplayOrder = (() => {
-        if (draggingIdx === null || hoverIdx === null) {
-            return exercises.map((ex, i) => ({ ex, origIdx: i }))
-        }
-        const arr = exercises.map((ex, i) => ({ ex, origIdx: i }))
-        const [dragged] = arr.splice(draggingIdx, 1)
-        arr.splice(hoverIdx, 0, dragged)
-        return arr
-    })()
 
     if (screen === 'done') {
         const savedStart = parseInt(sessionStorage.getItem('form_session_start') ?? '0')
@@ -441,40 +452,91 @@ export default function LogPage() {
                         />
                     )}
 
-                    {dragDisplayOrder.map(({ ex, origIdx }, displayIdx) => {
-                        const isDragging = origIdx === draggingIdx
+                    {exercises.map((ex, i) => {
+                        const isDragging = i === draggingIdx
+                        // Compute translateY shift for non-dragging cards
+                        let shiftY = 0
+                        if (draggingIdx !== null && hoverIdx !== null && !isDragging && dragInitialRef.current) {
+                            const h = dragInitialRef.current.cardHeight + 12
+                            if (draggingIdx < hoverIdx && i > draggingIdx && i <= hoverIdx) shiftY = -h
+                            else if (draggingIdx > hoverIdx && i >= hoverIdx && i < draggingIdx) shiftY = h
+                        }
                         return (
                             <div
-                                key={ex.exerciseId + origIdx}
-                                ref={el => { cardRefs.current[displayIdx] = el }}
+                                key={ex.exerciseId + i}
+                                ref={el => { cardRefs.current[i] = el }}
                                 style={{
-                                    animation: draggingIdx === null ? `slideInUp 0.2s ease ${displayIdx * 0.05}s both` : 'none',
-                                    opacity: isDragging ? 0.5 : 1,
-                                    transform: isDragging ? 'scale(1.02)' : 'scale(1)',
-                                    transition: isDragging ? 'none' : 'transform 0.15s ease, opacity 0.15s ease',
-                                    zIndex: isDragging ? 10 : 1,
+                                    animation: draggingIdx === null ? `slideInUp 0.2s ease ${i * 0.05}s both` : 'none',
+                                    opacity: isDragging ? 0 : 1,
+                                    transform: `translateY(${shiftY}px)`,
+                                    transition: isDragging ? 'none' : 'transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.1s',
                                     position: 'relative',
                                 }}>
                                 <ExerciseCard
                                     exercise={ex}
-                                    onChange={updated => updateExercise(origIdx, updated)}
-                                    onRemove={() => removeExercise(origIdx)}
+                                    onChange={updated => updateExercise(i, updated)}
+                                    onRemove={() => removeExercise(i)}
                                     onSetComplete={handleSetComplete}
                                     restTimerOn={restTimerOn}
-                                    canMoveUp={origIdx > 0}
-                                    canMoveDown={origIdx < exercises.length - 1}
-                                    onMoveUp={() => moveExercise(origIdx, 'up')}
-                                    onMoveDown={() => moveExercise(origIdx, 'down')}
+                                    canMoveUp={i > 0}
+                                    canMoveDown={i < exercises.length - 1}
+                                    onMoveUp={() => moveExercise(i, 'up')}
+                                    onMoveDown={() => moveExercise(i, 'down')}
+                                    isDragging={false}
                                     onDragStart={e => {
-                                        e.preventDefault()
-                                        setDraggingIdx(origIdx)
-                                        setHoverIdx(origIdx)
+                                        const rect = cardRefs.current[i]?.getBoundingClientRect()
+                                        if (!rect) return
+                                        dragInitialRef.current = {
+                                            touchY: e.touches[0].clientY,
+                                            cardTop: rect.top,
+                                            cardLeft: rect.left,
+                                            cardWidth: rect.width,
+                                            cardHeight: rect.height,
+                                        }
+                                        setDraggingIdx(i)
+                                        setHoverIdx(i)
                                         import('@/lib/haptics').then(({ haptics }) => haptics.light())
                                     }}
                                 />
                             </div>
                         )
                     })}
+
+                    {/* Ghost card — follows finger during drag */}
+                    {draggingIdx !== null && dragInitialRef.current && (
+                        <div
+                            ref={ghostRef}
+                            style={{
+                                position: 'fixed',
+                                top: dragInitialRef.current.cardTop,
+                                left: dragInitialRef.current.cardLeft,
+                                width: dragInitialRef.current.cardWidth,
+                                zIndex: 9999,
+                                pointerEvents: 'none',
+                                borderRadius: '16px',
+                                overflow: 'hidden',
+                                background: '#fff',
+                                border: '1.5px solid var(--pink)',
+                                boxShadow: '0 24px 56px rgba(0,0,0,0.22), 0 4px 16px rgba(232,65,122,0.18)',
+                                transform: 'scale(1.03) rotate(0.7deg)',
+                            }}>
+                            <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
+                                    {[0,1,2].map(n => (
+                                        <div key={n} style={{ width: '18px', height: '2px', borderRadius: '2px', background: 'var(--pink)' }} />
+                                    ))}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ fontWeight: 900, fontSize: '14px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {exercises[draggingIdx]?.exerciseName}
+                                    </p>
+                                    <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0 }}>
+                                        {exercises[draggingIdx]?.muscleGroup} · {exercises[draggingIdx]?.sets.length} sets
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <button
                         onClick={() => setShowAddSheet(true)}

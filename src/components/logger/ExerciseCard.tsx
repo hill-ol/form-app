@@ -14,11 +14,12 @@ interface Props {
     onMoveUp?: () => void
     onMoveDown?: () => void
     onDragStart?: (e: React.TouchEvent) => void
+    isDragging?: boolean
 }
 
 export default function ExerciseCard({
     exercise, onChange, onRemove, onSetComplete, restTimerOn,
-    canMoveUp, canMoveDown, onMoveUp, onMoveDown, onDragStart,
+    canMoveUp, canMoveDown, onMoveUp, onMoveDown, onDragStart, isDragging,
 }: Props) {
     const [expanded, setExpanded] = useState(true)
     const [confirmRemove, setConfirmRemove] = useState(false)
@@ -220,15 +221,25 @@ export default function ExerciseCard({
                             className="md:hidden"
                             onTouchStart={e => { e.stopPropagation(); onDragStart(e) }}
                             style={{
-                                padding: '6px 4px',
-                                color: '#ccc',
-                                fontSize: '18px',
-                                lineHeight: 1,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '3.5px',
+                                padding: '8px 6px',
                                 cursor: 'grab',
                                 touchAction: 'none',
                                 userSelect: 'none',
+                                flexShrink: 0,
                             }}>
-                            ⠿
+                            {[0, 1, 2].map(n => (
+                                <div key={n} style={{
+                                    width: '18px',
+                                    height: '2.5px',
+                                    borderRadius: '2px',
+                                    background: 'var(--pink)',
+                                    opacity: 0.5,
+                                    transition: 'opacity 0.15s',
+                                }} />
+                            ))}
                         </div>
                     )}
                     {(canMoveUp || canMoveDown) && (
