@@ -153,6 +153,7 @@ export default function LogPage() {
     }, [selectedDayType])
 
     useEffect(() => {
+        if (saved?.screen === 'active') return
         async function loadRealExercises() {
             try {
                 const { getLastSessionByDayType, getProgressionSuggestions } = await import('@/lib/db')

@@ -28,7 +28,7 @@ export default function MoodCheckIn() {
         setSelected(level)
         try {
             const { saveDailyCheckin } = await import('@/lib/db')
-            const today = new Date().toISOString().split('T')[0]
+            const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
             await saveDailyCheckin(today, level)
         } catch (e) {
             console.error('Failed to save checkin:', e)

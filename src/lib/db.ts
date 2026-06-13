@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { DayTemplate } from '@/types'
 import { ActiveExercise } from './sessionUtils'
+import { localDateString, parseLocalDate } from './dateUtils'
 
 interface SupabaseSession {
     id: string
@@ -236,8 +237,7 @@ export async function getCurrentStreak(): Promise<number> {
     today.setHours(0, 0, 0, 0)
 
     for (let i = 0; i < dates.length; i++) {
-        const sessionDate = new Date(dates[i])
-        sessionDate.setHours(0, 0, 0, 0)
+        const sessionDate = parseLocalDate(dates[i].split('T')[0])
         const diffDays = Math.round(
             (today.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24)
         )
@@ -301,7 +301,7 @@ export async function saveDailyCheckin(date: string, energyLevel: number) {
 }
 
 export async function getTodayCheckin(): Promise<number | null> {
-    const today = new Date().toISOString().split('T')[0]
+    const today = localDateString()
     const { data } = await supabase
         .from('daily_checkins')
         .select('energy_level')
@@ -311,7 +311,7 @@ export async function getTodayCheckin(): Promise<number | null> {
 }
 
 export async function getTodayInsight(): Promise<string | null> {
-    const today = new Date().toISOString().split('T')[0]
+    const today = localDateString()
     const { data } = await supabase
         .from('daily_checkins')
         .select('coach_insight')
@@ -321,7 +321,7 @@ export async function getTodayInsight(): Promise<string | null> {
 }
 
 export async function saveDailyInsight(insight: string) {
-    const today = new Date().toISOString().split('T')[0]
+    const today = localDateString()
     const { error } = await supabase
         .from('daily_checkins')
         .upsert({ date: today, coach_insight: insight }, { onConflict: 'date' })
