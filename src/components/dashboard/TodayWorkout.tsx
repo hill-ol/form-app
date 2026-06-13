@@ -43,6 +43,24 @@ export default function TodayWorkout({ workout, estimatedDuration = '45–60 min
         )
     }
 
+    if (workout.dayType === 'rest') {
+        return (
+            <div className="bg-white rounded-2xl p-4" style={{ border: '0.5px solid var(--border)' }}>
+                <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--muted)' }}>
+                    Today&apos;s workout
+                </p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-xl font-black tracking-tight">Rest 😴</p>
+                        <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                            Recovery day — let your body rebuild.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="bg-white rounded-2xl p-4" style={{ border: '0.5px solid var(--border)' }}>
             <div className="flex justify-between items-start mb-4">

@@ -426,7 +426,6 @@ export async function getCustomExercises(): Promise<SupabaseExerciseLog[]> {
     const { data, error } = await supabase
         .from('exercise_library')
         .select('*')
-        .eq('is_custom', true)
     if (error) return []
     return (data ?? []) as SupabaseExerciseLog[]
 }
