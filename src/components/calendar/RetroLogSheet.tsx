@@ -40,6 +40,7 @@ function blankSet(weight: string): RetroSet {
 export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props) {
     const [exercises, setExercises] = useState<RetroExercise[]>([])
     const [query, setQuery] = useState('')
+    const [durationMins, setDurationMins] = useState('')
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
     // weights from DB may differ from placeholder; keyed by exercise id
@@ -175,7 +176,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
             }))
 
             await saveSession(
-                { date, dayType, workoutType, name: DAY_LABEL[dayType] ?? 'Workout', durationSeconds: 0 },
+                { date, dayType, workoutType, name: DAY_LABEL[dayType] ?? 'Workout', durationSeconds: durationMins ? Math.round(parseFloat(durationMins) * 60) : 0 },
                 exercisesForSave
             )
 
@@ -224,9 +225,27 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                     ×
                 </button>
             </div>
-            <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
-                {displayDate} · {DAY_LABEL[dayType] ?? dayType}
-            </p>
+            <div className="flex items-center justify-between mb-4">
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    {displayDate} · {DAY_LABEL[dayType] ?? dayType}
+                </p>
+                <div className="flex items-center gap-1.5">
+                    <input
+                        type="number"
+                        inputMode="numeric"
+                        placeholder="—"
+                        value={durationMins}
+                        onChange={e => setDurationMins(e.target.value)}
+                        style={{
+                            width: '52px', textAlign: 'center', fontWeight: 700,
+                            fontSize: '14px', borderRadius: '10px', padding: '4px 6px',
+                            border: '1.5px solid var(--border)', background: 'var(--cream)',
+                            outline: 'none', fontFamily: 'Inter, sans-serif', color: '#1a1a1a',
+                        }}
+                    />
+                    <span className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>min</span>
+                </div>
+            </div>
 
             {/* Added exercises */}
             {exercises.length > 0 && (
