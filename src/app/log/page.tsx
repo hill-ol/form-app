@@ -416,7 +416,9 @@ export default function LogPage() {
 
     if (screen === 'done') {
         const savedStart = parseInt(sessionStorage.getItem('form_session_start') ?? '0')
-        const duration = Math.floor((Date.now() - (startTime || savedStart)) / 1000)
+        const rawStart = startTime || savedStart
+        // Guard against both being 0 (sessionStorage cleared mid-session)
+        const duration = rawStart > 0 ? Math.floor((Date.now() - rawStart) / 1000) : 0
         sessionStorage.removeItem('form_session_start')
         sessionStorage.removeItem(SESSION_KEY)
         return (

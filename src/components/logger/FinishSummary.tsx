@@ -29,20 +29,18 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
     const mins = Math.floor(duration / 60)
     const completedExercises = exercises.filter(ex => ex.sets.some(s => s.completed))
 
-    // Build per-exercise summary using all completed sets (best weight, avg reps)
+    // Build per-exercise summary for AI coach prompt
     const exerciseSummary = completedExercises.map(ex => {
         const done = ex.sets.filter(s => s.completed)
-        const weights = done.map(s => parseFloat(s.weight) || 0)
-        const bestWeight = Math.max(...weights)
-        const avgReps = Math.round(
-            done.reduce((sum, s) => sum + (parseInt(s.reps) || 0), 0) / done.length
-        )
-        return {
-            name: ex.exerciseName,
-            sets: done.length,
-            reps: avgReps,
-            weight: bestWeight > 0 ? `${bestWeight} lbs` : 'BW',
+        const isTimeBased = ex.exerciseType === 'cardio' || ex.exerciseType === 'yoga' || ex.exerciseType === 'hold'
+        if (isTimeBased) {
+            const totalMins = done.reduce((sum, s) => sum + (parseFloat(s.duration) || 0), 0)
+            return { name: ex.exerciseName, sets: done.length, duration: `${Math.round(totalMins)} min`, weight: null }
         }
+        const weights = done.map(s => parseFloat(s.weight) || 0)
+        const bestWeight = weights.length ? Math.max(...weights) : 0
+        const avgReps = Math.round(done.reduce((sum, s) => sum + (parseInt(s.reps) || 0), 0) / (done.length || 1))
+        return { name: ex.exerciseName, sets: done.length, reps: avgReps, weight: bestWeight > 0 ? `${bestWeight} lbs` : 'BW' }
     })
 
     async function fetchCoachInsight() {
@@ -215,14 +213,27 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                 <div className="space-y-2 mb-6">
                     {completedExercises.map(ex => {
                         const done = ex.sets.filter(s => s.completed)
+                        const isTimeBased = ex.exerciseType === 'cardio' || ex.exerciseType === 'yoga' || ex.exerciseType === 'hold'
+                        const isBodyweight = !isTimeBased && (ex.exerciseType === 'bodyweight' || ex.equipment === 'bodyweight')
+                        let detail: string
+                        if (ex.exerciseType === 'cardio') {
+                            const dur = done[0]?.duration ? `${done[0].duration} min` : ''
+                            const dist = done[0]?.distance ? ` · ${done[0].distance} mi` : ''
+                            detail = `${done.length} set${done.length > 1 ? 's' : ''} · ${dur}${dist}`
+                        } else if (ex.exerciseType === 'yoga') {
+                            detail = `${done.length} set${done.length > 1 ? 's' : ''} · ${done[0]?.duration ?? '—'} min`
+                        } else if (ex.exerciseType === 'hold') {
+                            detail = `${done.length} × ${done[0]?.duration ?? '—'}`
+                        } else {
+                            const w = done[0]?.weight && done[0].weight !== 'BW' ? `${done[0].weight} lbs` : 'BW'
+                            detail = `${done.length} × ${done[0]?.reps || '—'} · ${isBodyweight ? 'BW' : w}`
+                        }
                         return (
                             <div key={ex.exerciseId}
                                  className="flex justify-between items-center rounded-xl px-3 py-2.5"
                                  style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
                                 <span className="text-sm font-semibold">{ex.exerciseName}</span>
-                                <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                                    {done.length} × {done[0]?.reps} · {done[0]?.weight || 'BW'}
-                                </span>
+                                <span className="text-xs" style={{ color: 'var(--muted)' }}>{detail}</span>
                             </div>
                         )
                     })}
