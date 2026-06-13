@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { EXERCISE_LIBRARY } from '@/lib/placeholder'
 import { Exercise } from '@/types'
 import CalendarPopupPortal from '@/components/calendar/CalendarPopupPortal'
@@ -14,10 +14,39 @@ interface Props {
 export default function AddExerciseSheet({ currentDayType, onAdd, onClose }: Props) {
     const [query, setQuery] = useState('')
     const [filter, setFilter] = useState<string>(currentDayType)
+    const [allExercises, setAllExercises] = useState<Exercise[]>(EXERCISE_LIBRARY)
 
     const DAY_FILTERS = ['all', 'push', 'pull', 'legs', 'cardio', 'yoga', 'full body']
 
-    const filtered = EXERCISE_LIBRARY.filter(ex => {
+    useEffect(() => {
+        async function load() {
+            try {
+                const { getCustomExercises } = await import('@/lib/db')
+                const dbRows = await getCustomExercises()
+                const mapped: Exercise[] = dbRows.map((ex: any) => ({
+                    id: ex.id,
+                    name: ex.name,
+                    dayType: ex.day_types ?? [],
+                    muscleGroups: ex.muscle_groups ?? [],
+                    primaryMuscle: ex.primary_muscle ?? '',
+                    equipment: ex.equipment ?? [],
+                    movementType: ex.movement_type ?? '',
+                    currentWeight: ex.current_weight ? String(ex.current_weight) : undefined,
+                    exerciseType: ex.exercise_type ?? undefined,
+                    notes: ex.notes,
+                }))
+                const seen = new Set<string>()
+                const merged: Exercise[] = []
+                for (const ex of [...mapped, ...EXERCISE_LIBRARY]) {
+                    if (!seen.has(ex.id)) { seen.add(ex.id); merged.push(ex) }
+                }
+                setAllExercises(merged.sort((a, b) => a.name.localeCompare(b.name)))
+            } catch { /* keep built-ins */ }
+        }
+        load()
+    }, [])
+
+    const filtered = allExercises.filter(ex => {
         const matchesQuery = ex.name.toLowerCase().includes(query.toLowerCase()) ||
             ex.primaryMuscle.toLowerCase().includes(query.toLowerCase())
         const matchesFilter = filter === 'all' || ex.dayType.includes(filter as never)
