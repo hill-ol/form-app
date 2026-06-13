@@ -51,39 +51,48 @@ export default function DayTypeTemplateEditor() {
     const [pendingEx, setPendingEx] = useState<LibraryExercise | null>(null)
     const [pendingSets, setPendingSets] = useState('3')
 
+    async function loadLibrary() {
+        try {
+            const { getCustomExercises } = await import('@/lib/db')
+            const custom = await getCustomExercises()
+            const { EXERCISE_LIBRARY } = await import('@/lib/placeholder')
+            const builtIn = EXERCISE_LIBRARY.map((e: any) => ({
+                id: e.id, name: e.name,
+                primaryMuscle: e.primaryMuscle,
+                movementType: e.movementType,
+                equipment: e.equipment,
+                dayType: e.dayType,
+                exerciseType: e.exerciseType,
+            }))
+            const customMapped = custom.map((e: any) => ({
+                id: e.id, name: e.name,
+                primaryMuscle: e.primary_muscle ?? '',
+                movementType: e.movement_type ?? '',
+                equipment: e.equipment ?? [],
+                dayType: e.day_types ?? [],
+                exerciseType: e.exercise_type,
+            }))
+            const seen = new Set<string>()
+            const merged: LibraryExercise[] = []
+            for (const ex of [...customMapped, ...builtIn]) {
+                if (!seen.has(ex.id)) { seen.add(ex.id); merged.push(ex) }
+            }
+            setLibrary(merged.sort((a, b) => a.name.localeCompare(b.name)))
+        } catch { }
+    }
+
     useEffect(() => {
         async function load() {
             try {
-                const { getDayTypeTemplates, getCustomExercises } = await import('@/lib/db')
-                const [tmpl, custom] = await Promise.all([getDayTypeTemplates(), getCustomExercises()])
+                const { getDayTypeTemplates } = await import('@/lib/db')
+                const tmpl = await getDayTypeTemplates()
                 setTemplates(tmpl)
-
-                const { EXERCISE_LIBRARY } = await import('@/lib/placeholder')
-                const builtIn = EXERCISE_LIBRARY.map((e: any) => ({
-                    id: e.id, name: e.name,
-                    primaryMuscle: e.primaryMuscle,
-                    movementType: e.movementType,
-                    equipment: e.equipment,
-                    dayType: e.dayType,
-                    exerciseType: e.exerciseType,
-                }))
-                const customMapped = custom.map((e: any) => ({
-                    id: e.id, name: e.name,
-                    primaryMuscle: e.primary_muscle ?? '',
-                    movementType: e.movement_type ?? '',
-                    equipment: e.equipment ?? [],
-                    dayType: e.day_types ?? [],
-                    exerciseType: e.exercise_type,
-                }))
-                const seen = new Set<string>()
-                const merged: LibraryExercise[] = []
-                for (const ex of [...customMapped, ...builtIn]) {
-                    if (!seen.has(ex.id)) { seen.add(ex.id); merged.push(ex) }
-                }
-                setLibrary(merged.sort((a, b) => a.name.localeCompare(b.name)))
             } catch { }
+            await loadLibrary()
         }
         load()
+        window.addEventListener('exercise-library-updated', loadLibrary)
+        return () => window.removeEventListener('exercise-library-updated', loadLibrary)
     }, [])
 
     function getExercisesForDay(dayType: string) {

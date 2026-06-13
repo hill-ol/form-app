@@ -1,8 +1,37 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getCyclePhase, PHASE_META } from '@/lib/cycleUtils'
 import { localDateString } from '@/lib/dateUtils'
+
+function PinkSlider({ min, max, step, value, onChange }: {
+    min: number; max: number; step: number; value: number; onChange: (v: number) => void
+}) {
+    const ref = useRef<HTMLInputElement>(null)
+
+    function updateTrack(v: number) {
+        if (!ref.current) return
+        const pct = ((v - min) / (max - min)) * 100
+        ref.current.style.background = `linear-gradient(to right, #E8417A ${pct}%, #f0e8da ${pct}%)`
+    }
+
+    useEffect(() => { updateTrack(value) }, [value])
+
+    return (
+        <input
+            ref={ref}
+            type="range"
+            min={min} max={max} step={step}
+            value={value}
+            onChange={e => {
+                const v = parseFloat(e.target.value)
+                onChange(v)
+                updateTrack(v)
+            }}
+            className="w-full"
+        />
+    )
+}
 
 export default function CycleSettings() {
     const [periodStart, setPeriodStart] = useState('')
@@ -17,7 +46,7 @@ export default function CycleSettings() {
                 const prefs = await getPreferences()
                 if (prefs?.period_start_date) setPeriodStart(prefs.period_start_date)
                 if (prefs?.cycle_length_days) setCycleLength(prefs.cycle_length_days)
-            } catch { /* keep defaults */ }
+            } catch { }
         }
         load()
     }, [])
@@ -53,38 +82,66 @@ export default function CycleSettings() {
         : null
 
     return (
-        <div className="bg-white rounded-2xl p-4 mb-3" style={{ border: '0.5px solid var(--border)' }}>
-            <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--muted)' }}>
-                Cycle Tracking
-            </p>
+        <div className="rounded-2xl overflow-hidden mb-4"
+             style={{ border: '0.5px solid var(--border)' }}>
 
-            {meta && (
-                <div className="rounded-2xl px-4 py-3 mb-4 flex items-center gap-3"
-                     style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}40` }}>
-                    <span style={{ fontSize: '28px', lineHeight: 1 }}>{meta.emoji}</span>
-                    <div>
-                        <p className="text-sm font-black" style={{ color: meta.color }}>{meta.label} Phase</p>
-                        <p className="text-xs mt-0.5 leading-snug" style={{ color: 'var(--muted)' }}>{meta.tip}</p>
-                    </div>
-                </div>
-            )}
-
-            <div className="space-y-5">
+            <div className="px-4 py-3 flex justify-between items-center"
+                 style={{ background: '#fff', borderBottom: '0.5px solid var(--border)' }}>
                 <div>
-                    <p className="text-xs font-bold mb-2" style={{ color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                        Last period started
+                    <p className="font-black" style={{ fontSize: '14px' }}>Cycle tracking</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                        Phase-aware coaching and insights
                     </p>
+                </div>
+                <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="font-bold rounded-full transition-all active:scale-95"
+                    style={{
+                        padding: '6px 14px', fontSize: '11px', border: 'none', cursor: 'pointer',
+                        background: saved ? '#D1FAE5' : 'var(--pink)',
+                        color: saved ? '#065F46' : '#fff',
+                        opacity: saving ? 0.7 : 1,
+                    }}>
+                    {saved ? 'Saved ✓' : 'Save'}
+                </button>
+            </div>
+
+            <div style={{ background: '#fff' }}>
+                {meta && (
+                    <div className="px-4 py-3" style={{ borderBottom: '0.5px solid #f5f0e8' }}>
+                        <div className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+                             style={{ background: `${meta.color}15`, border: `1px solid ${meta.color}35` }}>
+                            <span style={{ fontSize: '24px', lineHeight: 1 }}>{meta.emoji}</span>
+                            <div>
+                                <p className="font-black" style={{ fontSize: '13px', color: meta.color }}>{meta.label} Phase</p>
+                                <p className="text-xs mt-0.5 leading-snug" style={{ color: 'var(--muted)' }}>{meta.tip}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="px-4 py-3" style={{ borderBottom: '0.5px solid #f5f0e8' }}>
+                    <div className="flex justify-between items-center mb-2">
+                        <div>
+                            <p className="font-semibold" style={{ fontSize: '13px' }}>Last period started</p>
+                            <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                                Used to calculate your current phase
+                            </p>
+                        </div>
+                    </div>
                     <label style={{ display: 'block', position: 'relative' }}>
-                        <div className="flex items-center justify-between rounded-2xl px-4 py-3"
+                        <div className="flex items-center justify-between rounded-xl px-4 py-2.5"
                              style={{
                                  background: 'var(--cream)',
-                                 border: '1.5px solid var(--border)',
+                                 border: periodStart ? '1.5px solid var(--pink)' : '1.5px solid var(--border)',
                                  cursor: 'pointer',
                              }}>
-                            <span className="font-semibold text-sm" style={{ color: periodStart ? '#1a1a1a' : 'var(--muted)' }}>
+                            <span className="font-semibold text-sm"
+                                  style={{ color: periodStart ? '#1a1a1a' : 'var(--muted)' }}>
                                 {formattedDate ?? 'Select date…'}
                             </span>
-                            <span style={{ color: 'var(--pink)', fontSize: '16px' }}>📅</span>
+                            <span style={{ fontSize: '15px' }}>📅</span>
                         </div>
                         <input
                             type="date"
@@ -99,50 +156,33 @@ export default function CycleSettings() {
                     </label>
                 </div>
 
-                <div>
-                    <div className="flex items-center justify-between mb-3">
-                        <p className="text-xs font-bold" style={{ color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                            Cycle length
-                        </p>
-                        <span className="text-sm font-black rounded-full px-3 py-1"
-                              style={{ background: 'var(--pink-light)', color: 'var(--pink)' }}>
-                            {cycleLength} days
+                <div className="px-4 py-3">
+                    <div className="flex justify-between items-center mb-2">
+                        <div>
+                            <p className="font-semibold" style={{ fontSize: '13px' }}>Cycle length</p>
+                            <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                                Average days per cycle
+                            </p>
+                        </div>
+                        <span className="font-black"
+                              style={{ fontSize: '20px', color: 'var(--pink)', minWidth: '52px', textAlign: 'right' }}>
+                            {cycleLength}d
                         </span>
                     </div>
-                    <input
-                        type="range"
-                        min={21}
-                        max={35}
-                        step={1}
-                        value={cycleLength}
-                        onChange={e => setCycleLength(Number(e.target.value))}
-                        style={{ width: '100%' }}
-                    />
+                    <PinkSlider min={21} max={35} step={1} value={cycleLength} onChange={v => setCycleLength(Math.round(v))} />
                     <div className="flex justify-between mt-1">
-                        <span className="text-xs" style={{ color: 'var(--muted)' }}>21 days</span>
-                        <span className="text-xs" style={{ color: 'var(--muted)' }}>35 days</span>
+                        <span style={{ fontSize: '9px', color: '#ccc' }}>21 days</span>
+                        <span style={{ fontSize: '9px', color: '#ccc' }}>35 days</span>
                     </div>
                 </div>
 
                 {!periodStart && (
-                    <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)', opacity: 0.7 }}>
-                        Add your last period start date to see your current phase and get cycle-aware coaching from your AI coach.
-                    </p>
+                    <div className="px-4 pb-3">
+                        <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)', opacity: 0.7 }}>
+                            Add your last period start date to unlock phase-aware coaching.
+                        </p>
+                    </div>
                 )}
-
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="w-full py-3 rounded-full font-black uppercase tracking-widest text-sm transition-all active:scale-95"
-                    style={{
-                        background: saved ? '#22c55e' : 'var(--pink)',
-                        color: '#fff',
-                        border: 'none',
-                        cursor: saving ? 'default' : 'pointer',
-                        opacity: saving ? 0.7 : 1,
-                    }}>
-                    {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'}
-                </button>
             </div>
         </div>
     )

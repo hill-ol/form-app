@@ -127,6 +127,7 @@ export default function ExerciseLibraryEditor() {
         }
 
         setSaved(true)
+        window.dispatchEvent(new CustomEvent('exercise-library-updated'))
         setTimeout(() => { setSaved(false); setEditing(null) }, 800)
     }
 
