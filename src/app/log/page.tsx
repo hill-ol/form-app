@@ -71,11 +71,6 @@ export default function LogPage() {
     const [exercises, setExercisesState] = useState<ActiveExercise[]>(saved?.exercises ?? [])
     const [showAddSheet, setShowAddSheet] = useState(false)
     const [restTimerOn, setRestTimerOn] = useState(false)
-    const [activeExIndex, setActiveExIndex] = useState(0)
-    const exerciseRefs = useRef<(HTMLDivElement | null)[]>([])
-    const observerRef = useRef<IntersectionObserver | null>(null)
-    const swipeTouchStartX = useRef(0)
-    const swipeTouchStartY = useRef(0)
     const [restActive, setRestActive] = useState(false)
     const [restDuration, setRestDuration] = useState(90)
     const [startTime, setStartTime] = useState<number>(0)
@@ -325,23 +320,6 @@ export default function LogPage() {
         )])
     }
 
-    useEffect(() => {
-        if (screen !== 'active') return
-        observerRef.current?.disconnect()
-        observerRef.current = new IntersectionObserver(entries => {
-            let best: { index: number; ratio: number } | null = null
-            for (const entry of entries) {
-                const index = exerciseRefs.current.indexOf(entry.target as HTMLDivElement)
-                if (index !== -1 && entry.intersectionRatio > (best?.ratio ?? 0)) {
-                    best = { index, ratio: entry.intersectionRatio }
-                }
-            }
-            if (best) setActiveExIndex(best.index)
-        }, { threshold: [0.3, 0.6, 1.0] })
-        exerciseRefs.current.forEach(el => { if (el) observerRef.current!.observe(el) })
-        return () => observerRef.current?.disconnect()
-    }, [screen, exercises.length])
-
     const handleSetComplete = useCallback(() => {
         if (restTimerOn) setRestActive(true)
     }, [restTimerOn])
@@ -382,21 +360,7 @@ export default function LogPage() {
 
                 <div
                     className="flex-1 overflow-y-auto px-4 pt-3"
-                    style={{ paddingBottom: '140px' }}
-                    onTouchStart={e => {
-                        swipeTouchStartX.current = e.touches[0].clientX
-                        swipeTouchStartY.current = e.touches[0].clientY
-                    }}
-                    onTouchEnd={e => {
-                        const dx = e.changedTouches[0].clientX - swipeTouchStartX.current
-                        const dy = e.changedTouches[0].clientY - swipeTouchStartY.current
-                        if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx) * 1.5) return
-                        setActiveExIndex(prev => {
-                            const next = Math.max(0, Math.min(exercises.length - 1, prev + (dx < 0 ? 1 : -1)))
-                            exerciseRefs.current[next]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                            return next
-                        })
-                    }}>
+                    style={{ paddingBottom: '140px' }}>
                     {restActive && restTimerOn && (
                         <RestTimer
                             seconds={restDuration}
@@ -405,32 +369,9 @@ export default function LogPage() {
                         />
                     )}
 
-                    {exercises.length > 1 && (
-                        <div className="flex gap-1.5 justify-center mb-3">
-                            {exercises.map((_, i) => (
-                                <div
-                                    key={i}
-                                    onClick={() => {
-                                        setActiveExIndex(i)
-                                        exerciseRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                                    }}
-                                    style={{
-                                        width: i === activeExIndex ? '16px' : '6px',
-                                        height: '6px',
-                                        borderRadius: '999px',
-                                        background: i === activeExIndex ? 'var(--pink)' : '#e0d8cc',
-                                        transition: 'all 0.2s',
-                                        cursor: 'pointer',
-                                    }}
-                                />
-                            ))}
-                        </div>
-                    )}
-
                     {exercises.map((ex, i) => (
                         <div
                             key={ex.exerciseId + i}
-                            ref={el => { exerciseRefs.current[i] = el }}
                             style={{ animation: `slideInUp 0.2s ease ${i * 0.05}s both` }}>
                             <ExerciseCard
                                 exercise={ex}
@@ -485,9 +426,9 @@ export default function LogPage() {
                 <BottomNav />
 
                 {focusMode && (() => {
-                    const ex = exercises[activeExIndex]
-                    const completedSets = ex?.sets.filter(s => s.completed).length ?? 0
-                    const totalSets = ex?.sets.length ?? 0
+                    const totalSets = exercises.reduce((n, ex) => n + ex.sets.length, 0)
+                    const doneSets = exercises.reduce((n, ex) => n + ex.sets.filter(s => s.completed).length, 0)
+                    const nextEx = exercises.find(ex => ex.sets.some(s => !s.completed))
                     return (
                         <div
                             onClick={() => setFocusMode(false)}
@@ -502,21 +443,26 @@ export default function LogPage() {
                             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '16px' }}>
                                 {dayLabel}
                             </p>
-                            <p style={{ color: '#fff', fontSize: '36px', fontWeight: 900, letterSpacing: '-0.02em', textAlign: 'center', lineHeight: 1.15, marginBottom: '24px' }}>
-                                {ex?.exerciseName ?? '—'}
+                            <p style={{ color: '#fff', fontSize: '36px', fontWeight: 900, letterSpacing: '-0.02em', textAlign: 'center', lineHeight: 1.15, marginBottom: '8px' }}>
+                                {nextEx?.exerciseName ?? 'All done!'}
                             </p>
-                            <div style={{
-                                display: 'flex', gap: '10px', marginBottom: '32px',
-                            }}>
-                                {ex?.sets.map((s, i) => (
-                                    <div key={s.id} style={{
-                                        width: '14px', height: '14px', borderRadius: '50%',
-                                        background: s.completed ? 'var(--pink)' : 'rgba(255,255,255,0.2)',
-                                    }} />
+                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '32px' }}>
+                                {nextEx?.muscleGroup}
+                            </p>
+                            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                                {exercises.map(ex => (
+                                    <div key={ex.exerciseId} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        {ex.sets.map(s => (
+                                            <div key={s.id} style={{
+                                                width: '8px', height: '8px', borderRadius: '50%',
+                                                background: s.completed ? 'var(--pink)' : 'rgba(255,255,255,0.15)',
+                                            }} />
+                                        ))}
+                                    </div>
                                 ))}
                             </div>
                             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', fontWeight: 700 }}>
-                                {completedSets} / {totalSets} sets done
+                                {doneSets} / {totalSets} sets done
                             </p>
                             {restActive && restTimerOn && (
                                 <p style={{ color: 'var(--pink)', fontSize: '13px', fontWeight: 700, marginTop: '16px' }}>
