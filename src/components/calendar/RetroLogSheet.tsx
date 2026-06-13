@@ -13,7 +13,8 @@ const DAY_LABEL: Record<string, string> = {
 interface RetroSet {
     reps: string
     weight: string
-    duration: string  // "MM:SS" for hold exercises
+    duration: string  // minutes for cardio/yoga, "MM:SS" for hold
+    distance: string  // miles, cardio only
 }
 
 interface RetroExercise {
@@ -34,7 +35,7 @@ interface Props {
 }
 
 function blankSet(weight: string): RetroSet {
-    return { reps: '', weight, duration: '' }
+    return { reps: '', weight, duration: '', distance: '' }
 }
 
 export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props) {
@@ -157,7 +158,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
         setExercises(prev => prev.filter(e => e.id !== id))
     }
 
-    function updateSet(exId: string, setIdx: number, field: 'reps' | 'weight' | 'duration', value: string) {
+    function updateSet(exId: string, setIdx: number, field: 'reps' | 'weight' | 'duration' | 'distance', value: string) {
         setExercises(prev => prev.map(ex => {
             if (ex.id !== exId) return ex
             const sets = ex.sets.map((s, i) => i === setIdx ? { ...s, [field]: value } : s)
@@ -208,7 +209,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                     reps: s.reps,
                     weight: s.weight,
                     duration: s.duration,
-                    distance: '',
+                    distance: s.distance,
                     completed: true,
                 })),
             }))
@@ -303,7 +304,15 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                             </div>
 
                             {/* Set header */}
-                            {ex.exerciseType === 'hold' ? (
+                            {ex.exerciseType === 'cardio' ? (
+                                <div className="flex items-center gap-2 mb-1.5 px-1">
+                                    <span className="w-5" />
+                                    <span className="text-xs font-bold uppercase tracking-widest text-center"
+                                        style={{ flex: 1, color: 'var(--muted)' }}>min</span>
+                                    <span className="text-xs font-bold uppercase tracking-widest text-center"
+                                        style={{ flex: 1, color: 'var(--muted)' }}>miles</span>
+                                </div>
+                            ) : ex.exerciseType === 'hold' ? (
                                 <div className="flex items-center gap-2 mb-1.5 px-1">
                                     <span className="w-5" />
                                     <span className="text-xs font-bold uppercase tracking-widest text-center"
@@ -328,7 +337,28 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                                     <div key={sIdx} className="flex items-center gap-2">
                                         <span className="text-xs font-bold w-5 text-center flex-shrink-0"
                                             style={{ color: 'var(--muted)' }}>{sIdx + 1}</span>
-                                        {ex.exerciseType === 'hold' ? (
+                                        {ex.exerciseType === 'cardio' ? (
+                                            <>
+                                                <input
+                                                    type="number"
+                                                    inputMode="numeric"
+                                                    placeholder="—"
+                                                    value={s.duration}
+                                                    onChange={e => updateSet(ex.id, sIdx, 'duration', e.target.value)}
+                                                    className="rounded-xl px-2 py-1.5 font-semibold text-center"
+                                                    style={{ flex: 1, minWidth: 0, fontSize: '15px', border: '1.5px solid var(--border)', background: '#fff', outline: 'none', fontFamily: 'Inter, sans-serif', color: '#1a1a1a' }}
+                                                />
+                                                <input
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    placeholder="—"
+                                                    value={s.distance}
+                                                    onChange={e => updateSet(ex.id, sIdx, 'distance', e.target.value)}
+                                                    className="rounded-xl px-2 py-1.5 font-semibold text-center"
+                                                    style={{ flex: 1, minWidth: 0, fontSize: '15px', border: '1.5px solid var(--border)', background: '#fff', outline: 'none', fontFamily: 'Inter, sans-serif', color: '#1a1a1a' }}
+                                                />
+                                            </>
+                                        ) : ex.exerciseType === 'hold' ? (
                                             <>
                                                 <input
                                                     type="number"
@@ -397,7 +427,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                             <button onClick={() => addSet(ex.id)}
                                 className="text-xs font-bold"
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pink)', padding: 0 }}>
-                                + {ex.exerciseType === 'hold' ? 'add hold' : 'add set'}
+                                + {ex.exerciseType === 'cardio' ? 'add run' : ex.exerciseType === 'hold' ? 'add hold' : 'add set'}
                             </button>
                         </div>
                     ))}

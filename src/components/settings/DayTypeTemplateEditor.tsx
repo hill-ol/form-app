@@ -36,6 +36,7 @@ interface TemplateExercise {
     exercise_id: string
     exercise_name: string
     sets: number
+    target_distance?: number | null
     display_order: number
 }
 
@@ -50,6 +51,7 @@ export default function DayTypeTemplateEditor() {
     // When an exercise is tapped in the picker, show a confirm row
     const [pendingEx, setPendingEx] = useState<LibraryExercise | null>(null)
     const [pendingSets, setPendingSets] = useState('3')
+    const [pendingDistance, setPendingDistance] = useState('')
 
     async function loadLibrary() {
         try {
@@ -109,9 +111,9 @@ export default function DayTypeTemplateEditor() {
         } catch (e) { console.error('Failed to remove exercise:', e) }
     }
 
-    async function handleUpdateSets(dayType: string, exerciseId: string, sets: number) {
+    async function handleUpdateField(dayType: string, exerciseId: string, field: 'sets' | 'target_distance', value: number | null) {
         const updated = templates.map(t =>
-            t.day_type === dayType && t.exercise_id === exerciseId ? { ...t, sets } : t
+            t.day_type === dayType && t.exercise_id === exerciseId ? { ...t, [field]: value } : t
         )
         setTemplates(updated)
         setSaving(true)
@@ -124,11 +126,13 @@ export default function DayTypeTemplateEditor() {
     async function handleConfirmAdd(dayType: DayType) {
         if (!pendingEx) return
         const existing = getExercisesForDay(dayType)
+        const isCardioDay = dayType === 'cardio'
         const newEntry: TemplateExercise = {
             day_type: dayType,
             exercise_id: pendingEx.id,
             exercise_name: pendingEx.name,
-            sets: parseInt(pendingSets) || 3,
+            sets: parseInt(pendingSets) || (isCardioDay ? 30 : 3),
+            target_distance: isCardioDay && pendingDistance ? parseFloat(pendingDistance) : null,
             display_order: existing.length,
         }
         setSaving(true)
@@ -138,6 +142,7 @@ export default function DayTypeTemplateEditor() {
             setTemplates(prev => [...prev, newEntry])
             setPendingEx(null)
             setPendingSets('3')
+            setPendingDistance('')
         } catch (e) { console.error('Failed to add exercise:', e) }
         finally { setSaving(false) }
     }
@@ -148,6 +153,7 @@ export default function DayTypeTemplateEditor() {
         setFilter(dayType === 'full body' ? 'all' : dayType)
         setPendingEx(null)
         setPendingSets(dayType === 'cardio' ? '30' : dayType === 'yoga' ? '60' : '3')
+        setPendingDistance('')
     }
 
     function closeAdder() {
@@ -155,6 +161,7 @@ export default function DayTypeTemplateEditor() {
         setPendingEx(null)
         setQuery('')
         setFilter('all')
+        setPendingDistance('')
     }
 
     return (
@@ -236,7 +243,7 @@ export default function DayTypeTemplateEditor() {
                                                 value={ex.sets}
                                                 min={1} max={isCardio ? 300 : 10}
                                                 onClick={e => e.stopPropagation()}
-                                                onChange={e => handleUpdateSets(dayType, ex.exercise_id, parseInt(e.target.value) || (isCardio ? 30 : 3))}
+                                                onChange={e => handleUpdateField(dayType, ex.exercise_id, 'sets', parseInt(e.target.value) || (isCardio ? 30 : 3))}
                                                 className="text-center font-bold rounded-lg"
                                                 style={{
                                                     width: isCardio ? '44px' : '34px', border: '1px solid var(--border)',
@@ -244,6 +251,25 @@ export default function DayTypeTemplateEditor() {
                                                 }}
                                             />
                                             <span className="text-xs" style={{ color: 'var(--muted)' }}>{isCardio ? 'min' : 'sets'}</span>
+                                            {dayType === 'cardio' && (
+                                                <>
+                                                    <input
+                                                        type="number"
+                                                        inputMode="decimal"
+                                                        placeholder="—"
+                                                        value={ex.target_distance ?? ''}
+                                                        min={0} max={100} step={0.1}
+                                                        onClick={e => e.stopPropagation()}
+                                                        onChange={e => handleUpdateField(dayType, ex.exercise_id, 'target_distance', e.target.value ? parseFloat(e.target.value) : null)}
+                                                        className="text-center font-bold rounded-lg"
+                                                        style={{
+                                                            width: '44px', border: '1px solid var(--border)',
+                                                            background: 'var(--cream)', fontSize: '13px', padding: '2px 4px',
+                                                        }}
+                                                    />
+                                                    <span className="text-xs" style={{ color: 'var(--muted)' }}>mi</span>
+                                                </>
+                                            )}
                                             <button
                                                 onClick={() => handleRemove(dayType, ex.exercise_id)}
                                                 style={{
@@ -322,6 +348,24 @@ export default function DayTypeTemplateEditor() {
                                                     }}
                                                 />
                                                 <span className="text-xs font-semibold" style={{ color: 'var(--pink-dark)' }}>{isCardio ? 'min' : 'sets'}</span>
+                                                {dayType === 'cardio' && (
+                                                    <>
+                                                        <input
+                                                            type="number"
+                                                            inputMode="decimal"
+                                                            placeholder="—"
+                                                            value={pendingDistance}
+                                                            min={0} max={100} step={0.1}
+                                                            onChange={e => setPendingDistance(e.target.value)}
+                                                            className="text-center font-bold rounded-lg"
+                                                            style={{
+                                                                width: '46px', border: '1px solid var(--pink)',
+                                                                background: '#fff', fontSize: '13px', padding: '2px 4px',
+                                                            }}
+                                                        />
+                                                        <span className="text-xs font-semibold" style={{ color: 'var(--pink-dark)' }}>mi</span>
+                                                    </>
+                                                )}
                                                 <button
                                                     onClick={() => handleConfirmAdd(dayType)}
                                                     disabled={saving}

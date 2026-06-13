@@ -566,6 +566,7 @@ export interface DayTypeExercise {
     exercise_id: string
     exercise_name: string
     sets: number
+    target_distance?: number | null
     display_order: number
 }
 
