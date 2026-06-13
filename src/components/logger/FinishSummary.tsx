@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ActiveExercise } from '@/lib/sessionUtils'
 import { saveSession } from '@/lib/db'
-import { useCoachInsight } from '@/lib/useCoach'
 
 interface Props {
     exercises: ActiveExercise[]
@@ -21,6 +20,8 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
     const [streak, setStreak] = useState<number | undefined>(undefined)
     const [notes, setNotes] = useState('')
     const [sessionId, setSessionId] = useState<string | null>(null)
+    const [coachInsight, setCoachInsight] = useState<string | null>(null)
+    const [coachLoading, setCoachLoading] = useState(false)
 
     const totalSets = exercises.reduce((acc, ex) =>
         acc + ex.sets.filter(s => s.completed).length, 0)
@@ -44,18 +45,27 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
         }
     })
 
-    const { insight: coachInsight, loading: coachLoading } = useCoachInsight(
-        'post-session',
-        { streak },
-        [streak],
-        {
-            dayName,
-            totalSets,
-            totalExercises,
-            durationMins: mins,
-            exercises: exerciseSummary,
+    async function fetchCoachInsight() {
+        if (coachLoading) return
+        setCoachLoading(true)
+        try {
+            const res = await fetch('/api/coach', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'post-session',
+                    context: { streak },
+                    sessionSummary: { dayName, totalSets, totalExercises, durationMins: mins, exercises: exerciseSummary },
+                }),
+            })
+            const data = await res.json()
+            setCoachInsight(data.insight ?? 'Great work today.')
+        } catch {
+            setCoachInsight('Solid session. Rest up and come back stronger.')
+        } finally {
+            setCoachLoading(false)
         }
-    )
+    }
 
     useEffect(() => {
         async function saveAndUpdate() {
@@ -160,20 +170,44 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
 
                 <div className="rounded-2xl p-4 mb-4"
                      style={{ background: 'var(--pink-light)', border: '0.5px solid #f0b8d0' }}>
-                    <p className="text-xs font-bold uppercase tracking-widest mb-1"
-                       style={{ color: 'var(--pink-dark)', fontSize: '10px' }}>
-                        ✨ AI Coach
-                    </p>
-                    {coachLoading ? (
-                        <div className="space-y-1.5">
+                    <div className="flex justify-between items-center mb-1">
+                        <p className="text-xs font-bold uppercase tracking-widest"
+                           style={{ color: 'var(--pink-dark)', fontSize: '10px' }}>
+                            ✨ AI Coach
+                        </p>
+                        {!coachInsight && !coachLoading && (
+                            <button
+                                onClick={fetchCoachInsight}
+                                className="text-xs font-bold rounded-full px-3 py-1 transition-all active:scale-95"
+                                style={{ background: 'var(--pink)', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                                Get insight
+                            </button>
+                        )}
+                        {coachInsight && !coachLoading && (
+                            <button
+                                onClick={fetchCoachInsight}
+                                className="text-xs font-bold px-2 py-1 transition-all active:scale-95"
+                                style={{ background: 'transparent', color: 'var(--pink-dark)', border: 'none', cursor: 'pointer', opacity: 0.7 }}>
+                                ↻ refresh
+                            </button>
+                        )}
+                    </div>
+                    {coachLoading && (
+                        <div className="space-y-1.5 mt-1">
                             <div className="h-3 rounded-full animate-pulse"
                                  style={{ background: '#f0b8d0', width: '85%' }} />
                             <div className="h-3 rounded-full animate-pulse"
                                  style={{ background: '#f0b8d0', width: '65%' }} />
                         </div>
-                    ) : (
+                    )}
+                    {!coachLoading && coachInsight && (
                         <p className="text-sm leading-relaxed" style={{ color: '#444' }}>
                             {coachInsight}
+                        </p>
+                    )}
+                    {!coachLoading && !coachInsight && (
+                        <p className="text-sm" style={{ color: '#C42D65', opacity: 0.7 }}>
+                            Tap for a post-workout insight.
                         </p>
                     )}
                 </div>
