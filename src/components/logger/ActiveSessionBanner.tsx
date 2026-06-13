@@ -19,7 +19,9 @@ export default function ActiveSessionBanner() {
         function check() {
             try {
                 const raw = sessionStorage.getItem(SESSION_KEY)
-                setSession(raw ? JSON.parse(raw) : null)
+                if (!raw) { setSession(null); return }
+                const parsed = JSON.parse(raw)
+                setSession(parsed?.screen === 'active' ? parsed : null)
             } catch { setSession(null) }
         }
         check()
