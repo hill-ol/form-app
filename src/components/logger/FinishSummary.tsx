@@ -67,7 +67,7 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                 const [savedSession, storedWeights, currentStreak] = await Promise.all([
                     saveSession(
                         {
-                            date: new Date().toISOString().split('T')[0],
+                            date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })(),
                             dayType,
                             workoutType: dayType === 'cardio' ? 'cardio'
                                 : dayType === 'yoga' ? 'yoga'
@@ -224,6 +224,8 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                                 await supabase.from('workout_sessions').update({ notes: notes.trim() }).eq('id', sessionId)
                             } catch { /* non-critical — navigate anyway */ }
                         }
+                        sessionStorage.removeItem('form_active_session')
+                        sessionStorage.removeItem('form_session_start')
                         router.push('/')
                     }}
                     disabled={saving}
