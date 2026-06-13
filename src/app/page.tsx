@@ -10,6 +10,7 @@ import {
     getLastSessionByDayType,
     getTodayCheckin,
     getTodayStressFlag,
+    getPeriodLogs,
 } from '@/lib/db'
 import TopNav from '@/components/layout/TopNav'
 import BottomNav from '@/components/layout/BottomNav'
@@ -23,7 +24,7 @@ import RecentSessions from '@/components/dashboard/RecentSessions'
 import DashboardGreeting from '@/components/dashboard/DashboardGreeting'
 import CyclePhaseCard from '@/components/dashboard/CyclePhaseCard'
 import { getProgressionSuggestions } from '@/lib/db'
-import { getCyclePhase } from '@/lib/cycleUtils'
+import { getCyclePhaseFromLogs } from '@/lib/cycleUtils'
 import { WorkoutSession, DayTemplate } from '@/types'
 import PullToRefresh from '@/components/dashboard/PullToRefresh'
 
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
     const year = today.getFullYear()
     const month = today.getMonth()
 
-    const [recentSessions, lastSleep, streak, template, monthSessions, prefs, progressionSuggestions, todayEnergyLevel, todayStressed] =
+    const [recentSessions, lastSleep, streak, template, monthSessions, prefs, progressionSuggestions, todayEnergyLevel, todayStressed, periodLogs] =
         await Promise.all([
             getRecentSessions(10).catch(() => []),
             getLastSleep().catch(() => null),
@@ -44,6 +45,7 @@ export default async function DashboardPage() {
             getProgressionSuggestions().catch(() => ({})),
             getTodayCheckin().catch(() => null),
             getTodayStressFlag().catch(() => false),
+            getPeriodLogs().catch(() => [] as string[]),
         ])
 
     const weeklyGoal = prefs?.weekly_goal ?? 5
@@ -217,10 +219,7 @@ export default async function DashboardPage() {
                     <MoodCheckIn />
                 </div>
 
-                <CyclePhaseCard
-                    periodStartDate={prefs?.period_start_date ?? null}
-                    cycleLengthDays={prefs?.cycle_length_days ?? null}
-                />
+                <CyclePhaseCard periodLogs={periodLogs} />
 
                 <AiCoachCard context={{
                     lastSleep: lastSleep
@@ -237,9 +236,7 @@ export default async function DashboardPage() {
                         dayType: s.dayType,
                         duration: s.duration,
                     })),
-                    cyclePhase: prefs?.period_start_date
-                        ? getCyclePhase(prefs.period_start_date, prefs.cycle_length_days ?? 28)
-                        : undefined,
+                    cyclePhase: getCyclePhaseFromLogs(periodLogs)?.phase,
                     isStressed: todayStressed || undefined,
                 }} />
 

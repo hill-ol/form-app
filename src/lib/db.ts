@@ -687,3 +687,26 @@ export async function getProgressionSuggestions(): Promise<Record<string, number
 
     return suggestions
 }
+
+export async function getPeriodLogs(): Promise<string[]> {
+    const { data } = await supabase
+        .from('period_logs')
+        .select('date')
+        .order('date', { ascending: true })
+    return (data ?? []).map((r: any) => r.date as string)
+}
+
+export async function logPeriodDay(date: string): Promise<void> {
+    const { error } = await supabase
+        .from('period_logs')
+        .upsert({ date }, { onConflict: 'date' })
+    if (error) throw error
+}
+
+export async function unlogPeriodDay(date: string): Promise<void> {
+    const { error } = await supabase
+        .from('period_logs')
+        .delete()
+        .eq('date', date)
+    if (error) throw error
+}

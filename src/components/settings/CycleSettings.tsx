@@ -1,185 +1,305 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { getCyclePhase, PHASE_META } from '@/lib/cycleUtils'
+import { useState, useEffect, useCallback } from 'react'
+import { getCyclePhaseFromLogs, findCycleStarts, PHASE_META } from '@/lib/cycleUtils'
 import { localDateString } from '@/lib/dateUtils'
 
-function PinkSlider({ min, max, step, value, onChange }: {
-    min: number; max: number; step: number; value: number; onChange: (v: number) => void
-}) {
-    const ref = useRef<HTMLInputElement>(null)
+function dateStr(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
-    function updateTrack(v: number) {
-        if (!ref.current) return
-        const pct = ((v - min) / (max - min)) * 100
-        ref.current.style.background = `linear-gradient(to right, #E8417A ${pct}%, #f0e8da ${pct}%)`
+function MiniCycleCalendar({ periodDays, onToggle, todayStr }: {
+    periodDays: Set<string>
+    onToggle: (date: string) => void
+    todayStr: string
+}) {
+    const today = new Date(todayStr + 'T12:00:00')
+
+    // Build 12-week grid ending today, aligned to Monday
+    const startDay = new Date(today)
+    startDay.setDate(today.getDate() - 83)
+    const dow = startDay.getDay() === 0 ? 6 : startDay.getDay() - 1
+    startDay.setDate(startDay.getDate() - dow)
+
+    const days: Date[] = []
+    const cursor = new Date(startDay)
+    while (dateStr(cursor) <= todayStr) {
+        days.push(new Date(cursor))
+        cursor.setDate(cursor.getDate() + 1)
     }
 
-    useEffect(() => { updateTrack(value) }, [value])
+    const weeks: Date[][] = []
+    for (let i = 0; i < days.length; i += 7) {
+        weeks.push(days.slice(i, i + 7))
+    }
+
+    const shownMonths = new Set<string>()
 
     return (
-        <input
-            ref={ref}
-            type="range"
-            min={min} max={max} step={step}
-            value={value}
-            onChange={e => {
-                const v = parseFloat(e.target.value)
-                onChange(v)
-                updateTrack(v)
-            }}
-            className="w-full"
-        />
+        <div>
+            <div className="grid grid-cols-7 gap-0.5 mb-1.5">
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                    <div key={i} className="text-center font-bold"
+                         style={{ fontSize: '9px', color: 'var(--muted)' }}>
+                        {d}
+                    </div>
+                ))}
+            </div>
+            {weeks.map((week, wi) => {
+                const firstOfMonth = week.find(d => d.getDate() <= 7)
+                const monthKey = firstOfMonth ? `${firstOfMonth.getFullYear()}-${firstOfMonth.getMonth()}` : ''
+                const showMonth = firstOfMonth && !shownMonths.has(monthKey)
+                if (showMonth) shownMonths.add(monthKey)
+
+                return (
+                    <div key={wi}>
+                        {showMonth && (
+                            <div className="mt-1.5 mb-0.5 font-bold uppercase"
+                                 style={{ fontSize: '9px', color: 'var(--muted)', letterSpacing: '0.06em' }}>
+                                {firstOfMonth!.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                            </div>
+                        )}
+                        <div className="grid grid-cols-7 gap-0.5 mb-0.5">
+                            {week.map((day, di) => {
+                                const ds = dateStr(day)
+                                const isToday = ds === todayStr
+                                const isPeriod = periodDays.has(ds)
+                                const isFuture = ds > todayStr
+
+                                return (
+                                    <button
+                                        key={di}
+                                        onClick={() => !isFuture && onToggle(ds)}
+                                        style={{
+                                            width: '100%',
+                                            aspectRatio: '1',
+                                            borderRadius: '50%',
+                                            border: isToday && !isPeriod ? '2px solid var(--pink)' : 'none',
+                                            background: isPeriod ? 'var(--pink)' : 'transparent',
+                                            color: isPeriod ? '#fff' : isFuture ? '#ddd' : isToday ? 'var(--pink)' : '#666',
+                                            fontSize: '10px',
+                                            fontWeight: isToday || isPeriod ? 700 : 400,
+                                            cursor: isFuture ? 'default' : 'pointer',
+                                            padding: 0,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            lineHeight: 1,
+                                            transition: 'background 0.15s, color 0.15s',
+                                        }}>
+                                        {day.getDate()}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )
+            })}
+        </div>
     )
 }
 
 export default function CycleSettings() {
-    const [periodStart, setPeriodStart] = useState('')
-    const [cycleLength, setCycleLength] = useState(28)
-    const [saving, setSaving] = useState(false)
-    const [saved, setSaved] = useState(false)
+    const [periodDays, setPeriodDays] = useState<Set<string>>(new Set())
+    const [loading, setLoading] = useState(true)
+    const [toggling, setToggling] = useState<string | null>(null)
+    const todayStr = localDateString()
 
     useEffect(() => {
         async function load() {
             try {
-                const { getPreferences } = await import('@/lib/db')
-                const prefs = await getPreferences()
-                if (prefs?.period_start_date) setPeriodStart(prefs.period_start_date)
-                if (prefs?.cycle_length_days) setCycleLength(prefs.cycle_length_days)
+                const { getPeriodLogs } = await import('@/lib/db')
+                const logs = await getPeriodLogs()
+                setPeriodDays(new Set(logs))
             } catch { }
+            setLoading(false)
         }
         load()
     }, [])
 
-    const phase = periodStart ? getCyclePhase(periodStart, cycleLength) : null
-    const meta = phase ? PHASE_META[phase] : null
-
-    async function handleSave() {
-        setSaving(true)
-        setSaved(false)
+    const handleToggle = useCallback(async (date: string) => {
+        if (toggling) return
+        setToggling(date)
+        const isLogged = periodDays.has(date)
+        setPeriodDays(prev => {
+            const next = new Set(prev)
+            if (isLogged) next.delete(date)
+            else next.add(date)
+            return next
+        })
         try {
-            const { getPreferences, savePreferences } = await import('@/lib/db')
-            const prefs = await getPreferences()
-            await savePreferences({
-                weeklyGoal: prefs?.weekly_goal ?? 5,
-                restDurationSeconds: prefs?.rest_duration_seconds ?? 90,
-                restTimerDefault: prefs?.rest_timer_default ?? false,
-                showAiCoach: prefs?.show_ai_coach ?? true,
-                periodStartDate: periodStart || undefined,
-                cycleLengthDays: cycleLength,
+            const { logPeriodDay, unlogPeriodDay } = await import('@/lib/db')
+            if (isLogged) await unlogPeriodDay(date)
+            else await logPeriodDay(date)
+        } catch {
+            setPeriodDays(prev => {
+                const next = new Set(prev)
+                if (isLogged) next.add(date)
+                else next.delete(date)
+                return next
             })
-            setSaved(true)
-            setTimeout(() => setSaved(false), 2000)
-        } catch (e) {
-            console.error('Failed to save cycle settings:', e)
-        } finally {
-            setSaving(false)
         }
-    }
+        setToggling(null)
+    }, [periodDays, toggling])
 
-    const formattedDate = periodStart
-        ? new Date(periodStart + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        : null
+    const isOnPeriodToday = periodDays.has(todayStr)
+    const daysArray = Array.from(periodDays).sort()
+    const info = getCyclePhaseFromLogs(daysArray)
+    const meta = info ? PHASE_META[info.phase] : null
+    const starts = findCycleStarts(daysArray)
+
+    const cycles: { start: string; length: number | null }[] = starts.map((s, i) => ({
+        start: s,
+        length: i + 1 < starts.length
+            ? Math.round((new Date(starts[i + 1] + 'T12:00:00').getTime() - new Date(s + 'T12:00:00').getTime()) / 864e5)
+            : null,
+    }))
 
     return (
-        <div className="rounded-2xl overflow-hidden mb-4"
-             style={{ border: '0.5px solid var(--border)' }}>
+        <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '0.5px solid var(--border)' }}>
 
             <div className="px-4 py-3 flex justify-between items-center"
                  style={{ background: '#fff', borderBottom: '0.5px solid var(--border)' }}>
                 <div>
                     <p className="font-black" style={{ fontSize: '14px' }}>Cycle tracking</p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-                        Phase-aware coaching and insights
+                        Tap days you had your period
                     </p>
                 </div>
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="font-bold rounded-full transition-all active:scale-95"
-                    style={{
-                        padding: '6px 14px', fontSize: '11px', border: 'none', cursor: 'pointer',
-                        background: saved ? '#D1FAE5' : 'var(--pink)',
-                        color: saved ? '#065F46' : '#fff',
-                        opacity: saving ? 0.7 : 1,
-                    }}>
-                    {saved ? 'Saved ✓' : 'Save'}
-                </button>
+                {meta && (
+                    <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5"
+                         style={{ background: `${meta.color}15`, border: `1px solid ${meta.color}35` }}>
+                        <span style={{ fontSize: '14px' }}>{meta.emoji}</span>
+                        <span className="font-black" style={{ fontSize: '11px', color: meta.color }}>{meta.label}</span>
+                    </div>
+                )}
             </div>
 
             <div style={{ background: '#fff' }}>
-                {meta && (
-                    <div className="px-4 py-3" style={{ borderBottom: '0.5px solid #f5f0e8' }}>
-                        <div className="flex items-center gap-3 rounded-xl px-3 py-2.5"
-                             style={{ background: `${meta.color}15`, border: `1px solid ${meta.color}35` }}>
-                            <span style={{ fontSize: '24px', lineHeight: 1 }}>{meta.emoji}</span>
-                            <div>
-                                <p className="font-black" style={{ fontSize: '13px', color: meta.color }}>{meta.label} Phase</p>
-                                <p className="text-xs mt-0.5 leading-snug" style={{ color: 'var(--muted)' }}>{meta.tip}</p>
+                {/* Log today */}
+                <div className="px-4 pt-4 pb-3" style={{ borderBottom: '0.5px solid #f5f0e8' }}>
+                    <button
+                        onClick={() => handleToggle(todayStr)}
+                        disabled={!!toggling}
+                        className="w-full font-black rounded-2xl transition-all active:scale-98"
+                        style={{
+                            padding: '14px 16px',
+                            fontSize: '14px',
+                            border: isOnPeriodToday ? '2px solid var(--pink)' : '2px dashed #e0d4c8',
+                            background: isOnPeriodToday ? 'var(--pink)' : 'var(--cream)',
+                            color: isOnPeriodToday ? '#fff' : 'var(--muted)',
+                            cursor: toggling ? 'not-allowed' : 'pointer',
+                        }}>
+                        {isOnPeriodToday ? '🩸 Logged for today ✓' : "+ I'm on my period today"}
+                    </button>
+                </div>
+
+                {/* Mini calendar */}
+                <div className="px-4 py-3" style={{ borderBottom: '0.5px solid #f5f0e8' }}>
+                    <p className="font-semibold mb-3 uppercase"
+                       style={{ fontSize: '11px', color: 'var(--muted)', letterSpacing: '0.06em' }}>
+                        Last 12 weeks — tap to mark period days
+                    </p>
+                    {loading ? (
+                        <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <p style={{ fontSize: '12px', color: 'var(--muted)' }}>Loading…</p>
+                        </div>
+                    ) : (
+                        <MiniCycleCalendar
+                            periodDays={periodDays}
+                            onToggle={handleToggle}
+                            todayStr={todayStr}
+                        />
+                    )}
+                </div>
+
+                {/* Stats */}
+                {info ? (
+                    <div className="px-4 py-3">
+                        <p className="font-semibold mb-2 uppercase"
+                           style={{ fontSize: '11px', color: 'var(--muted)', letterSpacing: '0.06em' }}>
+                            Your cycles
+                        </p>
+                        <div className="space-y-1.5 mb-3">
+                            {cycles.slice(-4).reverse().map((c, i) => {
+                                const startDate = new Date(c.start + 'T12:00:00')
+                                const label = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                const isCurrentCycle = i === 0
+
+                                return (
+                                    <div key={c.start} className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div style={{
+                                                width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                                                background: isCurrentCycle ? 'var(--pink)' : '#e0d4c8',
+                                            }} />
+                                            <span style={{ fontSize: '13px', fontWeight: isCurrentCycle ? 700 : 400 }}>
+                                                {label}
+                                            </span>
+                                            {isCurrentCycle && (
+                                                <span className="font-bold rounded-full px-2 py-0.5"
+                                                      style={{ fontSize: '10px', background: 'var(--pink-light)', color: 'var(--pink)' }}>
+                                                    day {info.dayInCycle}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                                            {c.length ? `${c.length}d cycle` : 'current'}
+                                        </span>
+                                    </div>
+                                )
+                            })}
+                        </div>
+
+                        <div className="flex gap-2 mb-3">
+                            <div className="flex-1 rounded-xl px-3 py-2.5 text-center"
+                                 style={{ background: 'var(--cream)' }}>
+                                <p className="font-black" style={{ fontSize: '18px', color: 'var(--pink)' }}>
+                                    {info.hasEnoughData ? `${info.derivedCycleLength}d` : '—'}
+                                </p>
+                                <p style={{ fontSize: '10px', color: 'var(--muted)' }}>avg cycle</p>
+                            </div>
+                            <div className="flex-1 rounded-xl px-3 py-2.5 text-center"
+                                 style={{ background: 'var(--cream)' }}>
+                                <p className="font-black" style={{ fontSize: '18px', color: meta?.color ?? 'var(--pink)' }}>
+                                    {info.daysUntilNext !== null ? `~${info.daysUntilNext}d` : '—'}
+                                </p>
+                                <p style={{ fontSize: '10px', color: 'var(--muted)' }}>until next</p>
+                            </div>
+                            <div className="flex-1 rounded-xl px-3 py-2.5 text-center"
+                                 style={{ background: 'var(--cream)' }}>
+                                <p className="font-black" style={{ fontSize: '18px', color: meta?.color ?? 'var(--pink)' }}>
+                                    {cycles.filter(c => c.length !== null).length}
+                                </p>
+                                <p style={{ fontSize: '10px', color: 'var(--muted)' }}>cycles logged</p>
                             </div>
                         </div>
-                    </div>
-                )}
 
-                <div className="px-4 py-3" style={{ borderBottom: '0.5px solid #f5f0e8' }}>
-                    <div className="flex justify-between items-center mb-2">
-                        <div>
-                            <p className="font-semibold" style={{ fontSize: '13px' }}>Last period started</p>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-                                Used to calculate your current phase
+                        {meta && (
+                            <div className="flex items-start gap-2.5 rounded-xl px-3 py-2.5"
+                                 style={{ background: `${meta.color}10`, border: `1px solid ${meta.color}30` }}>
+                                <span style={{ fontSize: '18px', lineHeight: 1.4 }}>{meta.emoji}</span>
+                                <div>
+                                    <p className="font-bold" style={{ fontSize: '12px', color: meta.color }}>
+                                        {meta.label} phase · day {info.dayInCycle}
+                                    </p>
+                                    <p className="mt-0.5 leading-snug" style={{ fontSize: '11px', color: '#555' }}>
+                                        {meta.tip}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {!info.hasEnoughData && (
+                            <p className="mt-2 text-xs leading-relaxed" style={{ color: 'var(--muted)', opacity: 0.8 }}>
+                                Log your next period to see your actual cycle length and predictions.
                             </p>
-                        </div>
+                        )}
                     </div>
-                    <label style={{ display: 'block', position: 'relative' }}>
-                        <div className="flex items-center justify-between rounded-xl px-4 py-2.5"
-                             style={{
-                                 background: 'var(--cream)',
-                                 border: periodStart ? '1.5px solid var(--pink)' : '1.5px solid var(--border)',
-                                 cursor: 'pointer',
-                             }}>
-                            <span className="font-semibold text-sm"
-                                  style={{ color: periodStart ? '#1a1a1a' : 'var(--muted)' }}>
-                                {formattedDate ?? 'Select date…'}
-                            </span>
-                            <span style={{ fontSize: '15px' }}>📅</span>
-                        </div>
-                        <input
-                            type="date"
-                            value={periodStart}
-                            max={localDateString()}
-                            onChange={e => setPeriodStart(e.target.value)}
-                            style={{
-                                position: 'absolute', inset: 0, opacity: 0,
-                                width: '100%', height: '100%', cursor: 'pointer',
-                            }}
-                        />
-                    </label>
-                </div>
-
-                <div className="px-4 py-3">
-                    <div className="flex justify-between items-center mb-2">
-                        <div>
-                            <p className="font-semibold" style={{ fontSize: '13px' }}>Cycle length</p>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-                                Average days per cycle
-                            </p>
-                        </div>
-                        <span className="font-black"
-                              style={{ fontSize: '20px', color: 'var(--pink)', minWidth: '52px', textAlign: 'right' }}>
-                            {cycleLength}d
-                        </span>
-                    </div>
-                    <PinkSlider min={21} max={35} step={1} value={cycleLength} onChange={v => setCycleLength(Math.round(v))} />
-                    <div className="flex justify-between mt-1">
-                        <span style={{ fontSize: '9px', color: '#ccc' }}>21 days</span>
-                        <span style={{ fontSize: '9px', color: '#ccc' }}>35 days</span>
-                    </div>
-                </div>
-
-                {!periodStart && (
-                    <div className="px-4 pb-3">
+                ) : !loading && (
+                    <div className="px-4 py-3">
                         <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)', opacity: 0.7 }}>
-                            Add your last period start date to unlock phase-aware coaching.
+                            Tap days on the calendar to log your period. Once you've logged a full cycle, you'll see your phase and predictions here.
                         </p>
                     </div>
                 )}

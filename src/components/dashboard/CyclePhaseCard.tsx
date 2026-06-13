@@ -1,14 +1,15 @@
 'use client'
 
-import { getCyclePhase, PHASE_META } from '@/lib/cycleUtils'
+import { getCyclePhaseFromLogs, PHASE_META } from '@/lib/cycleUtils'
 
 interface Props {
-    periodStartDate?: string | null
-    cycleLengthDays?: number | null
+    periodLogs: string[]
 }
 
-export default function CyclePhaseCard({ periodStartDate, cycleLengthDays }: Props) {
-    if (!periodStartDate) {
+export default function CyclePhaseCard({ periodLogs }: Props) {
+    const info = getCyclePhaseFromLogs(periodLogs)
+
+    if (!info) {
         return (
             <div className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between"
                  style={{ border: '0.5px solid var(--border)' }}>
@@ -29,17 +30,15 @@ export default function CyclePhaseCard({ periodStartDate, cycleLengthDays }: Pro
         )
     }
 
-    const phase = getCyclePhase(periodStartDate, cycleLengthDays ?? 28)
-    const meta = PHASE_META[phase]
-
-    const phases: (typeof phase)[] = ['menstrual', 'follicular', 'ovulatory', 'luteal']
-    const phaseIndex = phases.indexOf(phase)
+    const meta = PHASE_META[info.phase]
+    const phases = ['menstrual', 'follicular', 'ovulatory', 'luteal'] as const
+    const phaseIndex = phases.indexOf(info.phase)
 
     return (
         <div className="rounded-2xl overflow-hidden"
              style={{ background: `${meta.color}14`, border: `1px solid ${meta.color}30` }}>
             <div className="px-4 pt-4 pb-3">
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-2">
                     <div>
                         <p className="text-xs font-bold uppercase tracking-widest mb-1"
                            style={{ color: meta.color, opacity: 0.8 }}>
@@ -55,11 +54,27 @@ export default function CyclePhaseCard({ periodStartDate, cycleLengthDays }: Pro
                     </a>
                 </div>
 
+                <div className="flex items-center gap-2 mb-3">
+                    <span className="font-bold rounded-full px-2.5 py-0.5"
+                          style={{ fontSize: '11px', background: `${meta.color}20`, color: meta.color }}>
+                        Day {info.dayInCycle}
+                    </span>
+                    {info.daysUntilNext !== null && (
+                        <span style={{ fontSize: '11px', color: '#666' }}>
+                            · next in ~{info.daysUntilNext}d
+                        </span>
+                    )}
+                    {!info.hasEnoughData && (
+                        <span style={{ fontSize: '11px', color: '#999' }}>
+                            · log more cycles for predictions
+                        </span>
+                    )}
+                </div>
+
                 <p className="text-xs leading-relaxed mb-4" style={{ color: '#444' }}>
                     {meta.tip}
                 </p>
 
-                {/* Phase progress bar */}
                 <div className="flex gap-1.5">
                     {phases.map((p, i) => (
                         <div key={p} style={{
