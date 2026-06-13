@@ -331,6 +331,7 @@ export const EXERCISE_LIBRARY: Exercise[] = [
         primaryMuscle: 'full body',
         equipment: ['bodyweight'],
         movementType: 'compound',
+        exerciseType: 'yoga',
         notes: 'Track duration only',
     },
     {
@@ -341,6 +342,7 @@ export const EXERCISE_LIBRARY: Exercise[] = [
         primaryMuscle: 'full body',
         equipment: ['bodyweight'],
         movementType: 'compound',
+        exerciseType: 'yoga',
         notes: 'Track duration only',
     },
     {
@@ -351,6 +353,7 @@ export const EXERCISE_LIBRARY: Exercise[] = [
         primaryMuscle: 'full body',
         equipment: ['bodyweight'],
         movementType: 'compound',
+        exerciseType: 'yoga',
         notes: 'Track duration only',
     },
     // BODYWEIGHT / CORE — reps-based

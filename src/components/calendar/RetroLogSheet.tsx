@@ -86,7 +86,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                     const prebuilt: RetroExercise[] = lastExLogs.map((ex: any) => {
                         const lib = EXERCISE_LIBRARY.find(e => e.id === ex.exercise_id)
                         const completedSets = (ex.set_logs ?? []).filter((s: any) => s.completed)
-                        const exerciseType = lib?.exerciseType ?? ex.exercise_type ?? (dayType === 'cardio' ? 'cardio' : 'strength')
+                        const exerciseType = lib?.exerciseType ?? ex.exercise_type ?? (dayType === 'cardio' ? 'cardio' : dayType === 'yoga' ? 'yoga' : 'strength')
                         const defaultWeight = weights[ex.exercise_id]
                             ? String(weights[ex.exercise_id])
                             : completedSets[0]?.weight_lbs ? String(completedSets[0].weight_lbs) : ''
@@ -121,7 +121,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                         const lib = merged.find(e => e.id === t.exercise_id)
                         const w = weights[t.exercise_id] ? String(weights[t.exercise_id])
                             : lib?.currentWeight ? String(parseFloat(lib.currentWeight) || '') : ''
-                        const exerciseType = lib?.exerciseType ?? (dayType === 'cardio' ? 'cardio' : 'strength')
+                        const exerciseType = lib?.exerciseType ?? (dayType === 'cardio' ? 'cardio' : dayType === 'yoga' ? 'yoga' : 'strength')
                         const isTimeBased = exerciseType === 'cardio' || exerciseType === 'yoga'
                         // cardio/yoga: t.sets = minutes → 1 set with duration; others: t.sets = set count → blank sets
                         const sets: RetroSet[] = isTimeBased
@@ -175,7 +175,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
             name: ex.name,
             muscleGroup: ex.primaryMuscle,
             equipment: ex.equipment[0] ?? 'barbell',
-            exerciseType: ex.exerciseType ?? (dayType === 'cardio' ? 'cardio' : 'strength'),
+            exerciseType: ex.exerciseType ?? (dayType === 'cardio' ? 'cardio' : dayType === 'yoga' ? 'yoga' : 'strength'),
             libraryWeight: w,
             sets: [blankSet(w)],
         }])
@@ -332,7 +332,13 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                             </div>
 
                             {/* Set header */}
-                            {ex.exerciseType === 'cardio' ? (
+                            {ex.exerciseType === 'yoga' ? (
+                                <div className="flex items-center gap-2 mb-1.5 px-1">
+                                    <span className="w-5" />
+                                    <span className="text-xs font-bold uppercase tracking-widest text-center"
+                                        style={{ flex: 1, color: 'var(--muted)' }}>min</span>
+                                </div>
+                            ) : ex.exerciseType === 'cardio' ? (
                                 <div className="flex items-center gap-2 mb-1.5 px-1">
                                     <span className="w-5" />
                                     <span className="text-xs font-bold uppercase tracking-widest text-center"
@@ -365,7 +371,17 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                                     <div key={sIdx} className="flex items-center gap-2">
                                         <span className="text-xs font-bold w-5 text-center flex-shrink-0"
                                             style={{ color: 'var(--muted)' }}>{sIdx + 1}</span>
-                                        {ex.exerciseType === 'cardio' ? (
+                                        {ex.exerciseType === 'yoga' ? (
+                                            <input
+                                                type="number"
+                                                inputMode="numeric"
+                                                placeholder="—"
+                                                value={s.duration}
+                                                onChange={e => updateSet(ex.id, sIdx, 'duration', e.target.value)}
+                                                className="rounded-xl px-2 py-1.5 font-semibold text-center"
+                                                style={{ flex: 1, minWidth: 0, fontSize: '15px', border: '1.5px solid var(--border)', background: '#fff', outline: 'none', fontFamily: 'Inter, sans-serif', color: '#1a1a1a' }}
+                                            />
+                                        ) : ex.exerciseType === 'cardio' ? (
                                             <>
                                                 <input
                                                     type="number"
@@ -455,7 +471,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                             <button onClick={() => addSet(ex.id)}
                                 className="text-xs font-bold"
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pink)', padding: 0 }}>
-                                + {ex.exerciseType === 'cardio' ? 'add run' : ex.exerciseType === 'hold' ? 'add hold' : 'add set'}
+                                + {ex.exerciseType === 'cardio' ? 'add run' : ex.exerciseType === 'yoga' ? 'add session' : ex.exerciseType === 'hold' ? 'add hold' : 'add set'}
                             </button>
                         </div>
                     ))}
