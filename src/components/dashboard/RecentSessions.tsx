@@ -11,7 +11,8 @@ const EMOJI: Record<string, string> = {
 }
 
 function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short' })
+    const [y, m, d] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short' })
 }
 
 export default function RecentSessions({ sessions }: { sessions: WorkoutSession[] }) {
@@ -44,6 +45,12 @@ export default function RecentSessions({ sessions }: { sessions: WorkoutSession[
                style={{ color: 'var(--muted)' }}>
                 Recent sessions
             </p>
+
+            {sessions.length === 0 && (
+                <p className="text-xs py-2" style={{ color: 'var(--muted)' }}>
+                    No sessions yet — log your first workout.
+                </p>
+            )}
 
             <div
                 ref={scrollRef}
