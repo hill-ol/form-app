@@ -21,7 +21,7 @@ export default function SettingsPage() {
             </div>
 
             <main className="max-w-2xl mx-auto px-4 pt-2 pb-24 md:pb-10">
-                <div className="mb-4">
+                <div className="mb-4" style={{ animation: 'cardIn 0.25s ease both' }}>
                     <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--muted)' }}>
                         customize your
                     </p>
@@ -30,6 +30,7 @@ export default function SettingsPage() {
                     </p>
                 </div>
 
+                <div className="stagger-children">
                 <WeeklyTemplateEditor />
                 <DayTypeTemplateEditor />
                 <TrainingPreferences />
@@ -43,6 +44,7 @@ export default function SettingsPage() {
                     <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
                         v0.1 · built by olivia
                     </p>
+                </div>
                 </div>
             </main>
 

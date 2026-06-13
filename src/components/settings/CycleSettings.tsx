@@ -48,39 +48,64 @@ export default function CycleSettings() {
         }
     }
 
+    const formattedDate = periodStart
+        ? new Date(periodStart + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : null
+
     return (
         <div className="bg-white rounded-2xl p-4 mb-3" style={{ border: '0.5px solid var(--border)' }}>
-            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--muted)' }}>
+            <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--muted)' }}>
                 Cycle Tracking
             </p>
 
-            <div className="space-y-4">
+            {meta && (
+                <div className="rounded-2xl px-4 py-3 mb-4 flex items-center gap-3"
+                     style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}40` }}>
+                    <span style={{ fontSize: '28px', lineHeight: 1 }}>{meta.emoji}</span>
+                    <div>
+                        <p className="text-sm font-black" style={{ color: meta.color }}>{meta.label} Phase</p>
+                        <p className="text-xs mt-0.5 leading-snug" style={{ color: 'var(--muted)' }}>{meta.tip}</p>
+                    </div>
+                </div>
+            )}
+
+            <div className="space-y-5">
                 <div>
-                    <p className="text-xs font-semibold mb-1.5" style={{ color: '#1a1a1a' }}>
+                    <p className="text-xs font-bold mb-2" style={{ color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                         Last period started
                     </p>
-                    <input
-                        type="date"
-                        value={periodStart}
-                        max={localDateString()}
-                        onChange={e => setPeriodStart(e.target.value)}
-                        className="w-full rounded-xl px-3 py-2.5 text-sm"
-                        style={{
-                            border: '1px solid var(--border)',
-                            background: 'var(--cream)',
-                            fontFamily: 'Inter, sans-serif',
-                            color: '#1a1a1a',
-                            outline: 'none',
-                        }}
-                    />
+                    <label style={{ display: 'block', position: 'relative' }}>
+                        <div className="flex items-center justify-between rounded-2xl px-4 py-3"
+                             style={{
+                                 background: 'var(--cream)',
+                                 border: '1.5px solid var(--border)',
+                                 cursor: 'pointer',
+                             }}>
+                            <span className="font-semibold text-sm" style={{ color: periodStart ? '#1a1a1a' : 'var(--muted)' }}>
+                                {formattedDate ?? 'Select date…'}
+                            </span>
+                            <span style={{ color: 'var(--pink)', fontSize: '16px' }}>📅</span>
+                        </div>
+                        <input
+                            type="date"
+                            value={periodStart}
+                            max={localDateString()}
+                            onChange={e => setPeriodStart(e.target.value)}
+                            style={{
+                                position: 'absolute', inset: 0, opacity: 0,
+                                width: '100%', height: '100%', cursor: 'pointer',
+                            }}
+                        />
+                    </label>
                 </div>
 
                 <div>
-                    <div className="flex justify-between items-center mb-1.5">
-                        <p className="text-xs font-semibold" style={{ color: '#1a1a1a' }}>
+                    <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs font-bold" style={{ color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                             Cycle length
                         </p>
-                        <span className="text-xs font-bold" style={{ color: 'var(--pink)' }}>
+                        <span className="text-sm font-black rounded-full px-3 py-1"
+                              style={{ background: 'var(--pink-light)', color: 'var(--pink)' }}>
                             {cycleLength} days
                         </span>
                     </div>
@@ -91,28 +116,17 @@ export default function CycleSettings() {
                         step={1}
                         value={cycleLength}
                         onChange={e => setCycleLength(Number(e.target.value))}
-                        style={{ width: '100%', accentColor: 'var(--pink)' }}
+                        style={{ width: '100%' }}
                     />
-                    <div className="flex justify-between">
+                    <div className="flex justify-between mt-1">
                         <span className="text-xs" style={{ color: 'var(--muted)' }}>21 days</span>
                         <span className="text-xs" style={{ color: 'var(--muted)' }}>35 days</span>
                     </div>
                 </div>
 
-                {meta && (
-                    <div className="rounded-xl px-3 py-2.5 flex items-center gap-2"
-                         style={{ background: 'var(--cream)', border: '0.5px solid var(--border)' }}>
-                        <span style={{ fontSize: '18px' }}>{meta.emoji}</span>
-                        <div>
-                            <p className="text-xs font-bold" style={{ color: meta.color }}>{meta.label} phase</p>
-                            <p className="text-xs" style={{ color: 'var(--muted)' }}>{meta.tip}</p>
-                        </div>
-                    </div>
-                )}
-
                 {!periodStart && (
-                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                        Add your last period start date to see your current phase and get cycle-aware coaching.
+                    <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)', opacity: 0.7 }}>
+                        Add your last period start date to see your current phase and get cycle-aware coaching from your AI coach.
                     </p>
                 )}
 

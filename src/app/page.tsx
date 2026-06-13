@@ -203,7 +203,7 @@ export default async function DashboardPage() {
                 </div>
             </div>
 
-            <main className="max-w-2xl mx-auto px-4 pt-3 md:pt-6 pb-24 md:pb-10 space-y-3">
+            <main className="max-w-2xl mx-auto px-4 pt-3 md:pt-6 pb-24 md:pb-10 space-y-3 stagger-children">
                 <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
                     <DashboardGreeting />
                     <MoodCheckIn />
