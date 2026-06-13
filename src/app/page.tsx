@@ -92,6 +92,10 @@ export default async function DashboardPage() {
 
     const weeklyCompleted = weekSessions.filter(Boolean).length
 
+    // Index 0=Mon … 6=Sun in weekSessions; today's index is (dayOfWeek - 1)
+    const todaySessionEntry = weekSessions[dayOfWeek - 1]
+    const completedToday = !!todaySessionEntry
+
     const buildTodayExercises = () => {
         const dayType = todayTemplate?.dayType ?? 'push'
 
@@ -235,7 +239,7 @@ export default async function DashboardPage() {
                     isStressed: todayStressed || undefined,
                 }} />
 
-                <TodayWorkout workout={data.todayWorkout} estimatedDuration={estimatedDuration} />                <QuoteBanner />
+                <TodayWorkout workout={data.todayWorkout} estimatedDuration={estimatedDuration} completedToday={completedToday} />                <QuoteBanner />
                 <StatsRow data={data} />
 
                 <div className="bg-white rounded-2xl p-4 space-y-4"
