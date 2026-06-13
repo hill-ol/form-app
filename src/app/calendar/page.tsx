@@ -5,6 +5,7 @@ import TopNav from '@/components/layout/TopNav'
 import BottomNav from '@/components/layout/BottomNav'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import AddWorkoutSheet from '@/components/calendar/AddWorkoutSheet'
+import RetroLogSheet from '@/components/calendar/RetroLogSheet'
 import { getCalendarDays, WORKOUT_COLORS } from '@/lib/calendarUtils'
 import { PLACEHOLDER_DASHBOARD, DEFAULT_WEEK_TEMPLATE } from '@/lib/placeholder'
 import { DayTemplate } from '@/types'
@@ -20,6 +21,7 @@ export default function CalendarPage() {
     const [year, setYear] = useState(today.getFullYear())
     const [view, setView] = useState<'calendar' | 'list'>('calendar')
     const [showAddWorkout, setShowAddWorkout] = useState(false)
+    const [retroSession, setRetroSession] = useState<{ date: string; dayType: string } | null>(null)
     const [template, setTemplate] = useState<DayTemplate[]>(DEFAULT_WEEK_TEMPLATE)
     const [overrides, setOverrides] = useState<Record<string, string>>({})
     const [sessions, setSessions] = useState<any[]>([])
@@ -187,7 +189,7 @@ export default function CalendarPage() {
                                                 key={s.id}
                                                 className="flex items-center justify-between px-4 py-3 cursor-pointer transition-all hover:bg-gray-50"
                                                 style={{ borderBottom: i < sessions.length - 1 ? '0.5px solid #f5f0e8' : 'none' }}
-                                                onClick={() => setShowAddWorkout(true)}>
+                                                onClick={() => setRetroSession({ date: s.date, dayType: s.dayType })}>
                                                 <div>
                                                     <p className="text-xs font-bold" style={{ color: 'var(--muted)' }}>{dateLabel}</p>
                                                     <p className="font-semibold" style={{ fontSize: '13px' }}>{s.name}</p>
@@ -215,6 +217,14 @@ export default function CalendarPage() {
                         <AddWorkoutSheet
                             onClose={() => setShowAddWorkout(false)}
                             onSaved={loadCalendarData}
+                        />
+                    )}
+                    {retroSession && (
+                        <RetroLogSheet
+                            date={retroSession.date}
+                            dayType={retroSession.dayType}
+                            onClose={() => setRetroSession(null)}
+                            onSaved={() => { setRetroSession(null); loadCalendarData() }}
                         />
                     )}
                 </div>

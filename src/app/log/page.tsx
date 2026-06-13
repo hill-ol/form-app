@@ -73,6 +73,7 @@ export default function LogPage() {
     const [restTimerOn, setRestTimerOn] = useState(false)
     const [activeExIndex, setActiveExIndex] = useState(0)
     const exerciseRefs = useRef<(HTMLDivElement | null)[]>([])
+    const observerRef = useRef<IntersectionObserver | null>(null)
     const swipeTouchStartX = useRef(0)
     const swipeTouchStartY = useRef(0)
     const [restActive, setRestActive] = useState(false)
@@ -313,6 +314,23 @@ export default function LogPage() {
             selectedDayType
         )])
     }
+
+    useEffect(() => {
+        if (screen !== 'active') return
+        observerRef.current?.disconnect()
+        observerRef.current = new IntersectionObserver(entries => {
+            let best: { index: number; ratio: number } | null = null
+            for (const entry of entries) {
+                const index = exerciseRefs.current.indexOf(entry.target as HTMLDivElement)
+                if (index !== -1 && entry.intersectionRatio > (best?.ratio ?? 0)) {
+                    best = { index, ratio: entry.intersectionRatio }
+                }
+            }
+            if (best) setActiveExIndex(best.index)
+        }, { threshold: [0.3, 0.6, 1.0] })
+        exerciseRefs.current.forEach(el => { if (el) observerRef.current!.observe(el) })
+        return () => observerRef.current?.disconnect()
+    }, [screen, exercises.length])
 
     const handleSetComplete = useCallback(() => {
         if (restTimerOn) setRestActive(true)

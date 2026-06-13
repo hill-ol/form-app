@@ -69,7 +69,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                             : completedSets[0]?.weight_lbs ? String(completedSets[0].weight_lbs) : ''
                         const sets: RetroSet[] = completedSets.length > 0
                             ? completedSets.map((s: any) => ({
-                                reps: s.reps ? String(s.reps) : '',
+                                reps: '',
                                 weight: s.weight_lbs ? String(s.weight_lbs) : '',
                                 duration: s.duration_seconds
                                     ? `${Math.floor(s.duration_seconds / 60)}:${String(s.duration_seconds % 60).padStart(2, '0')}`
