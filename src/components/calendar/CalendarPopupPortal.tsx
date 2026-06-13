@@ -51,9 +51,10 @@ export default function CalendarPopupPortal({ onClose, children }: Props) {
                 style={{
                     background: '#fff',
                     borderRadius: '24px 24px 0 0',
-                    padding: '20px 20px 40px',
+                    padding: '20px 20px 0',
+                    paddingBottom: 'max(28px, env(safe-area-inset-bottom))',
                     width: '100%',
-                    maxHeight: '85vh',
+                    maxHeight: '92dvh',
                     overflowY: 'auto',
                     animation: closing
                         ? 'slideDown 0.28s cubic-bezier(0.32, 0.72, 0, 1) forwards'

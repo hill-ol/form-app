@@ -92,19 +92,19 @@ export default function CalendarPage() {
                 <div className="bg-white rounded-2xl overflow-hidden relative"
                      style={{ border: '0.5px solid var(--border)' }}>
 
-                    <div className="flex items-center justify-between px-4 pt-4 pb-1">
-                        <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                        <div className="flex items-center gap-1">
                             <button
                                 onClick={prevMonth}
-                                className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 hover:scale-110"
-                                style={{ color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>
+                                className="flex items-center justify-center rounded-full transition-all active:scale-95"
+                                style={{ width: '44px', height: '44px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>
                                 ‹
                             </button>
-                            <span className="text-sm font-bold" style={{ color: 'var(--muted)' }}>{year}</span>
+                            <span className="text-sm font-bold" style={{ color: 'var(--muted)', minWidth: '36px', textAlign: 'center' }}>{year}</span>
                             <button
                                 onClick={nextMonth}
-                                className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 hover:scale-110"
-                                style={{ color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>
+                                className="flex items-center justify-center rounded-full transition-all active:scale-95"
+                                style={{ width: '44px', height: '44px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>
                                 ›
                             </button>
                         </div>
@@ -115,8 +115,9 @@ export default function CalendarPage() {
                                     <button
                                         key={v}
                                         onClick={() => setView(v)}
-                                        className="px-3 py-1 text-xs font-bold transition-all"
+                                        className="text-xs font-bold transition-all"
                                         style={{
+                                            padding: '10px 14px',
                                             background: view === v ? 'var(--pink)' : 'transparent',
                                             color: view === v ? '#fff' : 'var(--muted)',
                                             border: 'none',
@@ -129,8 +130,8 @@ export default function CalendarPage() {
                             </div>
                             <button
                                 onClick={() => setShowAddWorkout(true)}
-                                className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-black transition-all duration-150 hover:scale-110 active:scale-95"
-                                style={{ background: 'var(--pink-light)', color: 'var(--pink)', border: 'none', cursor: 'pointer' }}>
+                                className="flex items-center justify-center rounded-full text-lg font-black transition-all active:scale-95"
+                                style={{ width: '44px', height: '44px', background: 'var(--pink-light)', color: 'var(--pink)', border: 'none', cursor: 'pointer' }}>
                                 +
                             </button>
                         </div>

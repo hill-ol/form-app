@@ -220,7 +220,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
             <div className="flex items-center justify-between mb-1">
                 <p className="font-black" style={{ fontSize: '17px' }}>Log workout</p>
                 <button onClick={onClose}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: '20px', lineHeight: 1 }}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: '20px', lineHeight: 1, width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     ×
                 </button>
             </div>
@@ -230,7 +230,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
 
             {/* Added exercises */}
             {exercises.length > 0 && (
-                <div className="space-y-3 mb-4" style={{ maxHeight: '40vh', overflowY: 'auto' }}>
+                <div className="space-y-3 mb-4" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
                     {exercises.map(ex => (
                         <div key={ex.id} className="rounded-2xl p-3"
                             style={{ background: 'var(--cream)', border: '0.5px solid var(--border)' }}>
@@ -283,7 +283,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                                                         updateSet(ex.id, sIdx, 'duration', `${e.target.value}:${ss}`)
                                                     }}
                                                     className="rounded-xl px-2 py-1.5 font-semibold text-center"
-                                                    style={{ width: '72px', fontSize: '13px', border: '1.5px solid var(--border)', background: '#fff', outline: 'none', fontFamily: 'Inter, sans-serif', color: '#1a1a1a' }}
+                                                    style={{ flex: 1, minWidth: 0, fontSize: '15px', border: '1.5px solid var(--border)', background: '#fff', outline: 'none', fontFamily: 'Inter, sans-serif', color: '#1a1a1a' }}
                                                 />
                                                 <input
                                                     type="number"
@@ -295,7 +295,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                                                         updateSet(ex.id, sIdx, 'duration', `${mm}:${e.target.value}`)
                                                     }}
                                                     className="rounded-xl px-2 py-1.5 font-semibold text-center"
-                                                    style={{ width: '72px', fontSize: '13px', border: '1.5px solid var(--border)', background: '#fff', outline: 'none', fontFamily: 'Inter, sans-serif', color: '#1a1a1a' }}
+                                                    style={{ flex: 1, minWidth: 0, fontSize: '15px', border: '1.5px solid var(--border)', background: '#fff', outline: 'none', fontFamily: 'Inter, sans-serif', color: '#1a1a1a' }}
                                                 />
                                             </>
                                         ) : (
@@ -307,7 +307,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                                                     value={s.reps}
                                                     onChange={e => updateSet(ex.id, sIdx, 'reps', e.target.value)}
                                                     className="rounded-xl px-2 py-1.5 font-semibold text-center"
-                                                    style={{ width: '72px', fontSize: '13px', border: '1.5px solid var(--border)', background: '#fff', outline: 'none', fontFamily: 'Inter, sans-serif', color: '#1a1a1a' }}
+                                                    style={{ flex: 1, minWidth: 0, fontSize: '15px', border: '1.5px solid var(--border)', background: '#fff', outline: 'none', fontFamily: 'Inter, sans-serif', color: '#1a1a1a' }}
                                                 />
                                                 <input
                                                     type="number"
@@ -317,7 +317,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                                                     onChange={e => updateSet(ex.id, sIdx, 'weight', e.target.value)}
                                                     className="rounded-xl px-2 py-1.5 font-semibold text-center"
                                                     style={{
-                                                        width: '72px', fontSize: '13px',
+                                                        flex: 1, minWidth: 0, fontSize: '15px',
                                                         border: s.weight && parseFloat(s.weight) > parseFloat(ex.libraryWeight || '0')
                                                             ? '1.5px solid var(--pink)'
                                                             : '1.5px solid var(--border)',
@@ -329,7 +329,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                                         )}
                                         {ex.sets.length > 1 && (
                                             <button onClick={() => removeSet(ex.id, sIdx)}
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: '16px', lineHeight: 1 }}>
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: '16px', lineHeight: 1, width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                                 ×
                                             </button>
                                         )}
@@ -368,7 +368,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                     />
                 </div>
 
-                <div style={{ maxHeight: '28vh', overflowY: 'auto' }}>
+                <div style={{ maxHeight: '36vh', overflowY: 'auto' }}>
                     {suggestions.length === 0 && (
                         <p className="text-xs text-center py-4" style={{ color: 'var(--muted)' }}>
                             No exercises found for {dayType}
