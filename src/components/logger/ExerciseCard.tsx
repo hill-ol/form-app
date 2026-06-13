@@ -13,11 +13,12 @@ interface Props {
     canMoveDown?: boolean
     onMoveUp?: () => void
     onMoveDown?: () => void
+    onDragStart?: (e: React.TouchEvent) => void
 }
 
 export default function ExerciseCard({
     exercise, onChange, onRemove, onSetComplete, restTimerOn,
-    canMoveUp, canMoveDown, onMoveUp, onMoveDown,
+    canMoveUp, canMoveDown, onMoveUp, onMoveDown, onDragStart,
 }: Props) {
     const [expanded, setExpanded] = useState(true)
     const [confirmRemove, setConfirmRemove] = useState(false)
@@ -213,8 +214,25 @@ export default function ExerciseCard({
               {completedCount}/{exercise.sets.length}
             </span>
                     )}
+                    {/* Mobile: drag handle. Desktop: up/down arrows */}
+                    {onDragStart && (
+                        <div
+                            className="md:hidden"
+                            onTouchStart={e => { e.stopPropagation(); onDragStart(e) }}
+                            style={{
+                                padding: '6px 4px',
+                                color: '#ccc',
+                                fontSize: '18px',
+                                lineHeight: 1,
+                                cursor: 'grab',
+                                touchAction: 'none',
+                                userSelect: 'none',
+                            }}>
+                            ⠿
+                        </div>
+                    )}
                     {(canMoveUp || canMoveDown) && (
-                        <div className="flex flex-col" style={{ gap: '2px' }}>
+                        <div className="hidden md:flex flex-col" style={{ gap: '2px' }}>
                             <button
                                 onClick={e => { e.stopPropagation(); onMoveUp?.() }}
                                 disabled={!canMoveUp}

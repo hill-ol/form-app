@@ -80,6 +80,9 @@ export default function LogPage() {
     const [exercisesLoading, setExercisesLoading] = useState(!saved?.exercises?.length)
     const [quickMode, setQuickMode] = useState(false)
     const [focusMode, setFocusMode] = useState(false)
+    const [draggingIdx, setDraggingIdx] = useState<number | null>(null)
+    const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+    const cardRefs = useRef<(HTMLDivElement | null)[]>([])
 
     useKeyboardAvoid()
 
@@ -346,6 +349,60 @@ export default function LogPage() {
         })
     }
 
+    // Drag-to-reorder: global touch listeners active only while dragging
+    useEffect(() => {
+        if (draggingIdx === null) return
+
+        function onTouchMove(e: TouchEvent) {
+            e.preventDefault()
+            const y = e.touches[0].clientY
+            let next = draggingIdx!
+            for (let i = 0; i < cardRefs.current.length; i++) {
+                const el = cardRefs.current[i]
+                if (!el) continue
+                const rect = el.getBoundingClientRect()
+                if (y < rect.top + rect.height / 2) { next = i; break }
+                next = i
+            }
+            setHoverIdx(next)
+        }
+
+        function onTouchEnd() {
+            setDraggingIdx(di => {
+                setHoverIdx(hi => {
+                    if (di !== null && hi !== null && di !== hi) {
+                        setExercises(prev => {
+                            const arr = [...prev]
+                            const [item] = arr.splice(di, 1)
+                            arr.splice(hi, 0, item)
+                            return arr
+                        })
+                    }
+                    return null
+                })
+                return null
+            })
+        }
+
+        document.addEventListener('touchmove', onTouchMove, { passive: false })
+        document.addEventListener('touchend', onTouchEnd)
+        return () => {
+            document.removeEventListener('touchmove', onTouchMove)
+            document.removeEventListener('touchend', onTouchEnd)
+        }
+    }, [draggingIdx])
+
+    // Reordered display order while dragging
+    const dragDisplayOrder = (() => {
+        if (draggingIdx === null || hoverIdx === null) {
+            return exercises.map((ex, i) => ({ ex, origIdx: i }))
+        }
+        const arr = exercises.map((ex, i) => ({ ex, origIdx: i }))
+        const [dragged] = arr.splice(draggingIdx, 1)
+        arr.splice(hoverIdx, 0, dragged)
+        return arr
+    })()
+
     if (screen === 'done') {
         const savedStart = parseInt(sessionStorage.getItem('form_session_start') ?? '0')
         const duration = Math.floor((Date.now() - (startTime || savedStart)) / 1000)
@@ -384,23 +441,40 @@ export default function LogPage() {
                         />
                     )}
 
-                    {exercises.map((ex, i) => (
-                        <div
-                            key={ex.exerciseId + i}
-                            style={{ animation: `slideInUp 0.2s ease ${i * 0.05}s both` }}>
-                            <ExerciseCard
-                                exercise={ex}
-                                onChange={updated => updateExercise(i, updated)}
-                                onRemove={() => removeExercise(i)}
-                                onSetComplete={handleSetComplete}
-                                restTimerOn={restTimerOn}
-                                canMoveUp={i > 0}
-                                canMoveDown={i < exercises.length - 1}
-                                onMoveUp={() => moveExercise(i, 'up')}
-                                onMoveDown={() => moveExercise(i, 'down')}
-                            />
-                        </div>
-                    ))}
+                    {dragDisplayOrder.map(({ ex, origIdx }, displayIdx) => {
+                        const isDragging = origIdx === draggingIdx
+                        return (
+                            <div
+                                key={ex.exerciseId + origIdx}
+                                ref={el => { cardRefs.current[displayIdx] = el }}
+                                style={{
+                                    animation: draggingIdx === null ? `slideInUp 0.2s ease ${displayIdx * 0.05}s both` : 'none',
+                                    opacity: isDragging ? 0.5 : 1,
+                                    transform: isDragging ? 'scale(1.02)' : 'scale(1)',
+                                    transition: isDragging ? 'none' : 'transform 0.15s ease, opacity 0.15s ease',
+                                    zIndex: isDragging ? 10 : 1,
+                                    position: 'relative',
+                                }}>
+                                <ExerciseCard
+                                    exercise={ex}
+                                    onChange={updated => updateExercise(origIdx, updated)}
+                                    onRemove={() => removeExercise(origIdx)}
+                                    onSetComplete={handleSetComplete}
+                                    restTimerOn={restTimerOn}
+                                    canMoveUp={origIdx > 0}
+                                    canMoveDown={origIdx < exercises.length - 1}
+                                    onMoveUp={() => moveExercise(origIdx, 'up')}
+                                    onMoveDown={() => moveExercise(origIdx, 'down')}
+                                    onDragStart={e => {
+                                        e.preventDefault()
+                                        setDraggingIdx(origIdx)
+                                        setHoverIdx(origIdx)
+                                        import('@/lib/haptics').then(({ haptics }) => haptics.light())
+                                    }}
+                                />
+                            </div>
+                        )
+                    })}
 
                     <button
                         onClick={() => setShowAddSheet(true)}
