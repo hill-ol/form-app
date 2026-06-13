@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import TopNav from '@/components/layout/TopNav'
 import BottomNav from '@/components/layout/BottomNav'
 import WeeklyTemplateEditor from '@/components/settings/WeeklyTemplateEditor'
@@ -5,6 +6,7 @@ import DayTypeTemplateEditor from '@/components/settings/DayTypeTemplateEditor'
 import ExerciseLibraryEditor from '@/components/settings/ExerciseLibraryEditor'
 import TrainingPreferences from '@/components/settings/TrainingPreferences'
 import CycleSettings from '@/components/settings/CycleSettings'
+import StravaConnect from '@/components/settings/StravaConnect'
 import DataSection from '@/components/settings/DataSection'
 
 export default function SettingsPage() {
@@ -35,6 +37,9 @@ export default function SettingsPage() {
                 <DayTypeTemplateEditor />
                 <TrainingPreferences />
                 <CycleSettings />
+                <Suspense fallback={null}>
+                    <StravaConnect />
+                </Suspense>
                 <ExerciseLibraryEditor />
                 <DataSection />
 
