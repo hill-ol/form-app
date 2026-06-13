@@ -164,11 +164,20 @@ export default function LogPage() {
 
                 if (!last || !(last as any).exercise_logs?.length) {
                     // Try day type template before falling back to placeholder library
-                    const { getDayTypeTemplates } = await import('@/lib/db')
-                    const allTemplates = await getDayTypeTemplates()
+                    const { getDayTypeTemplates, getCustomExercises } = await import('@/lib/db')
+                    const [allTemplates, dbRows] = await Promise.all([getDayTypeTemplates(), getCustomExercises()])
                     const dayTemplates = allTemplates.filter(t => t.day_type === selectedDayType)
                     if (dayTemplates.length > 0) {
-                        const libEntry = (id: string) => EXERCISE_LIBRARY.find(e => e.id === id)
+                        // Build merged lookup: DB rows override built-ins so custom exercise types resolve correctly
+                        const dbMap: Record<string, any> = {}
+                        for (const row of dbRows) dbMap[(row as any).id] = row
+                        const libEntry = (id: string) => {
+                            const db = dbMap[id]
+                            if (db) return { exerciseType: db.exercise_type, primaryMuscle: db.primary_muscle, equipment: db.equipment }
+                            const builtin = EXERCISE_LIBRARY.find(e => e.id === id)
+                            if (builtin) return { exerciseType: builtin.exerciseType, primaryMuscle: builtin.primaryMuscle, equipment: builtin.equipment }
+                            return null
+                        }
                         setExercises(dayTemplates.map(t => {
                             const lib = libEntry(t.exercise_id)
                             const exerciseType = (lib?.exerciseType ?? 'strength') as ActiveExercise['exerciseType']
@@ -179,7 +188,7 @@ export default function LogPage() {
                                 exerciseId: t.exercise_id,
                                 exerciseName: t.exercise_name,
                                 muscleGroup: lib?.primaryMuscle ?? 'general',
-                                equipment: lib?.equipment[0] ?? 'bodyweight',
+                                equipment: (lib?.equipment as string[])?.[0] ?? 'bodyweight',
                                 exerciseType,
                                 sets,
                             }

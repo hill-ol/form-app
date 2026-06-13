@@ -44,19 +44,41 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
     const [durationMins, setDurationMins] = useState('')
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    // weights from DB may differ from placeholder; keyed by exercise id
     const [dbWeights, setDbWeights] = useState<Record<string, number>>({})
+    // merged exercise list: DB rows override built-ins
+    const [allExercises, setAllExercises] = useState<Exercise[]>(EXERCISE_LIBRARY)
 
     useEffect(() => {
         async function loadWeightsAndTemplate() {
             try {
-                const { getExerciseWeights, getDayTypeTemplates, getLastSessionByDayType } = await import('@/lib/db')
-                const [weights, allTemplates, lastSession] = await Promise.all([
+                const { getExerciseWeights, getDayTypeTemplates, getLastSessionByDayType, getCustomExercises } = await import('@/lib/db')
+                const [weights, allTemplates, lastSession, dbRows] = await Promise.all([
                     getExerciseWeights(),
                     getDayTypeTemplates(),
                     getLastSessionByDayType(dayType),
+                    getCustomExercises(),
                 ])
                 setDbWeights(weights)
+
+                // Build merged exercise list so custom exercises show in picker
+                const mapped: Exercise[] = dbRows.map((ex: any) => ({
+                    id: ex.id,
+                    name: ex.name,
+                    dayType: ex.day_types ?? [],
+                    muscleGroups: ex.muscle_groups ?? [],
+                    primaryMuscle: ex.primary_muscle ?? '',
+                    equipment: ex.equipment ?? [],
+                    movementType: ex.movement_type ?? '',
+                    currentWeight: ex.current_weight ? String(ex.current_weight) : undefined,
+                    exerciseType: ex.exercise_type ?? undefined,
+                    notes: ex.notes,
+                }))
+                const seen = new Set<string>()
+                const merged: Exercise[] = []
+                for (const ex of [...mapped, ...EXERCISE_LIBRARY]) {
+                    if (!seen.has(ex.id)) { seen.add(ex.id); merged.push(ex) }
+                }
+                setAllExercises(merged)
 
                 // Prefer last session's actual exercises + weights over template
                 const lastExLogs = (lastSession as any)?.exercise_logs ?? []
@@ -75,6 +97,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                                 duration: s.duration_seconds
                                     ? `${Math.floor(s.duration_seconds / 60)}:${String(s.duration_seconds % 60).padStart(2, '0')}`
                                     : '',
+                                distance: s.distance ? String(s.distance) : '',
                             }))
                             : [blankSet(defaultWeight)]
                         return {
@@ -122,7 +145,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
 
     const alreadyAdded = new Set(exercises.map(e => e.id))
 
-    const suggestions = EXERCISE_LIBRARY.filter(ex => {
+    const suggestions = allExercises.filter(ex => {
         const matchesDay = ex.dayType.includes(dayType as never)
         const matchesQuery = query === '' ||
             ex.name.toLowerCase().includes(query.toLowerCase()) ||
