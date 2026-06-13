@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getCyclePhaseFromLogs, findCycleStarts, PHASE_META } from '@/lib/cycleUtils'
 import { localDateString } from '@/lib/dateUtils'
 
@@ -102,7 +102,9 @@ function MiniCycleCalendar({ periodDays, onToggle, todayStr }: {
 export default function CycleSettings() {
     const [periodDays, setPeriodDays] = useState<Set<string>>(new Set())
     const [loading, setLoading] = useState(true)
-    const [toggling, setToggling] = useState<string | null>(null)
+    const [dbError, setDbError] = useState(false)
+    // Ref instead of state: guards only the specific date in-flight, no re-render on lock/unlock
+    const togglingRef = useRef(new Set<string>())
     const todayStr = localDateString()
 
     useEffect(() => {
@@ -111,36 +113,37 @@ export default function CycleSettings() {
                 const { getPeriodLogs } = await import('@/lib/db')
                 const logs = await getPeriodLogs()
                 setPeriodDays(new Set(logs))
-            } catch { }
+            } catch {
+                setDbError(true)
+            }
             setLoading(false)
         }
         load()
     }, [])
 
     const handleToggle = useCallback(async (date: string) => {
-        if (toggling) return
-        setToggling(date)
+        if (togglingRef.current.has(date)) return
+        togglingRef.current.add(date)
+
         const isLogged = periodDays.has(date)
         setPeriodDays(prev => {
             const next = new Set(prev)
-            if (isLogged) next.delete(date)
-            else next.add(date)
+            isLogged ? next.delete(date) : next.add(date)
             return next
         })
         try {
             const { logPeriodDay, unlogPeriodDay } = await import('@/lib/db')
-            if (isLogged) await unlogPeriodDay(date)
-            else await logPeriodDay(date)
+            isLogged ? await unlogPeriodDay(date) : await logPeriodDay(date)
         } catch {
             setPeriodDays(prev => {
                 const next = new Set(prev)
-                if (isLogged) next.add(date)
-                else next.delete(date)
+                isLogged ? next.add(date) : next.delete(date)
                 return next
             })
+        } finally {
+            togglingRef.current.delete(date)
         }
-        setToggling(null)
-    }, [periodDays, toggling])
+    }, [periodDays])
 
     const isOnPeriodToday = periodDays.has(todayStr)
     const daysArray = Array.from(periodDays).sort()
@@ -180,7 +183,6 @@ export default function CycleSettings() {
                 <div className="px-4 pt-4 pb-3" style={{ borderBottom: '0.5px solid #f5f0e8' }}>
                     <button
                         onClick={() => handleToggle(todayStr)}
-                        disabled={!!toggling}
                         className="w-full font-black rounded-2xl transition-all active:scale-98"
                         style={{
                             padding: '14px 16px',
@@ -188,7 +190,7 @@ export default function CycleSettings() {
                             border: isOnPeriodToday ? '2px solid var(--pink)' : '2px dashed #e0d4c8',
                             background: isOnPeriodToday ? 'var(--pink)' : 'var(--cream)',
                             color: isOnPeriodToday ? '#fff' : 'var(--muted)',
-                            cursor: toggling ? 'not-allowed' : 'pointer',
+                            cursor: 'pointer',
                         }}>
                         {isOnPeriodToday ? '🩸 Logged for today ✓' : "+ I'm on my period today"}
                     </button>
@@ -203,6 +205,23 @@ export default function CycleSettings() {
                     {loading ? (
                         <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <p style={{ fontSize: '12px', color: 'var(--muted)' }}>Loading…</p>
+                        </div>
+                    ) : dbError ? (
+                        <div style={{ padding: '16px', background: '#FEF2F2', borderRadius: '12px', border: '1px solid #FECACA' }}>
+                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#DC2626', marginBottom: '4px' }}>Setup required</p>
+                            <p style={{ fontSize: '11px', color: '#991B1B', lineHeight: 1.5 }}>
+                                Run this in your Supabase SQL editor to enable period tracking:
+                            </p>
+                            <pre style={{ fontSize: '10px', color: '#7F1D1D', marginTop: '8px', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+{`create table if not exists period_logs (
+  id uuid primary key default gen_random_uuid(),
+  date date not null unique,
+  created_at timestamptz default now()
+);
+alter table period_logs enable row level security;
+create policy "period_logs_all" on period_logs
+  for all using (auth.role() = 'authenticated');`}
+                            </pre>
                         </div>
                     ) : (
                         <MiniCycleCalendar
