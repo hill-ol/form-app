@@ -49,10 +49,48 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
     useEffect(() => {
         async function loadWeightsAndTemplate() {
             try {
-                const { getExerciseWeights, getDayTypeTemplates } = await import('@/lib/db')
-                const [weights, allTemplates] = await Promise.all([getExerciseWeights(), getDayTypeTemplates()])
+                const { getExerciseWeights, getDayTypeTemplates, getLastSessionByDayType } = await import('@/lib/db')
+                const [weights, allTemplates, lastSession] = await Promise.all([
+                    getExerciseWeights(),
+                    getDayTypeTemplates(),
+                    getLastSessionByDayType(dayType),
+                ])
                 setDbWeights(weights)
 
+                // Prefer last session's actual exercises + weights over template
+                const lastExLogs = (lastSession as any)?.exercise_logs ?? []
+                if (lastExLogs.length > 0) {
+                    const prebuilt: RetroExercise[] = lastExLogs.map((ex: any) => {
+                        const lib = EXERCISE_LIBRARY.find(e => e.id === ex.exercise_id)
+                        const completedSets = (ex.set_logs ?? []).filter((s: any) => s.completed)
+                        const exerciseType = lib?.exerciseType ?? ex.exercise_type ?? 'strength'
+                        const defaultWeight = weights[ex.exercise_id]
+                            ? String(weights[ex.exercise_id])
+                            : completedSets[0]?.weight_lbs ? String(completedSets[0].weight_lbs) : ''
+                        const sets: RetroSet[] = completedSets.length > 0
+                            ? completedSets.map((s: any) => ({
+                                reps: s.reps ? String(s.reps) : '',
+                                weight: s.weight_lbs ? String(s.weight_lbs) : '',
+                                duration: s.duration_seconds
+                                    ? `${Math.floor(s.duration_seconds / 60)}:${String(s.duration_seconds % 60).padStart(2, '0')}`
+                                    : '',
+                            }))
+                            : [blankSet(defaultWeight)]
+                        return {
+                            id: ex.exercise_id,
+                            name: ex.exercise_name,
+                            muscleGroup: ex.muscle_group ?? lib?.primaryMuscle ?? 'general',
+                            equipment: ex.equipment ?? lib?.equipment[0] ?? 'bodyweight',
+                            exerciseType,
+                            libraryWeight: defaultWeight,
+                            sets,
+                        }
+                    })
+                    setExercises(prebuilt)
+                    return
+                }
+
+                // Fall back to day type template
                 const dayTemplates = allTemplates.filter(t => t.day_type === dayType)
                 if (dayTemplates.length > 0) {
                     const prebuilt: RetroExercise[] = dayTemplates.map(t => {
@@ -72,7 +110,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                     })
                     setExercises(prebuilt)
                 }
-            } catch { /* fall back to placeholder weights */ }
+            } catch { /* fall back to empty */ }
         }
         loadWeightsAndTemplate()
     }, [])

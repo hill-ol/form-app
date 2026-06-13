@@ -226,23 +226,29 @@ export async function getCurrentStreak(): Promise<number> {
         .from('workout_sessions')
         .select('date')
         .order('date', { ascending: false })
-        .limit(60)
+        .limit(90)
     if (error) return 0
 
-    const dates = (data ?? []).map((d: { date: string }) => d.date)
-    if (dates.length === 0) return 0
+    // Deduplicate dates (multiple sessions same day = 1 day)
+    const uniqueDates = [...new Set(
+        (data ?? []).map((d: { date: string }) => d.date.split('T')[0])
+    )].sort((a, b) => b.localeCompare(a))
 
-    let streak = 0
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    if (uniqueDates.length === 0) return 0
 
-    for (let i = 0; i < dates.length; i++) {
-        const sessionDate = parseLocalDate(dates[i].split('T')[0])
-        const diffDays = Math.round(
-            (today.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24)
-        )
-        if (diffDays === streak || diffDays === streak + 1) {
-            streak = diffDays === streak ? streak : streak + 1
+    const today = localDateString()
+    const yesterday = localDateString(new Date(Date.now() - 864e5))
+
+    // Streak must start today or yesterday (otherwise it's broken)
+    if (uniqueDates[0] !== today && uniqueDates[0] !== yesterday) return 0
+
+    let streak = 1
+    for (let i = 1; i < uniqueDates.length; i++) {
+        const prev = parseLocalDate(uniqueDates[i - 1])
+        const curr = parseLocalDate(uniqueDates[i])
+        const diff = Math.round((prev.getTime() - curr.getTime()) / 864e5)
+        if (diff === 1) {
+            streak++
         } else {
             break
         }

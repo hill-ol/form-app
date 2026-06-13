@@ -81,6 +81,7 @@ export default function LogPage() {
     const [coachInsight, setCoachInsight] = useState<string | null>(null)
     const [coachLoading, setCoachLoading] = useState(false)
     const [estimatedDuration, setEstimatedDuration] = useState('45–60 min')
+    const [exercisesLoading, setExercisesLoading] = useState(!saved?.exercises?.length)
 
     useKeyboardAvoid()
 
@@ -134,6 +135,7 @@ export default function LogPage() {
     }, [startTime])
 
     useEffect(() => {
+        if (saved?.screen === 'active') return
         async function loadDuration() {
             try {
                 const { getLastSessionByDayType } = await import('@/lib/db')
@@ -153,7 +155,7 @@ export default function LogPage() {
     }, [selectedDayType])
 
     useEffect(() => {
-        if (saved?.screen === 'active') return
+        if (saved?.screen === 'active') { setExercisesLoading(false); return }
         async function loadRealExercises() {
             try {
                 const { getLastSessionByDayType, getProgressionSuggestions } = await import('@/lib/db')
@@ -242,6 +244,8 @@ export default function LogPage() {
             } catch (e) {
                 console.error('Failed to load real exercises:', e)
                 setExercises(buildExercisesForDayType(selectedDayType))
+            } finally {
+                setExercisesLoading(false)
             }
         }
 
@@ -493,7 +497,18 @@ export default function LogPage() {
                     </p>
 
                     <div className="space-y-2 mb-4">
-                        {displayExercises.map((ex, i) => {
+                        {exercisesLoading ? (
+                            Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="flex items-center justify-between rounded-xl px-3 py-2.5"
+                                     style={{ background: 'var(--cream)', border: '0.5px solid var(--border)' }}>
+                                    <div className="space-y-1.5">
+                                        <div className="h-3 rounded-full animate-pulse" style={{ background: '#e8e0d0', width: `${80 + i * 20}px` }} />
+                                        <div className="h-2.5 rounded-full animate-pulse" style={{ background: '#e8e0d0', width: '60px' }} />
+                                    </div>
+                                    <div className="h-6 w-12 rounded-full animate-pulse" style={{ background: '#e8e0d0' }} />
+                                </div>
+                            ))
+                        ) : displayExercises.map((ex, i) => {
                             const lib = EXERCISE_LIBRARY.find(e => e.id === ex.exerciseId)
                             return (
                                 <div

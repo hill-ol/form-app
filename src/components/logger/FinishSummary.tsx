@@ -216,27 +216,29 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                     />
                 </div>
 
-                <button
-                    onClick={async () => {
-                        if (notes.trim() && sessionId) {
-                            try {
-                                const { supabase } = await import('@/lib/supabase')
-                                await supabase.from('workout_sessions').update({ notes: notes.trim() }).eq('id', sessionId)
-                            } catch { /* non-critical — navigate anyway */ }
-                        }
-                        sessionStorage.removeItem('form_active_session')
-                        sessionStorage.removeItem('form_session_start')
-                        router.push('/')
-                    }}
-                    disabled={saving}
-                    className="w-full py-4 rounded-full text-white font-black uppercase tracking-widest text-sm transition-all active:scale-95"
-                    style={{
-                        background: saving ? '#ccc' : 'var(--pink)',
-                        cursor: saving ? 'default' : 'pointer',
-                        border: 'none',
-                    }}>
-                    {saving ? 'Saving session...' : 'Back to Dashboard'}
-                </button>
+                {saving ? (
+                    <div className="w-full py-4 rounded-full text-center font-black uppercase tracking-widest text-sm"
+                         style={{ background: 'var(--cream)', color: 'var(--muted)', border: '0.5px solid var(--border)' }}>
+                        Saving session…
+                    </div>
+                ) : (
+                    <button
+                        onClick={async () => {
+                            if (notes.trim() && sessionId) {
+                                try {
+                                    const { supabase } = await import('@/lib/supabase')
+                                    await supabase.from('workout_sessions').update({ notes: notes.trim() }).eq('id', sessionId)
+                                } catch { /* non-critical */ }
+                            }
+                            sessionStorage.removeItem('form_active_session')
+                            sessionStorage.removeItem('form_session_start')
+                            router.push('/')
+                        }}
+                        className="w-full py-4 rounded-full text-white font-black uppercase tracking-widest text-sm transition-all active:scale-95"
+                        style={{ background: 'var(--pink)', cursor: 'pointer', border: 'none' }}>
+                        Back to Dashboard
+                    </button>
+                )}
             </div>
         </div>
     )
