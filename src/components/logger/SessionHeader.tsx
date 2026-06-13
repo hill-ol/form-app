@@ -7,9 +7,10 @@ interface Props {
     restTimerOn: boolean
     onToggleTimer: () => void
     onFinish: () => void
+    onFocus?: () => void
 }
 
-export default function SessionHeader({ dayName, restTimerOn, onToggleTimer, onFinish }: Props) {
+export default function SessionHeader({ dayName, restTimerOn, onToggleTimer, onFinish, onFocus }: Props) {
     const [elapsed, setElapsed] = useState(() => {
         const start = parseInt(sessionStorage.getItem('form_session_start') ?? '0')
         return start > 0 ? Math.floor((Date.now() - start) / 1000) : 0
@@ -36,15 +37,25 @@ export default function SessionHeader({ dayName, restTimerOn, onToggleTimer, onF
                         {dayName}
                     </p>
                 </div>
-                <button
-                    onClick={() => {
-                        import('@/lib/haptics').then(({ haptics }) => haptics.sessionComplete())
-                        onFinish()
-                    }}
-                    className="text-xs font-black uppercase tracking-wider rounded-full px-4 py-2 transition-all active:scale-95"
-                    style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                    Finish
-                </button>
+                <div className="flex items-center gap-2">
+                    {onFocus && (
+                        <button
+                            onClick={onFocus}
+                            className="text-xs font-black rounded-full px-3 py-2 transition-all active:scale-95"
+                            style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '16px', lineHeight: 1 }}>
+                            ⛶
+                        </button>
+                    )}
+                    <button
+                        onClick={() => {
+                            import('@/lib/haptics').then(({ haptics }) => haptics.sessionComplete())
+                            onFinish()
+                        }}
+                        className="text-xs font-black uppercase tracking-wider rounded-full px-4 py-2 transition-all active:scale-95"
+                        style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                        Finish
+                    </button>
+                </div>
             </div>
 
             <div className="flex items-center gap-3">

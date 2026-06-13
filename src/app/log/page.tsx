@@ -84,6 +84,7 @@ export default function LogPage() {
     const [estimatedDuration, setEstimatedDuration] = useState('45–60 min')
     const [exercisesLoading, setExercisesLoading] = useState(!saved?.exercises?.length)
     const [quickMode, setQuickMode] = useState(false)
+    const [focusMode, setFocusMode] = useState(false)
 
     useKeyboardAvoid()
 
@@ -376,6 +377,7 @@ export default function LogPage() {
                     restTimerOn={restTimerOn}
                     onToggleTimer={handleToggleTimer}
                     onFinish={() => setScreen('done')}
+                    onFocus={() => setFocusMode(true)}
                 />
 
                 <div
@@ -481,6 +483,52 @@ export default function LogPage() {
                 </div>
 
                 <BottomNav />
+
+                {focusMode && (() => {
+                    const ex = exercises[activeExIndex]
+                    const completedSets = ex?.sets.filter(s => s.completed).length ?? 0
+                    const totalSets = ex?.sets.length ?? 0
+                    return (
+                        <div
+                            onClick={() => setFocusMode(false)}
+                            style={{
+                                position: 'fixed', inset: 0, zIndex: 9999,
+                                background: '#0d0d0d',
+                                display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', justifyContent: 'center',
+                                padding: '40px 32px',
+                                animation: 'fadeIn 0.2s ease',
+                            }}>
+                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '16px' }}>
+                                {dayLabel}
+                            </p>
+                            <p style={{ color: '#fff', fontSize: '36px', fontWeight: 900, letterSpacing: '-0.02em', textAlign: 'center', lineHeight: 1.15, marginBottom: '24px' }}>
+                                {ex?.exerciseName ?? '—'}
+                            </p>
+                            <div style={{
+                                display: 'flex', gap: '10px', marginBottom: '32px',
+                            }}>
+                                {ex?.sets.map((s, i) => (
+                                    <div key={s.id} style={{
+                                        width: '14px', height: '14px', borderRadius: '50%',
+                                        background: s.completed ? 'var(--pink)' : 'rgba(255,255,255,0.2)',
+                                    }} />
+                                ))}
+                            </div>
+                            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', fontWeight: 700 }}>
+                                {completedSets} / {totalSets} sets done
+                            </p>
+                            {restActive && restTimerOn && (
+                                <p style={{ color: 'var(--pink)', fontSize: '13px', fontWeight: 700, marginTop: '16px' }}>
+                                    Resting…
+                                </p>
+                            )}
+                            <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '11px', marginTop: '48px' }}>
+                                Tap anywhere to exit
+                            </p>
+                        </div>
+                    )
+                })()}
 
                 {showAddSheet && (
                     <AddExerciseSheet

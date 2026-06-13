@@ -150,6 +150,18 @@ export default function ExerciseCard({
         'jump-rope': { duration: 'min', distance: 'rounds' },
     }
     const cardioLabel = cardioLabels[exercise.exerciseId] ?? { duration: 'min', distance: 'dist' }
+    const showPace = ['treadmill-run', 'outdoor-run'].includes(exercise.exerciseId) ||
+        (!cardioLabels[exercise.exerciseId])
+
+    function computePace(set: ActiveSet): string | null {
+        const mins = parseFloat(set.duration)
+        const miles = parseFloat(set.distance)
+        if (!mins || !miles || miles === 0) return null
+        const paceMins = mins / miles
+        const pm = Math.floor(paceMins)
+        const ps = Math.round((paceMins - pm) * 60).toString().padStart(2, '0')
+        return `${pm}:${ps}/mi`
+    }
 
     return (
         <div className="rounded-2xl overflow-hidden mb-3"
@@ -344,6 +356,18 @@ export default function ExerciseCard({
                                             disabled={set.completed}
                                             style={inputStyle(!!set.distance, set.completed)}
                                         />
+                                        {showPace && (() => {
+                                            const pace = computePace(set)
+                                            return pace ? (
+                                                <span style={{
+                                                    fontSize: '11px', fontWeight: 700,
+                                                    color: 'var(--pink)', whiteSpace: 'nowrap',
+                                                    minWidth: '48px', textAlign: 'center',
+                                                }}>
+                                                    {pace}
+                                                </span>
+                                            ) : null
+                                        })()}
                                     </>
                                 ) : isHold ? (
                                     <>
