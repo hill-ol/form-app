@@ -181,7 +181,9 @@ export default function DayTypeTemplateEditor() {
                 const isExpanded = expanded === dayType
                 const isAdding = addingTo === dayType
 
-                const isCardio = dayType === 'cardio' || dayType === 'yoga'
+                const isCardio = dayType === 'cardio'
+                const isYoga = dayType === 'yoga'
+                const isTimeBased = isCardio || isYoga
 
                 const pickerList = library.filter(ex => {
                     const alreadyAdded = exercises.some(e => e.exercise_id === ex.id)
@@ -242,17 +244,17 @@ export default function DayTypeTemplateEditor() {
                                             <input
                                                 type="number"
                                                 value={ex.sets}
-                                                min={1} max={isCardio ? 300 : 10}
+                                                min={1} max={isTimeBased ? 300 : 10}
                                                 onClick={e => e.stopPropagation()}
-                                                onChange={e => handleUpdateField(dayType, ex.exercise_id, 'sets', parseInt(e.target.value) || (isCardio ? 30 : 3))}
+                                                onChange={e => handleUpdateField(dayType, ex.exercise_id, 'sets', parseInt(e.target.value) || (isCardio ? 30 : isYoga ? 60 : 3))}
                                                 className="text-center font-bold rounded-lg"
                                                 style={{
-                                                    width: isCardio ? '44px' : '34px', border: '1px solid var(--border)',
+                                                    width: isTimeBased ? '44px' : '34px', border: '1px solid var(--border)',
                                                     background: 'var(--cream)', fontSize: '13px', padding: '2px 4px',
                                                 }}
                                             />
-                                            <span className="text-xs" style={{ color: 'var(--muted)' }}>{isCardio ? 'min' : 'sets'}</span>
-                                            {dayType === 'cardio' && (
+                                            <span className="text-xs" style={{ color: 'var(--muted)' }}>{isTimeBased ? 'min' : 'sets'}</span>
+                                            {isCardio && (
                                                 <>
                                                     <input
                                                         type="number"
@@ -342,16 +344,16 @@ export default function DayTypeTemplateEditor() {
                                                 <input
                                                     type="number"
                                                     value={pendingSets}
-                                                    min={1} max={isCardio ? 300 : 10}
+                                                    min={1} max={isTimeBased ? 300 : 10}
                                                     onChange={e => setPendingSets(e.target.value)}
                                                     className="text-center font-bold rounded-lg"
                                                     style={{
-                                                        width: isCardio ? '46px' : '36px', border: '1px solid var(--pink)',
+                                                        width: isTimeBased ? '46px' : '36px', border: '1px solid var(--pink)',
                                                         background: '#fff', fontSize: '13px', padding: '2px 4px',
                                                     }}
                                                 />
-                                                <span className="text-xs font-semibold" style={{ color: 'var(--pink-dark)' }}>{isCardio ? 'min' : 'sets'}</span>
-                                                {dayType === 'cardio' && (
+                                                <span className="text-xs font-semibold" style={{ color: 'var(--pink-dark)' }}>{isTimeBased ? 'min' : 'sets'}</span>
+                                                {isCardio && (
                                                     <>
                                                         <input
                                                             type="number"
@@ -400,7 +402,7 @@ export default function DayTypeTemplateEditor() {
                                                     }}
                                                     onClick={() => {
                                                         setPendingEx(ex)
-                                                        setPendingSets('3')
+                                                        setPendingSets(isCardio ? '30' : isYoga ? '60' : '3')
                                                     }}>
                                                     <div style={{ flex: 1 }}>
                                                         <div className="flex items-center gap-2">

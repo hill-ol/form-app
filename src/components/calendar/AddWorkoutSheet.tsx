@@ -77,75 +77,66 @@ export default function AddWorkoutSheet({ onClose, onSaved }: Props) {
             <div className="w-10 h-1 rounded-full mx-auto mb-5"
                  style={{ background: '#e8e0d0' }} />
 
-            <p className="font-black mb-1" style={{ fontSize: '17px' }}>
-                Add workout
-            </p>
-            <p className="text-xs mb-5" style={{ color: 'var(--muted)' }}>
-                Plan a session or start one now
-            </p>
+            <p className="font-black mb-1" style={{ fontSize: '17px' }}>Add workout</p>
 
-            <div className="mb-4">
-                <p className="font-bold uppercase tracking-widest mb-2"
-                   style={{ fontSize: '10px', color: 'var(--muted)' }}>
-                    Date
-                </p>
+            {/* Date + preview combined row */}
+            <div className="flex items-center justify-between rounded-2xl px-4 py-3 mb-4"
+                 style={{ background: 'var(--cream)', border: '0.5px solid var(--border)' }}>
+                <div>
+                    <p className="font-black" style={{ fontSize: '15px' }}>
+                        {DAY_EMOJI[selectedType]} {DAY_LABEL[selectedType]}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                        {isToday ? 'Today' : isPast ? 'Past date' : (() => {
+                            const [y, m, dd] = selectedDate.split('-').map(Number)
+                            return new Date(y, m - 1, dd).toLocaleDateString('en-US', {
+                                weekday: 'short', month: 'short', day: 'numeric'
+                            })
+                        })()}
+                    </p>
+                </div>
                 <input
                     type="date"
                     value={selectedDate}
                     onChange={e => setSelectedDate(e.target.value)}
-                    className="w-full rounded-xl px-4 py-2.5 font-semibold"
+                    className="font-semibold rounded-full px-3 py-1"
                     style={{
                         border: '1.5px solid var(--border)',
-                        background: 'var(--cream)',
+                        background: '#fff',
                         fontFamily: 'Inter, sans-serif',
-                        fontSize: '14px',
+                        fontSize: '12px',
                         outline: 'none',
-                        color: '#1a1a1a',
+                        color: 'var(--pink-dark)',
+                        cursor: 'pointer',
                     }}
                 />
             </div>
 
-            <div className="mb-6">
+            <div className="mb-5">
                 <p className="font-bold uppercase tracking-widest mb-2"
                    style={{ fontSize: '10px', color: 'var(--muted)' }}>
                     Workout type
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-3 gap-2">
                     {DAY_TYPE_OPTIONS.map(type => (
                         <button
                             key={type}
                             onClick={() => setSelectedType(type)}
-                            className="font-bold rounded-full transition-all duration-150 active:scale-95"
+                            className="font-bold rounded-2xl transition-all duration-150 active:scale-95 text-center"
                             style={{
-                                padding: '7px 14px',
-                                fontSize: '12px',
+                                padding: '10px 6px',
                                 cursor: 'pointer',
                                 border: selectedType === type
                                     ? '1.5px solid var(--pink)'
                                     : '1.5px solid var(--border)',
                                 background: selectedType === type ? 'var(--pink-light)' : 'var(--cream)',
                                 color: selectedType === type ? 'var(--pink-dark)' : '#888',
-                                transform: selectedType === type ? 'scale(1.05)' : 'scale(1)',
                             }}>
-                            {DAY_EMOJI[type]} {type}
+                            <div style={{ fontSize: '20px', marginBottom: '3px' }}>{DAY_EMOJI[type]}</div>
+                            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'capitalize' }}>{type}</div>
                         </button>
                     ))}
                 </div>
-            </div>
-
-            <div className="rounded-2xl p-3 mb-5"
-                 style={{ background: 'var(--cream)', border: '0.5px solid var(--border)' }}>
-                <p className="font-black" style={{ fontSize: '14px' }}>
-                    {DAY_EMOJI[selectedType]} {DAY_LABEL[selectedType]}
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-                    {isToday ? 'Today' : isPast ? 'Past date' : (() => {
-                        const [y, m, d] = selectedDate.split('-').map(Number)
-                        return new Date(y, m - 1, d).toLocaleDateString('en-US', {
-                            weekday: 'long', month: 'long', day: 'numeric'
-                        })
-                    })()}
-                </p>
             </div>
 
             {isToday ? (
