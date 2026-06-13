@@ -15,6 +15,7 @@ const EXERCISE_TYPES: { value: string; label: string; description: string }[] = 
     { value: 'bodyweight', label: 'Bodyweight',  description: 'Reps + optional band/vest (e.g. pull-ups)' },
     { value: 'hold',       label: 'Hold',        description: 'MM:SS duration (e.g. plank)' },
     { value: 'cardio',     label: 'Cardio',      description: 'Duration + distance' },
+    { value: 'yoga',       label: 'Yoga',        description: 'Minutes only (e.g. 45 or 60 min flow)' },
 ]
 
 interface EditState {
