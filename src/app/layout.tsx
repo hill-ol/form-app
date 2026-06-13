@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'FORM.',
   },
   other: {
@@ -20,11 +20,15 @@ export const viewport: Viewport = {
   themeColor: '#FAF7F0',
   width: 'device-width',
   initialScale: 1,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
       <html lang="en">
+      <head>
+        <link rel="apple-touch-icon" href="/diva1.png" />
+      </head>
       <body className="min-h-screen" style={{ backgroundColor: 'var(--cream)' }}>
       {children}
       </body>

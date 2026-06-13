@@ -18,8 +18,12 @@ export default function BottomNav() {
     const [hovered, setHovered] = useState<string | null>(null)
 
     return (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t z-50 flex justify-around px-2 py-2"
-             style={{ borderColor: 'var(--border)', backgroundColor: 'var(--cream)' }}>
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t z-50 flex justify-around px-2 pt-2"
+             style={{
+                 borderColor: 'var(--border)',
+                 backgroundColor: 'var(--cream)',
+                 paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
+             }}>
             {items.map(({ icon: Icon, label, href }) => {
                 const active = pathname === href
                 const isHovered = hovered === label

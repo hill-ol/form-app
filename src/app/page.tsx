@@ -22,6 +22,7 @@ import RecentSessions from '@/components/dashboard/RecentSessions'
 import DashboardGreeting from '@/components/dashboard/DashboardGreeting'
 import { getProgressionSuggestions } from '@/lib/db'
 import { WorkoutSession, DayTemplate } from '@/types'
+import PullToRefresh from '@/components/dashboard/PullToRefresh'
 
 export default async function DashboardPage() {
     await connection() // opt out of prerender cache — always fetch fresh data per request
@@ -185,6 +186,7 @@ export default async function DashboardPage() {
 
     return (
         <div className="min-h-screen" style={{ backgroundColor: 'var(--cream)' }}>
+            <PullToRefresh />
             <TopNav />
 
             <div className="md:hidden flex items-center justify-between px-4 pt-5 pb-2">

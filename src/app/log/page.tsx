@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useKeyboardAvoid } from '@/hooks/useKeyboardAvoid'
 import { EXERCISE_LIBRARY } from '@/lib/placeholder'
 import { Exercise } from '@/types'
 import { ActiveExercise, createExercise } from '@/lib/sessionUtils'
@@ -76,6 +77,8 @@ export default function LogPage() {
     const [coachInsight, setCoachInsight] = useState<string | null>(null)
     const [coachLoading, setCoachLoading] = useState(false)
     const [estimatedDuration, setEstimatedDuration] = useState('45–60 min')
+
+    useKeyboardAvoid()
 
     // Use refs so closure-based setters always see the latest values
     const screenRef = useRef(screen)

@@ -20,6 +20,12 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Expose safe area values as CSS variables for use in JS/inline styles */
+:root {
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-top: env(safe-area-inset-top, 0px);
+}
+
 :root {
   --cream: #FAF7F0;
   --pink: #E8417A;
@@ -81,6 +87,10 @@ body {
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.9; transform: scale(0.99); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .slide-up {
