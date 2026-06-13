@@ -74,7 +74,6 @@ export default function SleepLogSheet({ onClose }: Props) {
                 Log sleep
             </p>
             <div className="flex items-center gap-2 mb-5">
-                <p className="text-xs" style={{ color: 'var(--muted)' }}>{displayDate}</p>
                 <input
                     type="date"
                     value={date}
