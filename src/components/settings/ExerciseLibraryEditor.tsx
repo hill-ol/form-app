@@ -39,34 +39,34 @@ export default function ExerciseLibraryEditor() {
     })
 
     useEffect(() => {
-        async function loadCustomExercises() {
+        async function loadExercises() {
             try {
                 const { getCustomExercises } = await import('@/lib/db')
-                const custom = await getCustomExercises()
-                if (custom.length > 0) {
-                    const mapped = custom.map((ex: any) => ({
-                        id: ex.id,
-                        name: ex.name,
-                        dayType: ex.day_types,
-                        muscleGroups: ex.muscle_groups,
-                        primaryMuscle: ex.primary_muscle,
-                        equipment: ex.equipment,
-                        movementType: ex.movement_type,
-                        currentWeight: ex.current_weight ? String(ex.current_weight) : undefined,
-                        exerciseType: ex.exercise_type ?? undefined,
-                        notes: ex.notes,
-                    }))
-                    setLibrary(prev => {
-                        const existingIds = new Set(prev.map(e => e.id))
-                        const newOnes = mapped.filter((e: any) => !existingIds.has(e.id))
-                        return [...prev, ...newOnes]
-                    })
+                const dbRows = await getCustomExercises()
+                const mapped: Exercise[] = dbRows.map((ex: any) => ({
+                    id: ex.id,
+                    name: ex.name,
+                    dayType: ex.day_types ?? [],
+                    muscleGroups: ex.muscle_groups ?? [],
+                    primaryMuscle: ex.primary_muscle ?? '',
+                    equipment: ex.equipment ?? [],
+                    movementType: ex.movement_type ?? '',
+                    currentWeight: ex.current_weight ? String(ex.current_weight) : undefined,
+                    exerciseType: ex.exercise_type ?? undefined,
+                    notes: ex.notes,
+                }))
+                // DB rows win over built-ins — first-seen-wins merge
+                const seen = new Set<string>()
+                const merged: Exercise[] = []
+                for (const ex of [...mapped, ...EXERCISE_LIBRARY]) {
+                    if (!seen.has(ex.id)) { seen.add(ex.id); merged.push(ex) }
                 }
+                setLibrary(merged.sort((a, b) => a.name.localeCompare(b.name)))
             } catch (e) {
-                console.error('Failed to load custom exercises:', e)
+                console.error('Failed to load exercises:', e)
             }
         }
-        loadCustomExercises()
+        loadExercises()
     }, [])
 
     function openEdit(ex: Exercise) {
@@ -100,14 +100,6 @@ export default function ExerciseLibraryEditor() {
 
     async function saveEdit() {
         if (!editing) return
-        if (editing.isNew) {
-            setLibrary(prev => [...prev, editing.exercise])
-        } else {
-            setLibrary(prev => prev.map(ex =>
-                ex.id === editing.exercise.id ? editing.exercise : ex
-            ))
-        }
-
         try {
             const { saveExerciseToLibrary } = await import('@/lib/db')
             await saveExerciseToLibrary({
@@ -125,8 +117,17 @@ export default function ExerciseLibraryEditor() {
             })
         } catch (e) {
             console.error('Failed to save exercise to Supabase:', e)
+            return
         }
 
+        // Update local state only after DB confirms
+        if (editing.isNew) {
+            setLibrary(prev => [...prev, editing.exercise].sort((a, b) => a.name.localeCompare(b.name)))
+        } else {
+            setLibrary(prev => prev.map(ex =>
+                ex.id === editing.exercise.id ? editing.exercise : ex
+            ))
+        }
         setSaved(true)
         window.dispatchEvent(new CustomEvent('exercise-library-updated'))
         setTimeout(() => { setSaved(false); setEditing(null) }, 800)

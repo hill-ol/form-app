@@ -422,12 +422,12 @@ export async function saveExerciseToLibrary(ex: {
     if (error) throw error
 }
 
-export async function getCustomExercises(): Promise<SupabaseExerciseLog[]> {
+export async function getCustomExercises(): Promise<Record<string, unknown>[]> {
     const { data, error } = await supabase
         .from('exercise_library')
         .select('*')
     if (error) return []
-    return (data ?? []) as SupabaseExerciseLog[]
+    return (data ?? []) as Record<string, unknown>[]
 }
 
 export async function getExerciseWeights(): Promise<Record<string, number>> {
