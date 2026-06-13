@@ -94,53 +94,54 @@ export default function CalendarPage() {
                 <div className="bg-white rounded-2xl overflow-hidden relative"
                      style={{ border: '0.5px solid var(--border)' }}>
 
-                    <div className="flex items-center justify-between px-4 pt-3 pb-1">
-                        <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-between px-2 pt-3 pb-3">
+                        {/* Month nav */}
+                        <div className="flex items-center gap-0">
                             <button
                                 onClick={prevMonth}
                                 className="flex items-center justify-center rounded-full transition-all active:scale-95"
-                                style={{ width: '44px', height: '44px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>
+                                style={{ width: '36px', height: '36px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>
                                 ‹
                             </button>
-                            <span className="text-sm font-bold" style={{ color: 'var(--muted)', minWidth: '36px', textAlign: 'center' }}>{year}</span>
+                            <span className="font-black tracking-tight" style={{ fontSize: '18px' }}>
+                                {monthLabel} <span style={{ color: 'var(--muted)', fontWeight: 700, fontSize: '14px' }}>{year}</span>
+                            </span>
                             <button
                                 onClick={nextMonth}
                                 className="flex items-center justify-center rounded-full transition-all active:scale-95"
-                                style={{ width: '44px', height: '44px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>
+                                style={{ width: '36px', height: '36px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>
                                 ›
                             </button>
                         </div>
+                        {/* Controls */}
                         <div className="flex items-center gap-2">
                             <div className="flex rounded-full overflow-hidden"
                                  style={{ border: '1px solid var(--border)', background: 'var(--cream)' }}>
-                                {(['calendar', 'list'] as const).map(v => (
+                                {([['calendar', '⊞'], ['list', '≡']] as const).map(([v, icon]) => (
                                     <button
                                         key={v}
                                         onClick={() => setView(v)}
-                                        className="text-xs font-bold transition-all"
+                                        className="font-bold transition-all"
                                         style={{
-                                            padding: '10px 14px',
+                                            padding: '8px 12px',
+                                            fontSize: '15px',
+                                            lineHeight: 1,
                                             background: view === v ? 'var(--pink)' : 'transparent',
                                             color: view === v ? '#fff' : 'var(--muted)',
                                             border: 'none',
                                             cursor: 'pointer',
-                                            textTransform: 'capitalize',
                                         }}>
-                                        {v}
+                                        {icon}
                                     </button>
                                 ))}
                             </div>
                             <button
                                 onClick={() => setShowAddWorkout(true)}
                                 className="flex items-center justify-center rounded-full text-lg font-black transition-all active:scale-95"
-                                style={{ width: '44px', height: '44px', background: 'var(--pink-light)', color: 'var(--pink)', border: 'none', cursor: 'pointer' }}>
+                                style={{ width: '36px', height: '36px', background: 'var(--pink-light)', color: 'var(--pink)', border: 'none', cursor: 'pointer' }}>
                                 +
                             </button>
                         </div>
-                    </div>
-
-                    <div className="px-4 pb-2">
-                        <p className="text-3xl font-black tracking-tight">{monthLabel}</p>
                     </div>
 
                     <div key={view} style={{ animation: 'viewSwitch 0.2s ease both' }}>
