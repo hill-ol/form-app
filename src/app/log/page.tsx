@@ -330,7 +330,8 @@ export default function LogPage() {
             ex.id, ex.name, ex.primaryMuscle,
             ex.equipment[0] ?? 'bodyweight',
             ex.currentWeight,
-            selectedDayType
+            selectedDayType,
+            ex.exerciseType as ActiveExercise['exerciseType'] | undefined,
         )])
     }
 
