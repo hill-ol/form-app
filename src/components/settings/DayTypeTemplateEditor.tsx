@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import SwipeToDelete from '@/components/ui/SwipeToDelete'
 
 const DAY_TYPES = ['push', 'pull', 'legs', 'full body', 'cardio', 'yoga'] as const
 type DayType = typeof DAY_TYPES[number]
@@ -227,8 +228,8 @@ export default function DayTypeTemplateEditor() {
                                 )}
 
                                 {exercises.map((ex, i) => (
-                                    <div key={ex.exercise_id}
-                                         className="flex items-center justify-between px-4 py-2.5"
+                                    <SwipeToDelete key={ex.exercise_id} onDelete={() => handleRemove(dayType, ex.exercise_id)}>
+                                    <div className="flex items-center justify-between px-4 py-2.5"
                                          style={{ borderBottom: '0.5px solid #f5f0e8' }}>
                                         <div className="flex items-center gap-2 flex-1 min-w-0">
                                             <span className="text-xs font-bold w-4 text-center flex-shrink-0"
@@ -272,12 +273,14 @@ export default function DayTypeTemplateEditor() {
                                             )}
                                             <button
                                                 onClick={() => handleRemove(dayType, ex.exercise_id)}
+                                                className="hidden md:block"
                                                 style={{
                                                     background: 'none', border: 'none',
                                                     cursor: 'pointer', color: '#ccc', fontSize: '18px', lineHeight: 1,
                                                 }}>×</button>
                                         </div>
                                     </div>
+                                    </SwipeToDelete>
                                 ))}
 
                                 {/* Add button or picker */}

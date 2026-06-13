@@ -4,6 +4,7 @@ import {useEffect, useState} from 'react'
 import { EXERCISE_LIBRARY } from '@/lib/placeholder'
 import { Exercise } from '@/types'
 import CalendarPopupPortal from '@/components/calendar/CalendarPopupPortal'
+import SwipeToDelete from '@/components/ui/SwipeToDelete'
 
 const DAY_FILTERS = ['all', 'push', 'pull', 'legs', 'cardio', 'yoga', 'full body']
 const MUSCLE_GROUPS = ['chest', 'shoulders', 'triceps', 'back', 'biceps', 'forearms', 'quads', 'hamstrings', 'glutes', 'calves', 'core', 'full body']
@@ -219,8 +220,8 @@ export default function ExerciseLibraryEditor() {
 
                 <div style={{ background: '#fff', maxHeight: '320px', overflowY: 'auto' }}>
                     {filtered.map((ex, i) => (
+                        <SwipeToDelete key={ex.id} onDelete={() => deleteExercise(ex.id)}>
                         <div
-                            key={ex.id}
                             className="flex items-center justify-between px-4 py-3 cursor-pointer transition-all"
                             style={{
                                 borderBottom: i < filtered.length - 1 ? '0.5px solid #f5f0e8' : 'none',
@@ -262,6 +263,7 @@ export default function ExerciseLibraryEditor() {
                             </div>
                             <span style={{ color: 'var(--muted)', fontSize: '16px', marginLeft: '8px' }}>›</span>
                         </div>
+                        </SwipeToDelete>
                     ))}
                     {filtered.length === 0 && (
                         <div className="py-8 text-center">
