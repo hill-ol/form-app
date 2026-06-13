@@ -86,7 +86,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                     const prebuilt: RetroExercise[] = lastExLogs.map((ex: any) => {
                         const lib = EXERCISE_LIBRARY.find(e => e.id === ex.exercise_id)
                         const completedSets = (ex.set_logs ?? []).filter((s: any) => s.completed)
-                        const exerciseType = lib?.exerciseType ?? ex.exercise_type ?? 'strength'
+                        const exerciseType = lib?.exerciseType ?? ex.exercise_type ?? (dayType === 'cardio' ? 'cardio' : 'strength')
                         const defaultWeight = weights[ex.exercise_id]
                             ? String(weights[ex.exercise_id])
                             : completedSets[0]?.weight_lbs ? String(completedSets[0].weight_lbs) : ''
@@ -121,7 +121,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                         const lib = merged.find(e => e.id === t.exercise_id)
                         const w = weights[t.exercise_id] ? String(weights[t.exercise_id])
                             : lib?.currentWeight ? String(parseFloat(lib.currentWeight) || '') : ''
-                        const exerciseType = lib?.exerciseType ?? 'strength'
+                        const exerciseType = lib?.exerciseType ?? (dayType === 'cardio' ? 'cardio' : 'strength')
                         const isTimeBased = exerciseType === 'cardio' || exerciseType === 'yoga'
                         // cardio/yoga: t.sets = minutes → 1 set with duration; others: t.sets = set count → blank sets
                         const sets: RetroSet[] = isTimeBased
@@ -175,7 +175,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
             name: ex.name,
             muscleGroup: ex.primaryMuscle,
             equipment: ex.equipment[0] ?? 'barbell',
-            exerciseType: ex.exerciseType ?? 'strength',
+            exerciseType: ex.exerciseType ?? (dayType === 'cardio' ? 'cardio' : 'strength'),
             libraryWeight: w,
             sets: [blankSet(w)],
         }])

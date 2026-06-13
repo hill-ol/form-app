@@ -280,6 +280,7 @@ export const EXERCISE_LIBRARY: Exercise[] = [
         primaryMuscle: 'full body',
         equipment: ['machine'],
         movementType: 'compound',
+        exerciseType: 'cardio',
     },
     {
         id: 'outdoor-run',
@@ -289,6 +290,7 @@ export const EXERCISE_LIBRARY: Exercise[] = [
         primaryMuscle: 'full body',
         equipment: ['bodyweight'],
         movementType: 'compound',
+        exerciseType: 'cardio',
     },
     {
         id: 'cycling',
@@ -298,6 +300,7 @@ export const EXERCISE_LIBRARY: Exercise[] = [
         primaryMuscle: 'quads',
         equipment: ['machine'],
         movementType: 'compound',
+        exerciseType: 'cardio',
     },
     {
         id: 'stairmaster',
@@ -307,6 +310,7 @@ export const EXERCISE_LIBRARY: Exercise[] = [
         primaryMuscle: 'glutes',
         equipment: ['machine'],
         movementType: 'compound',
+        exerciseType: 'cardio',
     },
     {
         id: 'jump-rope',
@@ -316,6 +320,7 @@ export const EXERCISE_LIBRARY: Exercise[] = [
         primaryMuscle: 'full body',
         equipment: ['bodyweight'],
         movementType: 'compound',
+        exerciseType: 'cardio',
     },
     // YOGA
     {
