@@ -348,7 +348,7 @@ export default function ExerciseLibraryEditor() {
                             </div>
                         </div>
 
-                        {editing.exercise.exerciseType !== 'hold' && (
+                        {editing.exercise.exerciseType !== 'hold' && editing.exercise.exerciseType !== 'cardio' && editing.exercise.exerciseType !== 'yoga' && (
                         <div>
                             <p className="font-bold uppercase tracking-widest mb-2"
                                style={{ fontSize: '10px', color: 'var(--muted)' }}>

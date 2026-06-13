@@ -138,7 +138,7 @@ export default function DayTypeTemplateEditor() {
         setQuery('')
         setFilter(dayType === 'full body' ? 'all' : dayType)
         setPendingEx(null)
-        setPendingSets('3')
+        setPendingSets(dayType === 'cardio' ? '30' : dayType === 'yoga' ? '60' : '3')
     }
 
     function closeAdder() {
@@ -163,6 +163,8 @@ export default function DayTypeTemplateEditor() {
                 const exercises = getExercisesForDay(dayType)
                 const isExpanded = expanded === dayType
                 const isAdding = addingTo === dayType
+
+                const isCardio = dayType === 'cardio' || dayType === 'yoga'
 
                 const pickerList = library.filter(ex => {
                     const alreadyAdded = exercises.some(e => e.exercise_id === ex.id)
@@ -223,16 +225,16 @@ export default function DayTypeTemplateEditor() {
                                             <input
                                                 type="number"
                                                 value={ex.sets}
-                                                min={1} max={10}
+                                                min={1} max={isCardio ? 300 : 10}
                                                 onClick={e => e.stopPropagation()}
-                                                onChange={e => handleUpdateSets(dayType, ex.exercise_id, parseInt(e.target.value) || 3)}
+                                                onChange={e => handleUpdateSets(dayType, ex.exercise_id, parseInt(e.target.value) || (isCardio ? 30 : 3))}
                                                 className="text-center font-bold rounded-lg"
                                                 style={{
-                                                    width: '34px', border: '1px solid var(--border)',
+                                                    width: isCardio ? '44px' : '34px', border: '1px solid var(--border)',
                                                     background: 'var(--cream)', fontSize: '13px', padding: '2px 4px',
                                                 }}
                                             />
-                                            <span className="text-xs" style={{ color: 'var(--muted)' }}>sets</span>
+                                            <span className="text-xs" style={{ color: 'var(--muted)' }}>{isCardio ? 'min' : 'sets'}</span>
                                             <button
                                                 onClick={() => handleRemove(dayType, ex.exercise_id)}
                                                 style={{
@@ -302,15 +304,15 @@ export default function DayTypeTemplateEditor() {
                                                 <input
                                                     type="number"
                                                     value={pendingSets}
-                                                    min={1} max={10}
+                                                    min={1} max={isCardio ? 300 : 10}
                                                     onChange={e => setPendingSets(e.target.value)}
                                                     className="text-center font-bold rounded-lg"
                                                     style={{
-                                                        width: '36px', border: '1px solid var(--pink)',
+                                                        width: isCardio ? '46px' : '36px', border: '1px solid var(--pink)',
                                                         background: '#fff', fontSize: '13px', padding: '2px 4px',
                                                     }}
                                                 />
-                                                <span className="text-xs font-semibold" style={{ color: 'var(--pink-dark)' }}>sets</span>
+                                                <span className="text-xs font-semibold" style={{ color: 'var(--pink-dark)' }}>{isCardio ? 'min' : 'sets'}</span>
                                                 <button
                                                     onClick={() => handleConfirmAdd(dayType)}
                                                     disabled={saving}

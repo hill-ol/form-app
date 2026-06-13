@@ -37,7 +37,7 @@ export default function ExerciseCard({
     function completeSet(set: ActiveSet) {
         if (isCardio) {
             if (!set.duration && !set.distance) return
-        } else if (isHold) {
+        } else if (isHold || isYoga) {
             if (!set.duration) return
         } else {
             if (!set.reps) return
@@ -138,7 +138,7 @@ export default function ExerciseCard({
 
     function isSetReady(set: ActiveSet) {
         if (isCardio) return !!(set.duration || set.distance)
-        if (isHold) return !!set.duration
+        if (isHold || isYoga) return !!set.duration
         return !!set.reps
     }
 
@@ -265,7 +265,11 @@ export default function ExerciseCard({
                     <div style={{ padding: '12px 16px 4px' }}>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', paddingLeft: '32px' }}>
-                            {isCardio ? (
+                            {isYoga ? (
+                                <div style={{ flex: 1, textAlign: 'center', fontSize: '9px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                                    minutes
+                                </div>
+                            ) : isCardio ? (
                                 <>
                                     <div style={{ flex: 1, textAlign: 'center', fontSize: '9px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                                         {cardioLabel.duration}
@@ -336,7 +340,17 @@ export default function ExerciseCard({
                                     {set.completed ? '✓' : i + 1}
                                 </div>
 
-                                {isCardio ? (
+                                {isYoga ? (
+                                    <input
+                                        type="number"
+                                        inputMode="numeric"
+                                        placeholder="60"
+                                        value={set.duration}
+                                        onChange={e => updateSet(set.id, 'duration', e.target.value)}
+                                        disabled={set.completed}
+                                        style={inputStyle(!!set.duration, set.completed)}
+                                    />
+                                ) : isCardio ? (
                                     <>
                                         <input
                                             type="number"
@@ -461,7 +475,7 @@ export default function ExerciseCard({
                             background: 'var(--cream)', color: 'var(--pink)',
                             border: 'none', borderTop: '0.5px solid #f5f0e8', cursor: 'pointer',
                         }}>
-                        + {isCardio ? 'add run' : isHold ? 'add hold' : 'add set'}
+                        + {isYoga ? 'add session' : isCardio ? 'add run' : isHold ? 'add hold' : 'add set'}
                     </button>
                 </>
             )}

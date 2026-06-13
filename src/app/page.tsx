@@ -108,8 +108,9 @@ export default async function DashboardPage() {
                 exerciseName: 'Yoga Flow',
                 sets: 1,
                 reps: 0,
-                weight: '— min',
+                weight: '60',
                 progressReady: false,
+                exerciseType: 'yoga' as any,
             }]
         }
 
