@@ -528,82 +528,89 @@ export default function LogPage() {
                         Today&apos;s session
                     </p>
                     <p className="text-2xl font-black mb-1">{dayLabel} {dayEmoji}</p>
-                    <div className="flex items-center justify-between mb-4">
-                        <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                            {displayExercises.length} exercises · estimated {quickMode ? '~20 min' : estimatedDuration}
+
+                    {selectedDayType === 'rest' ? (
+                        <p className="text-sm mt-2" style={{ color: 'var(--muted)' }}>
+                            Recovery day — let your body rebuild. Pick a workout below if you want to train instead.
                         </p>
-                        <button
-                            onClick={() => setQuickMode(q => !q)}
-                            className="text-xs font-bold px-3 py-1.5 rounded-full transition-all active:scale-95"
-                            style={{
-                                background: quickMode ? 'var(--pink-light)' : 'var(--cream)',
-                                color: quickMode ? 'var(--pink-dark)' : 'var(--muted)',
-                                border: quickMode ? '1.5px solid var(--pink)' : '1.5px solid var(--border)',
-                                cursor: 'pointer',
-                            }}>
-                            ⚡ Quick
-                        </button>
-                    </div>
-
-                    <div className="space-y-2 mb-4">
-                        {exercisesLoading ? (
-                            Array.from({ length: 3 }).map((_, i) => (
-                                <div key={i} className="flex items-center justify-between rounded-xl px-3 py-2.5"
-                                     style={{ background: 'var(--cream)', border: '0.5px solid var(--border)' }}>
-                                    <div className="space-y-1.5">
-                                        <div className="h-3 rounded-full animate-pulse" style={{ background: '#e8e0d0', width: `${80 + i * 20}px` }} />
-                                        <div className="h-2.5 rounded-full animate-pulse" style={{ background: '#e8e0d0', width: '60px' }} />
-                                    </div>
-                                    <div className="h-6 w-12 rounded-full animate-pulse" style={{ background: '#e8e0d0' }} />
-                                </div>
-                            ))
-                        ) : displayExercises.map((ex, i) => {
-                            const lib = EXERCISE_LIBRARY.find(e => e.id === ex.exerciseId)
-                            return (
-                                <div
-                                    key={ex.exerciseId}
-                                    className="flex items-center justify-between rounded-xl px-3 py-2.5"
+                    ) : (
+                        <>
+                            <div className="flex items-center justify-between mb-4">
+                                <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                                    {displayExercises.length} exercises · estimated {quickMode ? '~20 min' : estimatedDuration}
+                                </p>
+                                <button
+                                    onClick={() => setQuickMode(q => !q)}
+                                    className="text-xs font-bold px-3 py-1.5 rounded-full transition-all active:scale-95"
                                     style={{
-                                        background: 'var(--cream)',
-                                        border: '0.5px solid var(--border)',
-                                        animation: `slideInUp 0.2s ease ${i * 0.06}s both`,
+                                        background: quickMode ? 'var(--pink-light)' : 'var(--cream)',
+                                        color: quickMode ? 'var(--pink-dark)' : 'var(--muted)',
+                                        border: quickMode ? '1.5px solid var(--pink)' : '1.5px solid var(--border)',
+                                        cursor: 'pointer',
                                     }}>
-                                    <div>
-                                        <p className="text-sm font-semibold">{ex.exerciseName}</p>
-                                        <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                                            {lib?.primaryMuscle ?? ex.exerciseId} · {ex.sets}×{ex.reps || '—'}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold px-2 py-1 rounded-full"
-                          style={{ background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
-                      {ex.weight}
-                    </span>
-                                        {(ex as any).progressReady && (
-                                            <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full"
-                                                  style={{ background: 'var(--pink)', fontSize: '10px' }}>
-                        ↑ {(ex as any).suggestedWeight
-                                                ? `try ${(ex as any).suggestedWeight}`
-                                                : 'level up'}
-                      </span>
-                                        )}
-                                    </div>
-                                </div>
-                            )
-                        })}
-                    </div>
+                                    ⚡ Quick
+                                </button>
+                            </div>
 
-                    <button
-                        onClick={startSession}
-                        className="w-full py-4 rounded-full text-white font-black uppercase tracking-widest text-sm transition-all active:scale-95"
-                        style={{
-                            background: 'var(--pink)',
-                            cursor: 'pointer',
-                            border: 'none',
-                            animation: 'pulse 2s infinite',
-                        }}>
-                        Start Session {dayEmoji}
-                    </button>
+                            <div className="space-y-2 mb-4">
+                                {exercisesLoading ? (
+                                    Array.from({ length: 3 }).map((_, i) => (
+                                        <div key={i} className="flex items-center justify-between rounded-xl px-3 py-2.5"
+                                             style={{ background: 'var(--cream)', border: '0.5px solid var(--border)' }}>
+                                            <div className="space-y-1.5">
+                                                <div className="h-3 rounded-full animate-pulse" style={{ background: '#e8e0d0', width: `${80 + i * 20}px` }} />
+                                                <div className="h-2.5 rounded-full animate-pulse" style={{ background: '#e8e0d0', width: '60px' }} />
+                                            </div>
+                                            <div className="h-6 w-12 rounded-full animate-pulse" style={{ background: '#e8e0d0' }} />
+                                        </div>
+                                    ))
+                                ) : displayExercises.map((ex, i) => {
+                                    const lib = EXERCISE_LIBRARY.find(e => e.id === ex.exerciseId)
+                                    return (
+                                        <div
+                                            key={ex.exerciseId}
+                                            className="flex items-center justify-between rounded-xl px-3 py-2.5"
+                                            style={{
+                                                background: 'var(--cream)',
+                                                border: '0.5px solid var(--border)',
+                                                animation: `slideInUp 0.2s ease ${i * 0.06}s both`,
+                                            }}>
+                                            <div>
+                                                <p className="text-sm font-semibold">{ex.exerciseName}</p>
+                                                <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                                                    {lib?.primaryMuscle ?? ex.exerciseId} · {ex.sets}×{ex.reps || '—'}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-bold px-2 py-1 rounded-full"
+                                                      style={{ background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
+                                                    {ex.weight}
+                                                </span>
+                                                {(ex as any).progressReady && (
+                                                    <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full"
+                                                          style={{ background: 'var(--pink)', fontSize: '10px' }}>
+                                                        ↑ {(ex as any).suggestedWeight ? `try ${(ex as any).suggestedWeight}` : 'level up'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+
+                            <button
+                                onClick={startSession}
+                                className="w-full py-4 rounded-full text-white font-black uppercase tracking-widest text-sm transition-all active:scale-95"
+                                style={{
+                                    background: 'var(--pink)',
+                                    cursor: 'pointer',
+                                    border: 'none',
+                                    animation: 'pulse 2s infinite',
+                                }}>
+                                Start Session {dayEmoji}
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 <div className="rounded-2xl p-4 mb-4"
