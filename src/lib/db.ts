@@ -689,10 +689,11 @@ export async function getProgressionSuggestions(): Promise<Record<string, number
 }
 
 export async function getPeriodLogs(): Promise<string[]> {
-    const { data } = await supabase
+    const { data, error } = await supabase
         .from('period_logs')
         .select('date')
         .order('date', { ascending: true })
+    if (error) throw error
     return (data ?? []).map((r: any) => r.date as string)
 }
 
