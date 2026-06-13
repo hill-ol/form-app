@@ -19,6 +19,8 @@ export interface CoachContext {
     weeklyGoal?: number
     weeklyCompleted?: number
     todayPlan?: string
+    cyclePhase?: 'menstrual' | 'follicular' | 'ovulatory' | 'luteal'
+    isStressed?: boolean
 }
 
 const SYSTEM_PROMPT = `You are an AI fitness coach inside a personal fitness tracking app called FORM. 
@@ -136,6 +138,11 @@ function buildDashboardPrompt(ctx: CoachContext): string {
     if (ctx.weeklyCompleted !== undefined && ctx.weeklyGoal) {
         parts.push(`She has done ${ctx.weeklyCompleted} of her ${ctx.weeklyGoal} weekly workouts.`)
     }
+    if (ctx.cyclePhase === 'menstrual') parts.push('She is in her menstrual phase — validate rest and suggest gentle movement if relevant.')
+    if (ctx.cyclePhase === 'luteal') parts.push('She is in her luteal phase — favour endurance and recovery over max effort.')
+    if (ctx.cyclePhase === 'follicular') parts.push('She is in her follicular phase — energy is rising, good time for PRs.')
+    if (ctx.cyclePhase === 'ovulatory') parts.push('She is in her ovulatory phase — peak power, encourage pushing hard.')
+    if (ctx.isStressed) parts.push('She flagged that she is stressed (exam week). Acknowledge this and keep the tone gentle and validating.')
 
     parts.push('Keep it to 1-2 sentences. Be specific and encouraging.')
     return parts.join(' ')
@@ -157,6 +164,9 @@ function buildPreSessionPrompt(ctx: CoachContext): string {
             parts.push(`Last time she did ${topEx.name} at ${topEx.weight} for ${topEx.sets}x${topEx.reps}. If she hit all reps, suggest increasing weight by 5 lbs.`)
         }
     }
+    if (ctx.cyclePhase === 'menstrual') parts.push('She is in her menstrual phase — be encouraging but validate if she wants to go easier.')
+    if (ctx.cyclePhase === 'luteal') parts.push('She is in her luteal phase — suggest endurance focus over max lifts.')
+    if (ctx.isStressed) parts.push('She is in exam week. Suggest a quick, manageable session and validate that showing up at all is a win.')
 
     parts.push('1-2 sentences max. Sound like a knowledgeable friend.')
     return parts.join(' ')

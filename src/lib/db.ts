@@ -61,6 +61,8 @@ interface SupabasePreferences {
     rest_duration_seconds: number
     rest_timer_default: boolean
     show_ai_coach: boolean
+    period_start_date?: string
+    cycle_length_days?: number
     updated_at: string
 }
 
@@ -334,11 +336,30 @@ export async function saveDailyInsight(insight: string) {
     if (error) throw error
 }
 
+export async function saveStressFlag(date: string, stressed: boolean) {
+    const { error } = await supabase
+        .from('daily_checkins')
+        .upsert({ date, stress_flag: stressed }, { onConflict: 'date' })
+    if (error) throw error
+}
+
+export async function getTodayStressFlag(): Promise<boolean> {
+    const today = localDateString()
+    const { data } = await supabase
+        .from('daily_checkins')
+        .select('stress_flag')
+        .eq('date', today)
+        .single()
+    return data?.stress_flag ?? false
+}
+
 export async function savePreferences(prefs: {
     weeklyGoal: number
     restDurationSeconds: number
     restTimerDefault: boolean
     showAiCoach: boolean
+    periodStartDate?: string
+    cycleLengthDays?: number
 }) {
     const { data: existing } = await supabase
         .from('training_preferences')
@@ -346,13 +367,15 @@ export async function savePreferences(prefs: {
         .limit(1)
         .single()
 
-    const payload = {
+    const payload: Record<string, unknown> = {
         weekly_goal: prefs.weeklyGoal,
         rest_duration_seconds: prefs.restDurationSeconds,
         rest_timer_default: prefs.restTimerDefault,
         show_ai_coach: prefs.showAiCoach,
         updated_at: new Date().toISOString(),
     }
+    if (prefs.periodStartDate !== undefined) payload.period_start_date = prefs.periodStartDate
+    if (prefs.cycleLengthDays !== undefined) payload.cycle_length_days = prefs.cycleLengthDays
 
     if (existing?.id) {
         const { error } = await supabase

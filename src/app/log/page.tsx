@@ -83,6 +83,7 @@ export default function LogPage() {
     const [coachLoading, setCoachLoading] = useState(false)
     const [estimatedDuration, setEstimatedDuration] = useState('45–60 min')
     const [exercisesLoading, setExercisesLoading] = useState(!saved?.exercises?.length)
+    const [quickMode, setQuickMode] = useState(false)
 
     useKeyboardAvoid()
 
@@ -285,7 +286,15 @@ export default function LogPage() {
         setStartTime(now)
         sessionStorage.setItem('form_session_start', String(now))
         setScreenState('active')
-        saveSession('active', selectedDayType, exercises)
+        if (quickMode) {
+            setExercisesState(prev => {
+                const trimmed = prev.slice(0, 3).map(ex => ({ ...ex, sets: ex.sets.slice(0, 2) }))
+                saveSession('active', selectedDayType, trimmed)
+                return trimmed
+            })
+        } else {
+            saveSession('active', selectedDayType, exercises)
+        }
     }
 
     function updateExercise(index: number, updated: ActiveExercise) {
@@ -484,10 +493,10 @@ export default function LogPage() {
         )
     }
 
-    const displayExercises = exercises.map(ex => ({
+    const displayExercises = (quickMode ? exercises.slice(0, 3) : exercises).map(ex => ({
         exerciseId: ex.exerciseId,
         exerciseName: ex.exerciseName,
-        sets: ex.sets.length,
+        sets: quickMode ? Math.min(ex.sets.length, 2) : ex.sets.length,
         reps: 0,
         weight: ex.lastWeight ?? 'BW',
     }))
@@ -510,9 +519,22 @@ export default function LogPage() {
                         Today&apos;s session
                     </p>
                     <p className="text-2xl font-black mb-1">{dayLabel} {dayEmoji}</p>
-                    <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
-                        {displayExercises.length} exercises · estimated {estimatedDuration}
-                    </p>
+                    <div className="flex items-center justify-between mb-4">
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                            {displayExercises.length} exercises · estimated {quickMode ? '~20 min' : estimatedDuration}
+                        </p>
+                        <button
+                            onClick={() => setQuickMode(q => !q)}
+                            className="text-xs font-bold px-3 py-1.5 rounded-full transition-all active:scale-95"
+                            style={{
+                                background: quickMode ? 'var(--pink-light)' : 'var(--cream)',
+                                color: quickMode ? 'var(--pink-dark)' : 'var(--muted)',
+                                border: quickMode ? '1.5px solid var(--pink)' : '1.5px solid var(--border)',
+                                cursor: 'pointer',
+                            }}>
+                            ⚡ Quick
+                        </button>
+                    </div>
 
                     <div className="space-y-2 mb-4">
                         {exercisesLoading ? (

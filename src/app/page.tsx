@@ -9,6 +9,7 @@ import {
     getPreferences,
     getLastSessionByDayType,
     getTodayCheckin,
+    getTodayStressFlag,
 } from '@/lib/db'
 import TopNav from '@/components/layout/TopNav'
 import BottomNav from '@/components/layout/BottomNav'
@@ -20,7 +21,9 @@ import StatsRow from '@/components/dashboard/StatsRow'
 import WeekCalendar from '@/components/dashboard/WeekCalendar'
 import RecentSessions from '@/components/dashboard/RecentSessions'
 import DashboardGreeting from '@/components/dashboard/DashboardGreeting'
+import CyclePhaseCard from '@/components/dashboard/CyclePhaseCard'
 import { getProgressionSuggestions } from '@/lib/db'
+import { getCyclePhase } from '@/lib/cycleUtils'
 import { WorkoutSession, DayTemplate } from '@/types'
 import PullToRefresh from '@/components/dashboard/PullToRefresh'
 
@@ -30,7 +33,7 @@ export default async function DashboardPage() {
     const year = today.getFullYear()
     const month = today.getMonth()
 
-    const [recentSessions, lastSleep, streak, template, monthSessions, prefs, progressionSuggestions, todayEnergyLevel] =
+    const [recentSessions, lastSleep, streak, template, monthSessions, prefs, progressionSuggestions, todayEnergyLevel, todayStressed] =
         await Promise.all([
             getRecentSessions(10).catch(() => []),
             getLastSleep().catch(() => null),
@@ -40,6 +43,7 @@ export default async function DashboardPage() {
             getPreferences().catch(() => null),
             getProgressionSuggestions().catch(() => ({})),
             getTodayCheckin().catch(() => null),
+            getTodayStressFlag().catch(() => false),
         ])
 
     const weeklyGoal = prefs?.weekly_goal ?? 5
@@ -205,6 +209,11 @@ export default async function DashboardPage() {
                     <MoodCheckIn />
                 </div>
 
+                <CyclePhaseCard
+                    periodStartDate={prefs?.period_start_date ?? null}
+                    cycleLengthDays={prefs?.cycle_length_days ?? null}
+                />
+
                 <AiCoachCard context={{
                     lastSleep: lastSleep
                         ? { hours: lastSleep.hours, mood: lastSleep.mood }
@@ -220,6 +229,10 @@ export default async function DashboardPage() {
                         dayType: s.dayType,
                         duration: s.duration,
                     })),
+                    cyclePhase: prefs?.period_start_date
+                        ? getCyclePhase(prefs.period_start_date, prefs.cycle_length_days ?? 28)
+                        : undefined,
+                    isStressed: todayStressed || undefined,
                 }} />
 
                 <TodayWorkout workout={data.todayWorkout} estimatedDuration={estimatedDuration} />                <QuoteBanner />

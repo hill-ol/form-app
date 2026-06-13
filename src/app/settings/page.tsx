@@ -4,6 +4,7 @@ import WeeklyTemplateEditor from '@/components/settings/WeeklyTemplateEditor'
 import DayTypeTemplateEditor from '@/components/settings/DayTypeTemplateEditor'
 import ExerciseLibraryEditor from '@/components/settings/ExerciseLibraryEditor'
 import TrainingPreferences from '@/components/settings/TrainingPreferences'
+import CycleSettings from '@/components/settings/CycleSettings'
 import DataSection from '@/components/settings/DataSection'
 
 export default function SettingsPage() {
@@ -32,6 +33,7 @@ export default function SettingsPage() {
                 <WeeklyTemplateEditor />
                 <DayTypeTemplateEditor />
                 <TrainingPreferences />
+                <CycleSettings />
                 <ExerciseLibraryEditor />
                 <DataSection />
 

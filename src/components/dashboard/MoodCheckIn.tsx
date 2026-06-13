@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { localDateString } from '@/lib/dateUtils'
 
 const moods = [
     { emoji: '😴', level: 1 },
@@ -12,14 +13,16 @@ const moods = [
 
 export default function MoodCheckIn() {
     const [selected, setSelected] = useState<number | null>(null)
+    const [stressed, setStressed] = useState(false)
 
     useEffect(() => {
         async function loadCheckin() {
             try {
-                const { getTodayCheckin } = await import('@/lib/db')
-                const saved = await getTodayCheckin()
-                if (saved !== null) setSelected(saved)
-            } catch { /* keep null — no checkin yet */ }
+                const { getTodayCheckin, getTodayStressFlag } = await import('@/lib/db')
+                const [energy, stressFlag] = await Promise.all([getTodayCheckin(), getTodayStressFlag()])
+                if (energy !== null) setSelected(energy)
+                setStressed(stressFlag)
+            } catch { /* keep defaults */ }
         }
         loadCheckin()
     }, [])
@@ -28,10 +31,20 @@ export default function MoodCheckIn() {
         setSelected(level)
         try {
             const { saveDailyCheckin } = await import('@/lib/db')
-            const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-            await saveDailyCheckin(today, level)
+            await saveDailyCheckin(localDateString(), level)
         } catch (e) {
             console.error('Failed to save checkin:', e)
+        }
+    }
+
+    async function toggleStress() {
+        const next = !stressed
+        setStressed(next)
+        try {
+            const { saveStressFlag } = await import('@/lib/db')
+            await saveStressFlag(localDateString(), next)
+        } catch (e) {
+            console.error('Failed to save stress flag:', e)
         }
     }
 
@@ -40,7 +53,7 @@ export default function MoodCheckIn() {
             <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--muted)' }}>
                 How&apos;s your energy today?
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mb-2">
                 {moods.map(({ emoji, level }) => (
                     <button
                         key={level}
@@ -55,11 +68,17 @@ export default function MoodCheckIn() {
                     </button>
                 ))}
             </div>
-            {selected !== null && (
-                <p className="text-xs mt-2 text-center font-semibold" style={{ color: 'var(--pink)' }}>
-                    Saved ✓
-                </p>
-            )}
+            <button
+                onClick={toggleStress}
+                className="w-full py-1.5 rounded-full text-xs font-bold transition-all active:scale-95"
+                style={{
+                    border: stressed ? '1.5px solid #F59E0B' : '1.5px solid var(--border)',
+                    background: stressed ? '#FEF3C7' : 'var(--cream)',
+                    color: stressed ? '#92400E' : 'var(--muted)',
+                    cursor: 'pointer',
+                }}>
+                📚 Stressed / exam week{stressed ? ' ✓' : ''}
+            </button>
         </div>
     )
 }
