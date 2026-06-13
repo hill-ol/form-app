@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import ActiveSessionBanner from '@/components/logger/ActiveSessionBanner'
 
 export const metadata: Metadata = {
   title: 'FORM.',
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/diva1.png" />
       </head>
       <body className="min-h-screen" style={{ backgroundColor: 'var(--cream)' }}>
+      <ActiveSessionBanner />
       {children}
       </body>
       </html>

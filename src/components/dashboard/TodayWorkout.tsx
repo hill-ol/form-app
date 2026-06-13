@@ -46,8 +46,10 @@ export default function TodayWorkout({ workout, estimatedDuration = '45–60 min
             <div className="space-y-0">
                 {workout.exercises && workout.exercises.length > 0 ? (
                     workout.exercises.map((ex) => (
-                        <div key={ex.exerciseId} className="flex justify-between items-center py-2"
-                             style={{ borderBottom: '0.5px solid #f0e8da' }}>
+                        <div key={ex.exerciseId}
+                             className="flex justify-between items-center py-2 transition-all active:opacity-60"
+                             style={{ borderBottom: '0.5px solid #f0e8da', cursor: 'pointer' }}
+                             onClick={() => router.push('/log')}>
                             <span className="text-sm font-medium">{ex.exerciseName}</span>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs" style={{ color: 'var(--muted)' }}>
@@ -74,8 +76,9 @@ export default function TodayWorkout({ workout, estimatedDuration = '45–60 min
                 )}
             </div>
 
-            <button className="md:hidden w-full mt-4 py-3 rounded-full text-white text-xs font-bold uppercase tracking-wider"
-                    style={{ background: 'var(--pink)' }}>
+            <button className="md:hidden w-full mt-4 py-3 rounded-full text-white text-xs font-bold uppercase tracking-wider transition-all active:scale-95"
+                    style={{ background: 'var(--pink)', border: 'none', cursor: 'pointer' }}
+                    onClick={() => router.push('/log')}>
                 Start Session
             </button>
         </div>

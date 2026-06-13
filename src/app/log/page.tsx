@@ -71,6 +71,10 @@ export default function LogPage() {
     const [exercises, setExercisesState] = useState<ActiveExercise[]>(saved?.exercises ?? [])
     const [showAddSheet, setShowAddSheet] = useState(false)
     const [restTimerOn, setRestTimerOn] = useState(false)
+    const [activeExIndex, setActiveExIndex] = useState(0)
+    const exerciseRefs = useRef<(HTMLDivElement | null)[]>([])
+    const swipeTouchStartX = useRef(0)
+    const swipeTouchStartY = useRef(0)
     const [restActive, setRestActive] = useState(false)
     const [restDuration, setRestDuration] = useState(90)
     const [startTime, setStartTime] = useState<number>(0)
@@ -337,7 +341,23 @@ export default function LogPage() {
                     onFinish={() => setScreen('done')}
                 />
 
-                <div className="flex-1 overflow-y-auto px-4 pt-3" style={{ paddingBottom: '140px' }}>
+                <div
+                    className="flex-1 overflow-y-auto px-4 pt-3"
+                    style={{ paddingBottom: '140px' }}
+                    onTouchStart={e => {
+                        swipeTouchStartX.current = e.touches[0].clientX
+                        swipeTouchStartY.current = e.touches[0].clientY
+                    }}
+                    onTouchEnd={e => {
+                        const dx = e.changedTouches[0].clientX - swipeTouchStartX.current
+                        const dy = e.changedTouches[0].clientY - swipeTouchStartY.current
+                        if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx) * 1.5) return
+                        setActiveExIndex(prev => {
+                            const next = Math.max(0, Math.min(exercises.length - 1, prev + (dx < 0 ? 1 : -1)))
+                            exerciseRefs.current[next]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                            return next
+                        })
+                    }}>
                     {restActive && restTimerOn && (
                         <RestTimer
                             seconds={restDuration}
@@ -346,9 +366,32 @@ export default function LogPage() {
                         />
                     )}
 
+                    {exercises.length > 1 && (
+                        <div className="flex gap-1.5 justify-center mb-3">
+                            {exercises.map((_, i) => (
+                                <div
+                                    key={i}
+                                    onClick={() => {
+                                        setActiveExIndex(i)
+                                        exerciseRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                                    }}
+                                    style={{
+                                        width: i === activeExIndex ? '16px' : '6px',
+                                        height: '6px',
+                                        borderRadius: '999px',
+                                        background: i === activeExIndex ? 'var(--pink)' : '#e0d8cc',
+                                        transition: 'all 0.2s',
+                                        cursor: 'pointer',
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    )}
+
                     {exercises.map((ex, i) => (
                         <div
                             key={ex.exerciseId + i}
+                            ref={el => { exerciseRefs.current[i] = el }}
                             style={{ animation: `slideInUp 0.2s ease ${i * 0.05}s both` }}>
                             <ExerciseCard
                                 exercise={ex}

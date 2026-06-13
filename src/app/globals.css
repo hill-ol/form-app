@@ -68,6 +68,17 @@ body {
   }
 }
 
+@keyframes slideInDown {
+  from {
+    transform: translateX(-50%) translateY(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
 @keyframes slideInUp {
   from {
     transform: translateY(16px);
