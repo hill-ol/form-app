@@ -118,10 +118,15 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                 const dayTemplates = allTemplates.filter(t => t.day_type === dayType)
                 if (dayTemplates.length > 0) {
                     const prebuilt: RetroExercise[] = dayTemplates.map(t => {
-                        const lib = EXERCISE_LIBRARY.find(e => e.id === t.exercise_id)
+                        const lib = merged.find(e => e.id === t.exercise_id)
                         const w = weights[t.exercise_id] ? String(weights[t.exercise_id])
                             : lib?.currentWeight ? String(parseFloat(lib.currentWeight) || '') : ''
                         const exerciseType = lib?.exerciseType ?? 'strength'
+                        const isTimeBased = exerciseType === 'cardio' || exerciseType === 'yoga'
+                        // cardio/yoga: t.sets = minutes → 1 set with duration; others: t.sets = target reps → 3 sets
+                        const sets: RetroSet[] = isTimeBased
+                            ? [{ reps: '', weight: '', duration: String(t.sets), distance: '' }]
+                            : Array.from({ length: 3 }, () => ({ reps: String(t.sets), weight: w, duration: '', distance: '' }))
                         return {
                             id: t.exercise_id,
                             name: t.exercise_name,
@@ -129,7 +134,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                             equipment: lib?.equipment[0] ?? 'bodyweight',
                             exerciseType,
                             libraryWeight: w,
-                            sets: Array.from({ length: t.sets }, () => blankSet(w)),
+                            sets,
                         }
                     })
                     setExercises(prebuilt)

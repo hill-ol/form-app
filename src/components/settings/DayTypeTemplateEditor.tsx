@@ -132,7 +132,7 @@ export default function DayTypeTemplateEditor() {
             day_type: dayType,
             exercise_id: pendingEx.id,
             exercise_name: pendingEx.name,
-            sets: parseInt(pendingSets) || (isCardioDay ? 30 : 3),
+            sets: parseInt(pendingSets) || (isCardioDay ? 30 : dayType === 'yoga' ? 60 : 10),
             target_distance: isCardioDay && pendingDistance ? parseFloat(pendingDistance) : null,
             display_order: existing.length,
         }
@@ -153,7 +153,7 @@ export default function DayTypeTemplateEditor() {
         setQuery('')
         setFilter(dayType === 'full body' ? 'all' : dayType)
         setPendingEx(null)
-        setPendingSets(dayType === 'cardio' ? '30' : dayType === 'yoga' ? '60' : '3')
+        setPendingSets(dayType === 'cardio' ? '30' : dayType === 'yoga' ? '60' : '10')
         setPendingDistance('')
     }
 
@@ -240,20 +240,20 @@ export default function DayTypeTemplateEditor() {
                                                 {ex.exercise_name}
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                                             <input
                                                 type="number"
                                                 value={ex.sets}
-                                                min={1} max={isTimeBased ? 300 : 10}
+                                                min={1} max={isTimeBased ? 300 : 99}
                                                 onClick={e => e.stopPropagation()}
-                                                onChange={e => handleUpdateField(dayType, ex.exercise_id, 'sets', parseInt(e.target.value) || (isCardio ? 30 : isYoga ? 60 : 3))}
+                                                onChange={e => handleUpdateField(dayType, ex.exercise_id, 'sets', parseInt(e.target.value) || (isCardio ? 30 : isYoga ? 60 : 10))}
                                                 className="text-center font-bold rounded-lg"
                                                 style={{
-                                                    width: isTimeBased ? '44px' : '34px', border: '1px solid var(--border)',
+                                                    width: isTimeBased ? '44px' : '40px', border: '1px solid var(--border)',
                                                     background: 'var(--cream)', fontSize: '13px', padding: '2px 4px',
                                                 }}
                                             />
-                                            <span className="text-xs" style={{ color: 'var(--muted)' }}>{isTimeBased ? 'min' : 'sets'}</span>
+                                            <span className="text-xs" style={{ color: 'var(--muted)' }}>{isCardio ? 'min' : isYoga ? 'min' : 'reps'}</span>
                                             {isCardio && (
                                                 <>
                                                     <input
@@ -344,15 +344,15 @@ export default function DayTypeTemplateEditor() {
                                                 <input
                                                     type="number"
                                                     value={pendingSets}
-                                                    min={1} max={isTimeBased ? 300 : 10}
+                                                    min={1} max={isTimeBased ? 300 : 99}
                                                     onChange={e => setPendingSets(e.target.value)}
                                                     className="text-center font-bold rounded-lg"
                                                     style={{
-                                                        width: isTimeBased ? '46px' : '36px', border: '1px solid var(--pink)',
+                                                        width: isTimeBased ? '46px' : '42px', border: '1px solid var(--pink)',
                                                         background: '#fff', fontSize: '13px', padding: '2px 4px',
                                                     }}
                                                 />
-                                                <span className="text-xs font-semibold" style={{ color: 'var(--pink-dark)' }}>{isTimeBased ? 'min' : 'sets'}</span>
+                                                <span className="text-xs font-semibold" style={{ color: 'var(--pink-dark)' }}>{isCardio ? 'min' : isYoga ? 'min' : 'reps'}</span>
                                                 {isCardio && (
                                                     <>
                                                         <input
@@ -402,7 +402,7 @@ export default function DayTypeTemplateEditor() {
                                                     }}
                                                     onClick={() => {
                                                         setPendingEx(ex)
-                                                        setPendingSets(isCardio ? '30' : isYoga ? '60' : '3')
+                                                        setPendingSets(isCardio ? '30' : isYoga ? '60' : '10')
                                                     }}>
                                                     <div style={{ flex: 1 }}>
                                                         <div className="flex items-center gap-2">

@@ -181,9 +181,14 @@ export default function LogPage() {
                         setExercises(dayTemplates.map(t => {
                             const lib = libEntry(t.exercise_id)
                             const exerciseType = (lib?.exerciseType ?? 'strength') as ActiveExercise['exerciseType']
-                            const sets: ActiveSet[] = Array.from({ length: t.sets }, () => ({
-                                id: crypto.randomUUID(), reps: '', weight: '', duration: '', distance: '', completed: false,
-                            }))
+                            const isTimeBased = exerciseType === 'cardio' || exerciseType === 'yoga'
+                            // For cardio/yoga: t.sets = duration in minutes → 1 set with duration pre-filled
+                            // For strength/bodyweight/hold: t.sets = target reps → 3 sets with reps pre-filled
+                            const sets: ActiveSet[] = isTimeBased
+                                ? [{ id: crypto.randomUUID(), reps: '', weight: '', duration: String(t.sets), distance: '', completed: false }]
+                                : Array.from({ length: 3 }, () => ({
+                                    id: crypto.randomUUID(), reps: String(t.sets), weight: '', duration: '', distance: '', completed: false,
+                                }))
                             return {
                                 exerciseId: t.exercise_id,
                                 exerciseName: t.exercise_name,
