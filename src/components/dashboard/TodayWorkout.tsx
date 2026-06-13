@@ -14,13 +14,17 @@ interface Props {
     workout: WorkoutSession
     estimatedDuration?: string
     completedToday?: boolean
+    completedSession?: WorkoutSession | null
 }
 
-export default function TodayWorkout({ workout, estimatedDuration = '45–60 min', completedToday = false }: Props) {
+export default function TodayWorkout({ workout, estimatedDuration = '45–60 min', completedToday = false, completedSession }: Props) {
     const router = useRouter()
     const emoji = WORKOUT_EMOJI[workout.type]
 
     if (completedToday) {
+        const doneName = completedSession?.name ?? workout.name
+        const doneEmoji = WORKOUT_EMOJI[completedSession?.type ?? workout.type] ?? emoji
+        const doneDuration = completedSession?.duration ? `${completedSession.duration} min` : null
         return (
             <div className="bg-white rounded-2xl p-4" style={{ border: '0.5px solid var(--border)' }}>
                 <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--muted)' }}>
@@ -28,9 +32,9 @@ export default function TodayWorkout({ workout, estimatedDuration = '45–60 min
                 </p>
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-xl font-black tracking-tight">{workout.name} {emoji}</p>
+                        <p className="text-xl font-black tracking-tight">{doneName} {doneEmoji}</p>
                         <p className="text-xs mt-1 font-semibold" style={{ color: '#22c55e' }}>
-                            ✓ Done for today
+                            ✓ Done{doneDuration ? ` · ${doneDuration}` : ' for today'}
                         </p>
                     </div>
                     <span style={{ fontSize: '36px' }}>🎉</span>

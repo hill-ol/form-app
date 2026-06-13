@@ -87,6 +87,9 @@ export default async function DashboardPage() {
             type: found.workout_type,
             dayType: found.day_type,
             name: found.name,
+            duration: found.duration_seconds
+                ? Math.floor(found.duration_seconds / 60)
+                : undefined,
         }
     })
 
@@ -239,7 +242,7 @@ export default async function DashboardPage() {
                     isStressed: todayStressed || undefined,
                 }} />
 
-                <TodayWorkout workout={data.todayWorkout} estimatedDuration={estimatedDuration} completedToday={completedToday} />                <QuoteBanner />
+                <TodayWorkout workout={data.todayWorkout} estimatedDuration={estimatedDuration} completedToday={completedToday} completedSession={todaySessionEntry} />                <QuoteBanner />
                 <StatsRow data={data} />
 
                 <div className="bg-white rounded-2xl p-4 space-y-4"
