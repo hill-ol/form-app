@@ -143,6 +143,7 @@ export default function CalendarPage() {
                         <p className="text-3xl font-black tracking-tight">{monthLabel}</p>
                     </div>
 
+                    <div key={view} style={{ animation: 'viewSwitch 0.2s ease both' }}>
                     {view === 'calendar' ? (
                         <>
                             <CalendarGrid
@@ -212,6 +213,7 @@ export default function CalendarPage() {
                             <div className="pb-4" />
                         </div>
                     )}
+                    </div>
 
                     {showAddWorkout && (
                         <AddWorkoutSheet
