@@ -155,8 +155,11 @@ export default function LogPage() {
     useEffect(() => {
         async function loadRealExercises() {
             try {
-                const { getLastSessionByDayType } = await import('@/lib/db')
-                const last = await getLastSessionByDayType(selectedDayType)
+                const { getLastSessionByDayType, getProgressionSuggestions } = await import('@/lib/db')
+                const [last, progressionSuggestions] = await Promise.all([
+                    getLastSessionByDayType(selectedDayType),
+                    getProgressionSuggestions(),
+                ])
 
                 if (!last || !(last as any).exercise_logs?.length) {
                     // Try day type template before falling back to placeholder library
@@ -218,6 +221,7 @@ export default function LogPage() {
                     }
                     const lastReps = Object.keys(repsCounts).sort((a, b) => repsCounts[b] - repsCounts[a])[0]
 
+                    const suggested = progressionSuggestions[ex.exercise_id]
                     return {
                         exerciseId: ex.exercise_id,
                         exerciseName: ex.exercise_name,
@@ -228,6 +232,7 @@ export default function LogPage() {
                             ? String(completedSets[0].weight_lbs)
                             : undefined,
                         lastReps: lastReps ? String(lastReps) : undefined,
+                        suggestedWeight: suggested ? String(suggested) : undefined,
                         sets,
                     }
                 })

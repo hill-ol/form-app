@@ -178,6 +178,23 @@ export default function ExerciseCard({
                             last: {exercise.lastWeight} lbs
                         </span>
                     )}
+                    {exercise.suggestedWeight && !isCardio && !isBodyweight && !isHold && (
+                        <button
+                            onClick={e => {
+                                e.stopPropagation()
+                                onChange({
+                                    ...exercise,
+                                    sets: exercise.sets.map(s =>
+                                        s.completed ? s : { ...s, weight: exercise.suggestedWeight! }
+                                    ),
+                                })
+                                import('@/lib/haptics').then(({ haptics }) => haptics.light())
+                            }}
+                            className="text-xs font-black px-2 py-1 rounded-full transition-all active:scale-95"
+                            style={{ background: 'var(--pink)', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                            ↑ {exercise.suggestedWeight} lbs
+                        </button>
+                    )}
                     {completedCount > 0 && (
                         <span className="text-xs font-bold px-2 py-1 rounded-full"
                               style={{ background: 'var(--pink-light)', color: 'var(--pink)' }}>

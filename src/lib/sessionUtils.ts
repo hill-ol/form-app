@@ -18,6 +18,7 @@ export interface ActiveExercise {
     sets: ActiveSet[]
     lastWeight?: string
     lastReps?: string
+    suggestedWeight?: string
 }
 
 export function stripWeight(raw: string): string {
