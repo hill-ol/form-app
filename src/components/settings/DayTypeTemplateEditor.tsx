@@ -132,7 +132,7 @@ export default function DayTypeTemplateEditor() {
             day_type: dayType,
             exercise_id: pendingEx.id,
             exercise_name: pendingEx.name,
-            sets: parseInt(pendingSets) || (isCardioDay ? 30 : dayType === 'yoga' ? 60 : 10),
+            sets: parseInt(pendingSets) || (isCardioDay ? 30 : dayType === 'yoga' ? 60 : 3),
             target_distance: isCardioDay && pendingDistance ? parseFloat(pendingDistance) : null,
             display_order: existing.length,
         }
@@ -153,7 +153,7 @@ export default function DayTypeTemplateEditor() {
         setQuery('')
         setFilter(dayType === 'full body' ? 'all' : dayType)
         setPendingEx(null)
-        setPendingSets(dayType === 'cardio' ? '30' : dayType === 'yoga' ? '60' : '10')
+        setPendingSets(dayType === 'cardio' ? '30' : dayType === 'yoga' ? '60' : '3')
         setPendingDistance('')
     }
 
@@ -246,14 +246,14 @@ export default function DayTypeTemplateEditor() {
                                                 value={ex.sets}
                                                 min={1} max={isTimeBased ? 300 : 99}
                                                 onClick={e => e.stopPropagation()}
-                                                onChange={e => handleUpdateField(dayType, ex.exercise_id, 'sets', parseInt(e.target.value) || (isCardio ? 30 : isYoga ? 60 : 10))}
+                                                onChange={e => handleUpdateField(dayType, ex.exercise_id, 'sets', parseInt(e.target.value) || (isCardio ? 30 : isYoga ? 60 : 3))}
                                                 className="text-center font-bold rounded-lg"
                                                 style={{
                                                     width: isTimeBased ? '44px' : '40px', border: '1px solid var(--border)',
                                                     background: 'var(--cream)', fontSize: '13px', padding: '2px 4px',
                                                 }}
                                             />
-                                            <span className="text-xs" style={{ color: 'var(--muted)' }}>{isCardio ? 'min' : isYoga ? 'min' : 'reps'}</span>
+                                            <span className="text-xs" style={{ color: 'var(--muted)' }}>{isCardio ? 'min' : isYoga ? 'min' : 'sets'}</span>
                                             {isCardio && (
                                                 <>
                                                     <input
@@ -352,7 +352,7 @@ export default function DayTypeTemplateEditor() {
                                                         background: '#fff', fontSize: '13px', padding: '2px 4px',
                                                     }}
                                                 />
-                                                <span className="text-xs font-semibold" style={{ color: 'var(--pink-dark)' }}>{isCardio ? 'min' : isYoga ? 'min' : 'reps'}</span>
+                                                <span className="text-xs font-semibold" style={{ color: 'var(--pink-dark)' }}>{isCardio ? 'min' : isYoga ? 'min' : 'sets'}</span>
                                                 {isCardio && (
                                                     <>
                                                         <input
@@ -402,7 +402,7 @@ export default function DayTypeTemplateEditor() {
                                                     }}
                                                     onClick={() => {
                                                         setPendingEx(ex)
-                                                        setPendingSets(isCardio ? '30' : isYoga ? '60' : '10')
+                                                        setPendingSets(isCardio ? '30' : isYoga ? '60' : '3')
                                                     }}>
                                                     <div style={{ flex: 1 }}>
                                                         <div className="flex items-center gap-2">

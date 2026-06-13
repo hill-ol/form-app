@@ -123,10 +123,10 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                             : lib?.currentWeight ? String(parseFloat(lib.currentWeight) || '') : ''
                         const exerciseType = lib?.exerciseType ?? 'strength'
                         const isTimeBased = exerciseType === 'cardio' || exerciseType === 'yoga'
-                        // cardio/yoga: t.sets = minutes → 1 set with duration; others: t.sets = target reps → 3 sets
+                        // cardio/yoga: t.sets = minutes → 1 set with duration; others: t.sets = set count → blank sets
                         const sets: RetroSet[] = isTimeBased
                             ? [{ reps: '', weight: '', duration: String(t.sets), distance: '' }]
-                            : Array.from({ length: 3 }, () => ({ reps: String(t.sets), weight: w, duration: '', distance: '' }))
+                            : Array.from({ length: t.sets }, () => ({ reps: '', weight: w, duration: '', distance: '' }))
                         return {
                             id: t.exercise_id,
                             name: t.exercise_name,
