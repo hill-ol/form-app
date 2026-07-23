@@ -72,20 +72,19 @@ export default function SessionHeader({ dayName, restTimerOn, onToggleTimer, onF
                             width: '36px',
                             height: '20px',
                             borderRadius: '999px',
+                            position: 'relative',
                             background: restTimerOn ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)',
                             padding: '2px',
                             cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            transition: 'background 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                            justifyContent: restTimerOn ? 'flex-end' : 'flex-start',
+                            transition: 'background 0.25s var(--motion-ease-in-out)',
                         }}>
                         <div style={{
                             width: '16px',
                             height: '16px',
                             borderRadius: '50%',
                             background: restTimerOn ? 'var(--pink)' : '#fff',
-                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                            transform: restTimerOn ? 'translateX(16px)' : 'translateX(0)',
+                            transition: 'transform 0.25s var(--motion-ease-in-out), background-color 0.25s var(--motion-ease-in-out)',
                             boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                         }} />
                     </div>

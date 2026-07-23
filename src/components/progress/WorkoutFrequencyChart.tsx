@@ -13,6 +13,7 @@ interface Props {
 export default function WorkoutFrequencyChart({ weeklyData, monthlyData }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const chartRef = useRef<unknown>(null)
+    const hasAnimatedOnce = useRef(false)
     const [range, setRange] = useState<Range>('weekly')
 
     const weekly = weeklyData
@@ -47,9 +48,11 @@ export default function WorkoutFrequencyChart({ weeklyData, monthlyData }: Props
                             ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 4, stepSize: 1 },
                             border: { display: false }
                         }
-                    }
+                    },
+                    animation: hasAnimatedOnce.current ? false : { duration: 600, easing: 'easeOutQuart' },
                 }
             })
+            hasAnimatedOnce.current = true
         }
         init()
         return () => { if (chartRef.current) (chartRef.current as { destroy: () => void }).destroy() }
@@ -66,7 +69,7 @@ export default function WorkoutFrequencyChart({ weeklyData, monthlyData }: Props
                     {(['weekly', 'monthly'] as Range[]).map(r => (
                         <button key={r}
                                 onClick={() => setRange(r)}
-                                className="font-bold rounded-full transition-all active:scale-95"
+                                className="font-bold rounded-full transition active:scale-95"
                                 style={{
                                     padding: '4px 10px', fontSize: '10px', border: 'none', cursor: 'pointer',
                                     background: range === r ? 'var(--pink)' : '#f5f0e8',

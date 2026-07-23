@@ -2,7 +2,7 @@
 
 export default function Template({ children }: { children: React.ReactNode }) {
     return (
-        <div style={{ animation: 'pageFadeIn 0.22s ease both' }}>
+        <div style={{ animation: 'pageFadeIn 0.22s var(--motion-ease-out) both' }}>
             {children}
         </div>
     )

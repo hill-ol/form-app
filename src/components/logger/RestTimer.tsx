@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 
 interface Props {
     seconds: number
@@ -10,6 +11,7 @@ interface Props {
 
 export default function RestTimer({ seconds, onComplete, onSkip }: Props) {
     const [remaining, setRemaining] = useState(seconds)
+    const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
     const onCompleteRef = useRef(onComplete)
     onCompleteRef.current = onComplete
 
@@ -40,7 +42,7 @@ export default function RestTimer({ seconds, onComplete, onSkip }: Props) {
              style={{
                  background: '#fff',
                  border: '1.5px solid var(--pink)',
-                 animation: 'slideInUp 0.2s ease',
+                 animation: reducedMotion ? 'fadeIn 0.2s var(--motion-ease-out)' : 'slideInUp 0.2s var(--motion-ease-out)',
              }}>
             <div>
                 <p className="font-bold uppercase"

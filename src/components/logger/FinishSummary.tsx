@@ -133,7 +133,8 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
         <div className="min-h-screen flex flex-col items-center justify-center px-6 pb-24"
              style={{ backgroundColor: 'var(--cream)' }}>
 
-            <div className="text-center mb-8">
+            <div key={saving ? 'saving' : 'done'} className="text-center mb-8"
+                 style={{ animation: 'cardIn 0.4s var(--motion-ease-out) both' }}>
                 <p className="text-5xl mb-3">
                     {saving ? '⏳' : error ? '⚠️' : '🎉'}
                 </p>
@@ -210,7 +211,7 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
                     )}
                 </div>
 
-                <div className="space-y-2 mb-6">
+                <div className="space-y-2 mb-6 stagger-children">
                     {completedExercises.map(ex => {
                         const done = ex.sets.filter(s => s.completed)
                         const isTimeBased = ex.exerciseType === 'cardio' || ex.exerciseType === 'yoga' || ex.exerciseType === 'hold'

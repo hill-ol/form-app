@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { CalendarDay } from '@/types'
 import { WORKOUT_COLORS, WORKOUT_EMOJI, DAY_TYPE_TO_WORKOUT } from '@/lib/calendarUtils'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import DayPopup from './DayPopup'
 
 const DAY_HEADERS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
@@ -15,6 +16,7 @@ interface Props {
 export default function CalendarGrid({ days, onOverrideSaved }: Props) {
     const [selected, setSelected] = useState<CalendarDay | null>(null)
     const [hovered, setHovered] = useState<number | null>(null)
+    const hoverCapable = useMediaQuery('(hover: hover) and (pointer: fine)')
 
     return (
         <div className="relative">
@@ -57,7 +59,7 @@ export default function CalendarGrid({ days, onOverrideSaved }: Props) {
                         <div
                             key={i}
                             onClick={() => isClickable && setSelected(day)}
-                            onMouseEnter={() => isClickable && setHovered(i)}
+                            onMouseEnter={() => isClickable && hoverCapable && setHovered(i)}
                             onMouseLeave={() => setHovered(null)}
                             className="aspect-square flex flex-col items-center justify-center rounded-xl transition-all duration-150"
                             style={{

@@ -279,7 +279,7 @@ export default function ExerciseCard({
                             color: confirmRemove ? '#DC2626' : '#bbb',
                             border: 'none',
                             cursor: 'pointer',
-                            transition: 'all 0.15s',
+                            transition: 'background-color 0.15s, color 0.15s',
                         }}>
                         {confirmRemove ? 'Remove?' : '×'}
                     </button>
@@ -354,7 +354,7 @@ export default function ExerciseCard({
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: '8px',
                                     transform: `translateX(${swipeOffsets[set.id] ?? 0}px)`,
-                                    transition: (swipeOffsets[set.id] ?? 0) === 0 ? 'transform 0.25s ease' : 'none',
+                                    transition: (swipeOffsets[set.id] ?? 0) === 0 ? 'transform 0.25s var(--motion-ease-out)' : 'none',
                                     background: '#fff',
                                     borderRadius: '12px',
                                     position: 'relative',
@@ -485,7 +485,7 @@ export default function ExerciseCard({
                                             cursor: 'pointer',
                                             fontSize: '18px',
                                             color: isSetReady(set) ? '#fff' : '#ccc',
-                                            transition: 'all 0.15s',
+                                            transition: 'background-color 0.15s, color 0.15s',
                                         }}>
                                         ✓
                                     </button>

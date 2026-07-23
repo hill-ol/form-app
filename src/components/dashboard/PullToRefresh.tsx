@@ -12,28 +12,39 @@ export default function PullToRefresh() {
     const [refreshing, setRefreshing] = useState(false)
     const startY = useRef<number | null>(null)
     const pulling = useRef(false)
+    const lastMove = useRef<{ y: number; t: number }>({ y: 0, t: 0 })
+    const velocity = useRef(0)
 
     useEffect(() => {
         function onTouchStart(e: TouchEvent) {
             // Only activate when already scrolled to top
             if (window.scrollY > 2) return
             startY.current = e.touches[0].clientY
+            lastMove.current = { y: e.touches[0].clientY, t: performance.now() }
+            velocity.current = 0
             pulling.current = true
         }
 
         function onTouchMove(e: TouchEvent) {
             if (!pulling.current || startY.current === null) return
-            const dy = e.touches[0].clientY - startY.current
+            const y = e.touches[0].clientY
+            const now = performance.now()
+            const dt = now - lastMove.current.t
+            if (dt > 0) velocity.current = (y - lastMove.current.y) / dt
+            lastMove.current = { y, t: now }
+
+            const dy = y - startY.current
             if (dy <= 0) { setPullY(0); return }
-            // Resist past threshold — rubber-band feel
-            const clamped = Math.min(dy * 0.45, MAX_PULL)
-            setPullY(clamped)
+            // Progressive resistance — rises as the pull approaches MAX_PULL instead of a flat rate.
+            const resisted = MAX_PULL * (1 - Math.exp(-dy / (MAX_PULL * 1.2)))
+            setPullY(Math.min(resisted, MAX_PULL))
         }
 
         function onTouchEnd() {
             if (!pulling.current) return
             pulling.current = false
-            if (pullY >= THRESHOLD) {
+            const isFlick = velocity.current > 0.5 && pullY >= THRESHOLD * 0.7
+            if (pullY >= THRESHOLD || isFlick) {
                 setRefreshing(true)
                 setPullY(0)
                 router.refresh()

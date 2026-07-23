@@ -58,7 +58,7 @@ export default function MoodCheckIn() {
                     <button
                         key={level}
                         onClick={() => handleSelect(level)}
-                        className="flex-1 py-2 rounded-full text-lg transition-all active:scale-95"
+                        className="flex-1 py-2 rounded-full text-lg transition active:scale-95"
                         style={{
                             border: selected === level ? '1.5px solid var(--pink)' : '1.5px solid var(--border)',
                             background: selected === level ? 'var(--pink-light)' : 'var(--cream)',
@@ -70,7 +70,7 @@ export default function MoodCheckIn() {
             </div>
             <button
                 onClick={toggleStress}
-                className="w-full py-1.5 rounded-full text-xs font-bold transition-all active:scale-95"
+                className="w-full py-1.5 rounded-full text-xs font-bold transition active:scale-95"
                 style={{
                     border: stressed ? '1.5px solid #F59E0B' : '1.5px solid var(--border)',
                     background: stressed ? '#FEF3C7' : 'var(--cream)',

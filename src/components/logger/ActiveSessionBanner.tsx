@@ -2,16 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
+import { DAY_LABEL } from '@/lib/constants'
 
 const SESSION_KEY = 'form_active_session'
 
-const DAY_LABEL: Record<string, string> = {
-    push: 'Push Day', pull: 'Pull Day', legs: 'Legs Day',
-    cardio: 'Cardio', yoga: 'Yoga', 'full body': 'Full Body', rest: 'Rest',
-}
-
 export default function ActiveSessionBanner() {
     const [session, setSession] = useState<{ dayType: string } | null>(null)
+    const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
     const pathname = usePathname()
     const router = useRouter()
 
@@ -52,7 +50,7 @@ export default function ActiveSessionBanner() {
                 boxShadow: '0 4px 24px rgba(0,0,0,0.28)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                animation: 'slideInDown 0.3s cubic-bezier(0.32,0.72,0,1)',
+                animation: reducedMotion ? 'fadeInOpacityOnly 0.2s var(--motion-ease-out)' : 'slideInDown 0.3s var(--motion-ease-drawer)',
             }}>
             <span style={{ fontSize: '13px' }}>⚡</span>
             <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.01em' }}>
