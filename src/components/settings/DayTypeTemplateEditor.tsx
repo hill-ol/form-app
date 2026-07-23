@@ -2,20 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import SwipeToDelete from '@/components/ui/SwipeToDelete'
+import { DAY_EMOJI, DAY_LABEL as DAY_LABELS, WORKOUT_DAY_TYPES as DAY_TYPES, EXERCISE_FILTER_DAY_TYPES as DAY_FILTERS } from '@/lib/constants'
+import { ExerciseLibraryRow } from '@/lib/dbTypes'
+import { Exercise } from '@/types'
 
-const DAY_TYPES = ['push', 'pull', 'legs', 'full body', 'cardio', 'yoga'] as const
 type DayType = typeof DAY_TYPES[number]
-
-const DAY_LABELS: Record<DayType, string> = {
-    push: 'Push Day', pull: 'Pull Day', legs: 'Legs Day',
-    'full body': 'Full Body', cardio: 'Cardio', yoga: 'Yoga',
-}
-
-const DAY_EMOJI: Record<DayType, string> = {
-    push: '🏋️', pull: '🏋️', legs: '🦵', 'full body': '🤸', cardio: '🏃', yoga: '🧘',
-}
-
-const DAY_FILTERS = ['all', 'push', 'pull', 'legs', 'cardio', 'yoga', 'full body']
 
 const TAG_COLORS: Record<string, string> = {
     push: '#FDE8F0', pull: '#FDE8F0', legs: '#FDE8F0',
@@ -59,7 +50,7 @@ export default function DayTypeTemplateEditor() {
             const { getCustomExercises } = await import('@/lib/db')
             const custom = await getCustomExercises()
             const { EXERCISE_LIBRARY } = await import('@/lib/placeholder')
-            const builtIn = EXERCISE_LIBRARY.map((e: any) => ({
+            const builtIn = EXERCISE_LIBRARY.map((e: Exercise) => ({
                 id: e.id, name: e.name,
                 primaryMuscle: e.primaryMuscle,
                 movementType: e.movementType,
@@ -67,13 +58,13 @@ export default function DayTypeTemplateEditor() {
                 dayType: e.dayType,
                 exerciseType: e.exerciseType,
             }))
-            const customMapped = custom.map((e: any) => ({
+            const customMapped = custom.map((e: ExerciseLibraryRow) => ({
                 id: e.id, name: e.name,
                 primaryMuscle: e.primary_muscle ?? '',
                 movementType: e.movement_type ?? '',
                 equipment: e.equipment ?? [],
                 dayType: e.day_types ?? [],
-                exerciseType: e.exercise_type,
+                exerciseType: e.exercise_type ?? undefined,
             }))
             const seen = new Set<string>()
             const merged: LibraryExercise[] = []
@@ -395,7 +386,7 @@ export default function DayTypeTemplateEditor() {
                                             {pickerList.map((ex, i) => (
                                                 <div
                                                     key={ex.id}
-                                                    className="flex items-center justify-between px-4 py-3 cursor-pointer transition-all"
+                                                    className="flex items-center justify-between px-4 py-3 cursor-pointer transition active:scale-[0.98]"
                                                     style={{
                                                         borderBottom: i < pickerList.length - 1 ? '0.5px solid #f5f0e8' : 'none',
                                                         background: pendingEx?.id === ex.id ? 'var(--pink-light)' : 'transparent',

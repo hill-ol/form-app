@@ -25,7 +25,7 @@ import DashboardGreeting from '@/components/dashboard/DashboardGreeting'
 import CyclePhaseCard from '@/components/dashboard/CyclePhaseCard'
 import { getProgressionSuggestions } from '@/lib/db'
 import { getCyclePhaseFromLogs } from '@/lib/cycleUtils'
-import { WorkoutSession, DayTemplate } from '@/types'
+import { WorkoutSession, WorkoutType, DayType, DayTemplate } from '@/types'
 import PullToRefresh from '@/components/dashboard/PullToRefresh'
 
 export default async function DashboardPage() {
@@ -58,11 +58,11 @@ export default async function DashboardPage() {
         ? await getLastSessionByDayType(todayTemplate.dayType).catch(() => null)
         : null
 
-    const mappedRecent: WorkoutSession[] = recentSessions.map((s: any) => ({
+    const mappedRecent: WorkoutSession[] = recentSessions.map(s => ({
         id: s.id,
         date: s.date.split('T')[0],
-        type: s.workout_type,
-        dayType: s.day_type,
+        type: s.workout_type as WorkoutType,
+        dayType: s.day_type as DayType,
         name: s.name,
         duration: s.duration_seconds
             ? Math.floor(s.duration_seconds / 60)
@@ -79,15 +79,15 @@ export default async function DashboardPage() {
         const dayDate = new Date(startOfWeek)
         dayDate.setDate(startOfWeek.getDate() + i)
         const isoDate = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`
-        const found = (monthSessions as any[]).find(
-            (s: any) => s.date.split('T')[0] === isoDate
+        const found = monthSessions.find(
+            s => s.date.split('T')[0] === isoDate
         )
         if (!found) return null
         return {
             id: found.id,
             date: found.date.split('T')[0],
-            type: found.workout_type,
-            dayType: found.day_type,
+            type: found.workout_type as WorkoutType,
+            dayType: found.day_type as DayType,
             name: found.name,
             duration: found.duration_seconds
                 ? Math.floor(found.duration_seconds / 60)
@@ -112,7 +112,7 @@ export default async function DashboardPage() {
                 reps: 0,
                 weight: '60',
                 progressReady: false,
-                exerciseType: 'yoga' as any,
+                exerciseType: 'yoga',
             }]
         }
 
@@ -140,12 +140,12 @@ export default async function DashboardPage() {
 
         if (!lastSameDaySession) return []
 
-        const exLogs = (lastSameDaySession as any).exercise_logs ?? []
+        const exLogs = lastSameDaySession.exercise_logs ?? []
         if (exLogs.length === 0) return []
 
-        return exLogs.map((ex: any) => {
-            const sets = (ex.set_logs ?? []).filter((s: any) => s.completed)
-            const topSet = sets.sort((a: any, b: any) =>
+        return exLogs.map(ex => {
+            const sets = (ex.set_logs ?? []).filter(s => s.completed)
+            const topSet = sets.sort((a, b) =>
                 (b.weight_lbs ?? 0) - (a.weight_lbs ?? 0)
             )[0]
             const suggestedWeight = (progressionSuggestions as Record<string, number>)[ex.exercise_id]
@@ -165,12 +165,12 @@ export default async function DashboardPage() {
 
     const todayWorkout = {
         ...PLACEHOLDER_DASHBOARD.todayWorkout,
-        dayType: (todayTemplate?.dayType ?? 'push') as any,
+        dayType: todayTemplate?.dayType ?? 'push',
         name: todayTemplate?.label ?? PLACEHOLDER_DASHBOARD.todayWorkout.name,
         type: todayTemplate
             ? (todayTemplate.dayType === 'cardio' ? 'cardio'
                 : todayTemplate.dayType === 'yoga' ? 'yoga'
-                    : 'strength') as any
+                    : 'strength')
             : PLACEHOLDER_DASHBOARD.todayWorkout.type,
         exercises: buildTodayExercises(),
     }
@@ -190,8 +190,8 @@ export default async function DashboardPage() {
 
     const estimatedDuration = (() => {
         if (!lastSameDaySession) return '45–60 min'
-        const mins = (lastSameDaySession as any).duration_seconds
-            ? Math.floor((lastSameDaySession as any).duration_seconds / 60)
+        const mins = lastSameDaySession.duration_seconds
+            ? Math.floor(lastSameDaySession.duration_seconds / 60)
             : null
         if (!mins) return '45–60 min'
         const rounded = Math.round(mins / 5) * 5

@@ -5,12 +5,15 @@ import { EXERCISE_LIBRARY } from '@/lib/placeholder'
 import { Exercise } from '@/types'
 import CalendarPopupPortal from '@/components/calendar/CalendarPopupPortal'
 import SwipeToDelete from '@/components/ui/SwipeToDelete'
+import { EXERCISE_FILTER_DAY_TYPES, WORKOUT_DAY_TYPES } from '@/lib/constants'
+import { ExerciseLibraryRow } from '@/lib/dbTypes'
+import { DayType, MuscleGroup, Equipment, MovementType } from '@/types'
 
-const DAY_FILTERS = ['all', 'push', 'pull', 'legs', 'cardio', 'yoga', 'full body']
+const DAY_FILTERS: readonly string[] = EXERCISE_FILTER_DAY_TYPES
 const MUSCLE_GROUPS = ['chest', 'shoulders', 'triceps', 'back', 'biceps', 'forearms', 'quads', 'hamstrings', 'glutes', 'calves', 'core', 'full body']
 const EQUIPMENT_OPTIONS = ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight', 'kettlebell', 'resistance band']
 const MOVEMENT_TYPES = ['compound', 'isolation']
-const DAY_TYPE_OPTIONS = ['push', 'pull', 'legs', 'cardio', 'yoga', 'full body']
+const DAY_TYPE_OPTIONS: readonly string[] = WORKOUT_DAY_TYPES
 const EXERCISE_TYPES: { value: string; label: string; description: string }[] = [
     { value: 'strength',   label: 'Strength',   description: 'Reps + weight (e.g. bench press)' },
     { value: 'bodyweight', label: 'Bodyweight',  description: 'Reps + optional band/vest (e.g. pull-ups)' },
@@ -44,17 +47,17 @@ export default function ExerciseLibraryEditor() {
             try {
                 const { getCustomExercises } = await import('@/lib/db')
                 const dbRows = await getCustomExercises()
-                const mapped: Exercise[] = dbRows.map((ex: any) => ({
+                const mapped: Exercise[] = dbRows.map((ex: ExerciseLibraryRow) => ({
                     id: ex.id,
                     name: ex.name,
-                    dayType: ex.day_types ?? [],
-                    muscleGroups: ex.muscle_groups ?? [],
-                    primaryMuscle: ex.primary_muscle ?? '',
-                    equipment: ex.equipment ?? [],
-                    movementType: ex.movement_type ?? '',
+                    dayType: (ex.day_types ?? []) as DayType[],
+                    muscleGroups: (ex.muscle_groups ?? []) as MuscleGroup[],
+                    primaryMuscle: (ex.primary_muscle ?? '') as MuscleGroup,
+                    equipment: (ex.equipment ?? []) as Equipment[],
+                    movementType: (ex.movement_type ?? '') as MovementType,
                     currentWeight: ex.current_weight ? String(ex.current_weight) : undefined,
-                    exerciseType: ex.exercise_type ?? undefined,
-                    notes: ex.notes,
+                    exerciseType: (ex.exercise_type ?? undefined) as Exercise['exerciseType'],
+                    notes: ex.notes ?? undefined,
                 }))
                 // DB rows win over built-ins — first-seen-wins merge
                 const seen = new Set<string>()
@@ -117,9 +120,9 @@ export default function ExerciseLibraryEditor() {
                 notes: editing.exercise.notes,
                 isCustom: editing.isNew,
             })
-        } catch (e: any) {
+        } catch (e) {
             console.error('Failed to save exercise to Supabase:', e)
-            setSaveError(e?.message ?? 'Failed to save — check your connection.')
+            setSaveError(e instanceof Error ? e.message : 'Failed to save — check your connection.')
             return
         }
 
@@ -210,7 +213,7 @@ export default function ExerciseLibraryEditor() {
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
-                                className="flex-shrink-0 font-bold rounded-full transition-all active:scale-95"
+                                className="flex-shrink-0 font-bold rounded-full transition active:scale-95"
                                 style={{
                                     padding: '4px 10px', fontSize: '10px', border: 'none', cursor: 'pointer',
                                     background: filter === f ? 'var(--pink)' : '#f5f0e8',
@@ -226,7 +229,7 @@ export default function ExerciseLibraryEditor() {
                     {filtered.map((ex, i) => (
                         <SwipeToDelete key={ex.id} onDelete={() => deleteExercise(ex.id)}>
                         <div
-                            className="flex items-center justify-between px-4 py-3 cursor-pointer transition-all"
+                            className="flex items-center justify-between px-4 py-3 cursor-pointer transition-transform active:scale-[0.98]"
                             style={{
                                 borderBottom: i < filtered.length - 1 ? '0.5px solid #f5f0e8' : 'none',
                             }}

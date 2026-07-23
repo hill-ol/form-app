@@ -15,12 +15,14 @@ import { loadProgressData, ProgressData } from '@/lib/progressData'
 
 export default function ProgressPage() {
     const [data, setData] = useState<ProgressData | null>(null)
+    const [loading, setLoading] = useState(true)
     const [selectedExercise, setSelectedExercise] = useState<string | null>(null)
 
     useEffect(() => {
         loadProgressData()
             .then(setData)
             .catch(() => setData(null))
+            .finally(() => setLoading(false))
     }, [])
 
     function handleSelectExercise(name: string) {
@@ -42,7 +44,7 @@ export default function ProgressPage() {
                      style={{ background: 'var(--pink-light)', color: 'var(--pink)' }}>O</div>
             </div>
 
-            <main className="max-w-2xl mx-auto px-4 pt-2 pb-24 md:pb-10">
+            <main className="max-w-2xl mx-auto px-4 pt-2 pb-24 md:pb-10 space-y-3 stagger-children">
                 <div className="mb-3">
                     <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--muted)' }}>
                         good work,
@@ -52,39 +54,50 @@ export default function ProgressPage() {
                     </p>
                 </div>
 
-                <AiRecapCard
-                    workoutsThisWeek={data?.stats.workoutsThisWeek ?? 0}
-                    weeklyGoal={data?.stats.weeklyGoal ?? 5}
-                    avgSleep={data?.stats.avgSleep ?? 0}
-                    streak={data?.stats.streak ?? 0}
-                />
+                {loading ? (
+                    <div className="space-y-3">
+                        {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                            <div key={i} className="h-24 rounded-2xl animate-pulse"
+                                 style={{ background: '#f5f0e8' }} />
+                        ))}
+                    </div>
+                ) : (
+                    <>
+                        <AiRecapCard
+                            workoutsThisWeek={data?.stats.workoutsThisWeek ?? 0}
+                            weeklyGoal={data?.stats.weeklyGoal ?? 5}
+                            avgSleep={data?.stats.avgSleep ?? 0}
+                            streak={data?.stats.streak ?? 0}
+                        />
 
-                <StatsBar
-                    workoutsThisMonth={data?.stats.workoutsThisMonth ?? 0}
-                    avgSleep={data?.stats.avgSleep ?? 0}
-                    streak={data?.stats.streak ?? 0}
-                />
+                        <StatsBar
+                            workoutsThisMonth={data?.stats.workoutsThisMonth ?? 0}
+                            avgSleep={data?.stats.avgSleep ?? 0}
+                            streak={data?.stats.streak ?? 0}
+                        />
 
-                <WorkoutFrequencyChart
-                    weeklyData={data?.weeklyWorkouts ?? []}
-                    monthlyData={data?.monthlyWorkouts ?? []}
-                />
+                        <WorkoutFrequencyChart
+                            weeklyData={data?.weeklyWorkouts ?? []}
+                            monthlyData={data?.monthlyWorkouts ?? []}
+                        />
 
-                <div id="exercise-chart">
-                    <ExerciseProgressChart
-                        exerciseHistory={data?.exerciseHistory ?? {}}
-                        initialExercise={selectedExercise ?? undefined}
-                    />
-                </div>
+                        <div id="exercise-chart">
+                            <ExerciseProgressChart
+                                exerciseHistory={data?.exerciseHistory ?? {}}
+                                initialExercise={selectedExercise ?? undefined}
+                            />
+                        </div>
 
-                <SleepChart sleepData={data?.sleepData ?? []} />
-                <SleepVsPerformance scatterData={data?.scatterData ?? []} />
-                <MoodVsPerformance moodData={data?.moodData ?? []} />
+                        <SleepChart sleepData={data?.sleepData ?? []} />
+                        <SleepVsPerformance scatterData={data?.scatterData ?? []} />
+                        <MoodVsPerformance moodData={data?.moodData ?? []} moodScatterData={data?.moodScatterData ?? []} />
 
-                <PersonalRecords
-                    records={data?.personalRecords ?? []}
-                    onSelectExercise={handleSelectExercise}
-                />
+                        <PersonalRecords
+                            records={data?.personalRecords ?? []}
+                            onSelectExercise={handleSelectExercise}
+                        />
+                    </>
+                )}
             </main>
 
             <BottomNav />

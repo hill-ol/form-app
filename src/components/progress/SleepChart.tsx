@@ -11,6 +11,7 @@ interface Props {
 export default function SleepChart({ sleepData }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const chartRef = useRef<unknown>(null)
+    const hasAnimatedOnce = useRef(false)
     const [showLog, setShowLog] = useState(false)
 
     const avg = sleepData.length
@@ -48,12 +49,14 @@ export default function SleepChart({ sleepData }: Props) {
                         y: {
                             min: 0, max: 11,
                             grid: { color: '#f5f0e8' },
-                            ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 4, callback: (v: any) => v + 'h' },
+                            ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 4, callback: (v) => v + 'h' },
                             border: { display: false }
                         }
-                    }
+                    },
+                    animation: hasAnimatedOnce.current ? false : { duration: 600, easing: 'easeOutQuart' },
                 }
             })
+            hasAnimatedOnce.current = true
         }
         init()
         return () => { if (chartRef.current) (chartRef.current as { destroy: () => void }).destroy() }
@@ -68,7 +71,7 @@ export default function SleepChart({ sleepData }: Props) {
                        style={{ fontSize: '11px', color: '#888' }}>Sleep</p>
                     <button
                         onClick={() => setShowLog(true)}
-                        className="font-bold rounded-full transition-all active:scale-95"
+                        className="font-bold rounded-full transition active:scale-95"
                         style={{
                             padding: '5px 12px', fontSize: '10px', border: 'none',
                             cursor: 'pointer', background: 'var(--pink)', color: '#fff',

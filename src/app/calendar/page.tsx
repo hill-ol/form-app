@@ -8,7 +8,7 @@ import AddWorkoutSheet from '@/components/calendar/AddWorkoutSheet'
 import RetroLogSheet from '@/components/calendar/RetroLogSheet'
 import { getCalendarDays, WORKOUT_COLORS } from '@/lib/calendarUtils'
 import { PLACEHOLDER_DASHBOARD, DEFAULT_WEEK_TEMPLATE } from '@/lib/placeholder'
-import { DayTemplate } from '@/types'
+import { DayTemplate, WorkoutSession, WorkoutType, DayType } from '@/types'
 
 const WORKOUT_TYPES = ['strength', 'cardio', 'yoga', 'bodyweight'] as const
 const WORKOUT_LABELS: Record<string, string> = {
@@ -24,7 +24,8 @@ export default function CalendarPage() {
     const [retroSession, setRetroSession] = useState<{ date: string; dayType: string } | null>(null)
     const [template, setTemplate] = useState<DayTemplate[]>(DEFAULT_WEEK_TEMPLATE)
     const [overrides, setOverrides] = useState<Record<string, string>>({})
-    const [sessions, setSessions] = useState<any[]>([])
+    const [sessions, setSessions] = useState<WorkoutSession[]>([])
+    const [loading, setLoading] = useState(true)
 
     const loadCalendarData = useCallback(async () => {
         try {
@@ -42,11 +43,11 @@ export default function CalendarPage() {
             for (const o of ov) ovMap[o.date] = o.day_type
             setOverrides(ovMap)
 
-            setSessions(sess.map((s: any) => ({
+            setSessions(sess.map(s => ({
                 id: s.id,
                 date: s.date.split('T')[0],
-                type: s.workout_type,
-                dayType: s.day_type,
+                type: s.workout_type as WorkoutType,
+                dayType: s.day_type as DayType,
                 name: s.name,
                 duration: s.duration_seconds
                     ? Math.floor(s.duration_seconds / 60)
@@ -54,6 +55,8 @@ export default function CalendarPage() {
             })))
         } catch (e) {
             console.error('Failed to load calendar data:', e)
+        } finally {
+            setLoading(false)
         }
     }, [year, month])
 
@@ -90,7 +93,7 @@ export default function CalendarPage() {
                      style={{ background: 'var(--pink-light)', color: 'var(--pink)' }}>O</div>
             </div>
 
-            <main className="max-w-2xl mx-auto px-4 pt-2 pb-24 md:pb-10">
+            <main className="max-w-2xl mx-auto px-4 pt-2 pb-24 md:pb-10 space-y-3 stagger-children">
                 <div className="bg-white rounded-2xl overflow-hidden relative"
                      style={{ border: '0.5px solid var(--border)' }}>
 
@@ -99,7 +102,7 @@ export default function CalendarPage() {
                         <div className="flex items-center gap-0">
                             <button
                                 onClick={prevMonth}
-                                className="flex items-center justify-center rounded-full transition-all active:scale-95"
+                                className="flex items-center justify-center rounded-full transition active:scale-95"
                                 style={{ width: '36px', height: '36px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>
                                 ‹
                             </button>
@@ -108,7 +111,7 @@ export default function CalendarPage() {
                             </span>
                             <button
                                 onClick={nextMonth}
-                                className="flex items-center justify-center rounded-full transition-all active:scale-95"
+                                className="flex items-center justify-center rounded-full transition active:scale-95"
                                 style={{ width: '36px', height: '36px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>
                                 ›
                             </button>
@@ -145,7 +148,14 @@ export default function CalendarPage() {
                     </div>
 
                     <div key={view} style={{ animation: 'viewSwitch 0.2s ease both' }}>
-                    {view === 'calendar' ? (
+                    {loading ? (
+                        <div className="p-4 space-y-2">
+                            {[1, 2, 3, 4, 5].map(i => (
+                                <div key={i} className="h-10 rounded-xl animate-pulse"
+                                     style={{ background: '#f5f0e8' }} />
+                            ))}
+                        </div>
+                    ) : view === 'calendar' ? (
                         <>
                             <CalendarGrid
                                 days={days}

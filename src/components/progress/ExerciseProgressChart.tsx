@@ -11,6 +11,7 @@ interface Props {
 export default function ExerciseProgressChart({ exerciseHistory, initialExercise }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const chartRef = useRef<unknown>(null)
+    const hasAnimatedOnce = useRef(false)
     const exercises = Object.keys(exerciseHistory)
     const [selected, setSelected] = useState<string>(
         initialExercise && exerciseHistory[initialExercise]
@@ -75,15 +76,17 @@ export default function ExerciseProgressChart({ exerciseHistory, initialExercise
                             grid: { color: '#f5f0e8' },
                             ticks: {
                                 font: { size: 9 }, color: '#aaa', maxTicksLimit: 4,
-                                callback: (v: any) => isHoldChart
-                                    ? (v >= 60 ? `${Math.floor(v/60)}:${String(v%60).padStart(2,'0')}` : `${v}s`)
+                                callback: (v) => isHoldChart
+                                    ? (+v >= 60 ? `${Math.floor(+v/60)}:${String(+v%60).padStart(2,'0')}` : `${v}s`)
                                     : v + ' lbs'
                             },
                             border: { display: false }
                         }
-                    }
+                    },
+                    animation: hasAnimatedOnce.current ? false : { duration: 600, easing: 'easeOutQuart' },
                 }
             })
+            hasAnimatedOnce.current = true
         }
         init()
         return () => {
