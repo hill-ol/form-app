@@ -1,0 +1,23 @@
+# Render Blueprint reference — mirrors the manual dashboard setup described
+# in README.md. Only useful if you connect this repo to Render and let it
+# auto-detect the blueprint; the manual "deploy an existing image" flow in
+# the dashboard (no repo connection needed) is the faster path and what
+# README.md walks through step by step.
+
+services:
+  - type: web
+    name: form-app-db-api
+    runtime: image
+    image:
+      url: docker.io/postgrest/postgrest:v12.2.3
+    plan: free
+    region: oregon # pick whichever is closest to your Neon project's region
+    envVars:
+      - key: PGRST_DB_SCHEMA
+        value: public
+      - key: PGRST_DB_ANON_ROLE
+        value: web_anon
+      - key: PGRST_SERVER_PORT
+        value: "3000"
+      - key: PGRST_DB_URI
+        sync: false # set manually in the dashboard — this is the Neon secret

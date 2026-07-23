@@ -1,0 +1,28 @@
+# Fly.io app config for the standalone PostgREST API in front of Neon.
+# Deploy from this directory with: fly launch --copy-config --no-deploy
+# (first time) then: fly deploy
+#
+# The database connection string is a secret, not set here — see
+# postgrest/README.md for the `fly secrets set PGRST_DB_URI=...` step.
+
+app = "form-app-db-api" # must be globally unique on Fly — rename if taken
+primary_region = "iad"  # pick the region closest to you; must match Neon's region
+
+[build]
+  image = "postgrest/postgrest:v12.2.3"
+
+[env]
+  PGRST_DB_SCHEMA = "public"
+  PGRST_DB_ANON_ROLE = "web_anon"
+  PGRST_SERVER_PORT = "3000"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
