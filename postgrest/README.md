@@ -65,6 +65,7 @@ in production. Tear down with `docker compose down -v` when done.
    | `PGRST_DB_SCHEMA` | `public` |
    | `PGRST_DB_ANON_ROLE` | `web_anon` |
    | `PGRST_SERVER_PORT` | `3000` |
+   | `PGRST_DB_PREPARED_STATEMENTS` | `false` |
 8. Create Web Service. Render will pull the image and deploy — first deploy takes
    a minute or two.
 
@@ -117,5 +118,18 @@ data instead of showing the old "Failed to load..." errors.
   run migrations by hand. Keep `../db/schema.sql` updated as the source of truth.
 - **Backups**: Neon's free tier keeps point-in-time recovery for a short window;
   don't rely on it long-term for data you can't afford to lose.
+- **`08P01: prepared statement "..." already exists` / `already in use` errors**:
+  Neon's connection string is usually the *pooled* endpoint (hostname contains
+  `-pooler`), which routes through Neon's built-in PgBouncer in transaction
+  mode. PostgREST enables server-side prepared statements by default, but
+  those don't survive transaction-mode pooling — each transaction can land on
+  a different physical backend connection, so a statement name prepared on
+  one connection collides with (or vanishes from under) another. Fixed by
+  setting `PGRST_DB_PREPARED_STATEMENTS=false`, which makes PostgREST use the
+  simple query protocol instead. If this ever recurs, confirm that env var is
+  still set on the Render service (it's not something the app or schema
+  controls) — or switch `PGRST_DB_URI` to Neon's *unpooled* connection string
+  instead, at the cost of PostgREST managing its own connection limit against
+  Neon directly.
 - **`fly.toml` / `docker-compose.yml`'s Fly bits**: left in place in case you add
   a card to Fly later and want to switch — nothing else in this folder depends on it.

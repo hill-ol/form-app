@@ -19,5 +19,7 @@ services:
         value: web_anon
       - key: PGRST_SERVER_PORT
         value: "3000"
+      - key: PGRST_DB_PREPARED_STATEMENTS
+        value: "false" # required when PGRST_DB_URI points at Neon's pooled endpoint (transaction-mode PgBouncer) — see README.md
       - key: PGRST_DB_URI
         sync: false # set manually in the dashboard — this is the Neon secret
