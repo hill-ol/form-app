@@ -1,16 +1,18 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { MoodPoint } from '@/lib/progressData'
+import { MoodPoint, ScatterPoint } from '@/lib/progressData'
+import { pearsonCorrelation, describeCorrelation } from '@/lib/progressUtils'
 
 const MOOD_LABELS = ['😴 Tired', '😐 Meh', '🙂 Good', '💪 Strong', '🔥 Fired']
 const MOOD_COLORS = ['#f0e8da', '#e8e0d0', '#E8417A88', '#E8417ABB', '#E8417A']
 
 interface Props {
     moodData: MoodPoint[]
+    moodScatterData: ScatterPoint[]
 }
 
-export default function MoodVsPerformance({ moodData }: Props) {
+export default function MoodVsPerformance({ moodData, moodScatterData }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const chartRef = useRef<unknown>(null)
 
@@ -22,6 +24,12 @@ export default function MoodVsPerformance({ moodData }: Props) {
     const pct = firedAvg && tiredAvg
         ? Math.round(((firedAvg - tiredAvg) / tiredAvg) * 100)
         : null
+
+    // Computed on the raw per-session (mood, weight) pairs, not the bucketed
+    // averages above -- averaging first would throw away the variance a
+    // correlation coefficient needs.
+    const r = pearsonCorrelation(moodScatterData)
+    const correlation = r !== null ? describeCorrelation(r) : null
 
     useEffect(() => {
         async function init() {
@@ -55,7 +63,7 @@ export default function MoodVsPerformance({ moodData }: Props) {
                         legend: { display: false },
                         tooltip: {
                             enabled: false,
-                            external: (context: any) => {
+                            external: (context) => {
                                 const { chart, tooltip } = context
                                 const el = document.getElementById('mood-tooltip')
                                 if (!el) return
@@ -76,7 +84,7 @@ export default function MoodVsPerformance({ moodData }: Props) {
                         x: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#888', maxRotation: 0 } },
                         y: {
                             grid: { color: '#f5f0e8' },
-                            ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 4, callback: (v: any) => v + ' lbs' },
+                            ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 4, callback: (v) => v + ' lbs' },
                             border: { display: false }
                         }
                     }
@@ -104,9 +112,14 @@ export default function MoodVsPerformance({ moodData }: Props) {
           by energy
         </span>
             </div>
-            <p className="mb-3" style={{ fontSize: '10px', color: 'var(--muted)' }}>
+            <p className="mb-1" style={{ fontSize: '10px', color: 'var(--muted)' }}>
                 Avg weight lifted by energy level
             </p>
+            {correlation && (
+                <p className="mb-3" style={{ fontSize: '10px', color: 'var(--pink-dark)', fontWeight: 700 }}>
+                    r = {r!.toFixed(2)} · {correlation.strength}{correlation.direction !== 'none' ? ` ${correlation.direction}` : ''} correlation
+                </p>
+            )}
             {!hasData ? (
                 <div className="flex items-center justify-center h-24"
                      style={{ color: 'var(--muted)', fontSize: '12px' }}>

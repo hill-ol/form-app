@@ -76,3 +76,48 @@ export function linearRegression(points: { x: number; y: number }[]) {
     const b = (sumY - m * sumX) / n
     return { m, b }
 }
+
+/**
+ * Pearson correlation coefficient (r), in [-1, 1]. Returns null when there
+ * isn't enough variation to say anything meaningful (fewer than 3 points, or
+ * every x or every y value identical -- division by zero otherwise).
+ */
+export function pearsonCorrelation(points: { x: number; y: number }[]): number | null {
+    const n = points.length
+    if (n < 3) return null
+
+    const meanX = points.reduce((a, p) => a + p.x, 0) / n
+    const meanY = points.reduce((a, p) => a + p.y, 0) / n
+
+    let covariance = 0
+    let varX = 0
+    let varY = 0
+    for (const p of points) {
+        const dx = p.x - meanX
+        const dy = p.y - meanY
+        covariance += dx * dy
+        varX += dx * dx
+        varY += dy * dy
+    }
+
+    if (varX === 0 || varY === 0) return null
+    return covariance / Math.sqrt(varX * varY)
+}
+
+export interface CorrelationDescription {
+    strength: 'negligible' | 'weak' | 'moderate' | 'strong' | 'very strong'
+    direction: 'positive' | 'negative' | 'none'
+}
+
+/** Human-readable strength/direction bucketing for a Pearson r value. */
+export function describeCorrelation(r: number): CorrelationDescription {
+    const abs = Math.abs(r)
+    const strength: CorrelationDescription['strength'] =
+        abs < 0.1 ? 'negligible' :
+        abs < 0.3 ? 'weak' :
+        abs < 0.5 ? 'moderate' :
+        abs < 0.7 ? 'strong' : 'very strong'
+    const direction: CorrelationDescription['direction'] =
+        abs < 0.1 ? 'none' : r > 0 ? 'positive' : 'negative'
+    return { strength, direction }
+}

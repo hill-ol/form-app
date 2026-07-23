@@ -5,6 +5,8 @@ import {
     getHoldPersonalRecords,
     getCurrentStreak,
 } from './db'
+import { parseLocalDate } from './dateUtils'
+import { WorkoutSessionWithExercises, SleepLogRow } from './dbTypes'
 
 export interface ProgressStats {
     streak: number
@@ -54,6 +56,7 @@ export interface ProgressData {
     sleepData: SleepPoint[]
     scatterData: ScatterPoint[]
     moodData: MoodPoint[]
+    moodScatterData: ScatterPoint[]
     personalRecords: { exercise: string; weight: number; date: string; duration?: number; isHold?: boolean }[]
 }
 
@@ -70,20 +73,20 @@ export async function loadProgressData(): Promise<ProgressData> {
     const thisMonth = now.getMonth()
     const thisYear = now.getFullYear()
 
-    const workoutsThisMonth = sessions.filter((s: any) => {
-        const d = new Date(s.date)
+    const workoutsThisMonth = sessions.filter(s => {
+        const d = parseLocalDate(s.date)
         return d.getMonth() === thisMonth && d.getFullYear() === thisYear
     }).length
 
     const startOfWeek = new Date(now)
     startOfWeek.setDate(now.getDate() - now.getDay())
     startOfWeek.setHours(0, 0, 0, 0)
-    const workoutsThisWeek = sessions.filter((s: any) => {
-        return new Date(s.date) >= startOfWeek
+    const workoutsThisWeek = sessions.filter(s => {
+        return parseLocalDate(s.date) >= startOfWeek
     }).length
 
     const avgSleep = sleepLogs.length
-        ? parseFloat((sleepLogs.reduce((a: number, s: any) => a + s.hours, 0) / sleepLogs.length).toFixed(1))
+        ? parseFloat((sleepLogs.reduce((a, s) => a + s.hours, 0) / sleepLogs.length).toFixed(1))
         : 0
 
     const weeklyWorkouts = buildWeeklyWorkouts(sessions)
@@ -92,6 +95,7 @@ export async function loadProgressData(): Promise<ProgressData> {
     const sleepData = buildSleepData(sleepLogs)
     const scatterData = buildScatterData(sessions, sleepLogs)
     const moodData = buildMoodData(sessions)
+    const moodScatterData = buildMoodScatterData(sessions)
 
     return {
         stats: { streak, avgSleep, workoutsThisMonth, workoutsThisWeek, weeklyGoal: 5 },
@@ -101,98 +105,112 @@ export async function loadProgressData(): Promise<ProgressData> {
         sleepData,
         scatterData,
         moodData,
+        moodScatterData,
         personalRecords: [...prs, ...holdPrs],
     }
 }
 
-function buildWeeklyWorkouts(sessions: any[]): WeeklyWorkoutPoint[] {
-    const weeks: Record<string, number> = {}
+export function buildWeeklyWorkouts(sessions: WorkoutSessionWithExercises[]): WeeklyWorkoutPoint[] {
+    const weeks: Record<string, { count: number; date: Date }> = {}
     sessions.forEach(s => {
-        const d = new Date(s.date)
+        const d = parseLocalDate(s.date)
         const weekStart = new Date(d)
         weekStart.setDate(d.getDate() - d.getDay())
-        const key = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        weeks[key] = (weeks[key] ?? 0) + 1
+        const key = weekStart.toISOString().slice(0, 10)
+        if (!weeks[key]) weeks[key] = { count: 0, date: weekStart }
+        weeks[key].count++
     })
     return Object.entries(weeks)
+        .sort((a, b) => a[1].date.getTime() - b[1].date.getTime())
         .slice(-6)
-        .map(([label, count]) => ({ label, count }))
+        .map(([, v]) => ({
+            label: v.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            count: v.count,
+        }))
 }
 
-function buildMonthlyWorkouts(sessions: any[]): MonthlyWorkoutPoint[] {
-    const months: Record<string, number> = {}
+export function buildMonthlyWorkouts(sessions: WorkoutSessionWithExercises[]): MonthlyWorkoutPoint[] {
+    const months: Record<string, { count: number; date: Date }> = {}
     sessions.forEach(s => {
-        const key = new Date(s.date).toLocaleDateString('en-US', { month: 'short' })
-        months[key] = (months[key] ?? 0) + 1
+        const d = parseLocalDate(s.date)
+        const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`
+        if (!months[key]) months[key] = { count: 0, date: new Date(d.getFullYear(), d.getMonth(), 1) }
+        months[key].count++
     })
     return Object.entries(months)
+        .sort((a, b) => a[1].date.getTime() - b[1].date.getTime())
         .slice(-6)
-        .map(([label, count]) => ({ label, count }))
+        .map(([, v]) => ({
+            label: v.date.toLocaleDateString('en-US', { month: 'short' }),
+            count: v.count,
+        }))
 }
 
-function buildExerciseHistory(sessions: any[]): Record<string, ExercisePoint[]> {
+export function buildExerciseHistory(sessions: WorkoutSessionWithExercises[]): Record<string, ExercisePoint[]> {
     const history: Record<string, ExercisePoint[]> = {}
     sessions.forEach(s => {
-        const dateLabel = new Date(s.date).toLocaleDateString('en-US', {
+        const dateLabel = parseLocalDate(s.date).toLocaleDateString('en-US', {
             month: 'short', day: 'numeric'
         })
-        ;(s.exercise_logs ?? []).forEach((ex: any) => {
+        ;(s.exercise_logs ?? []).forEach(ex => {
             const name = ex.exercise_name
-            const weightSets = (ex.set_logs ?? []).filter((sl: any) => sl.weight_lbs)
-            const holdSets = (ex.set_logs ?? []).filter((sl: any) => sl.duration_seconds)
+            const weightSets = (ex.set_logs ?? []).filter(sl => sl.weight_lbs)
+            const holdSets = (ex.set_logs ?? []).filter(sl => sl.duration_seconds)
 
             if (weightSets.length) {
-                const maxWeight = Math.max(...weightSets.map((sl: any) => sl.weight_lbs))
+                const maxWeight = Math.max(...weightSets.map(sl => sl.weight_lbs ?? 0))
                 if (!history[name]) history[name] = []
                 history[name].push({ label: dateLabel, weight: maxWeight })
             } else if (holdSets.length) {
-                const maxDuration = Math.max(...holdSets.map((sl: any) => sl.duration_seconds))
+                const maxDuration = Math.max(...holdSets.map(sl => sl.duration_seconds ?? 0))
                 if (!history[name]) history[name] = []
                 history[name].push({ label: dateLabel, weight: 0, duration: maxDuration })
             }
         })
     })
     Object.keys(history).forEach(k => {
-        history[k] = history[k].slice(-10).reverse()
+        // sessions (and thus history[k]) are newest-first; take the 10 MOST
+        // recent, then reverse to chronological order for the chart's x-axis.
+        history[k] = history[k].slice(0, 10).reverse()
     })
     return history
 }
 
-function buildSleepData(sleepLogs: any[]): SleepPoint[] {
-    return sleepLogs.slice(0, 7).reverse().map((s: any) => ({
-        label: new Date(s.date).toLocaleDateString('en-US', { weekday: 'short' }),
+export function buildSleepData(sleepLogs: SleepLogRow[]): SleepPoint[] {
+    return sleepLogs.slice(0, 7).reverse().map(s => ({
+        label: parseLocalDate(s.date).toLocaleDateString('en-US', { weekday: 'short' }),
         hours: s.hours,
         mood: s.mood,
     }))
 }
 
-function buildScatterData(sessions: any[], sleepLogs: any[]): ScatterPoint[] {
+export function buildScatterData(sessions: WorkoutSessionWithExercises[], sleepLogs: SleepLogRow[]): ScatterPoint[] {
     const sleepByDate: Record<string, number> = {}
-    sleepLogs.forEach((s: any) => { sleepByDate[s.date] = s.hours })
+    sleepLogs.forEach(s => { sleepByDate[s.date] = s.hours })
 
     const points: ScatterPoint[] = []
     sessions.forEach(s => {
         const sleep = sleepByDate[s.date]
         if (!sleep) return
-            ;(s.exercise_logs ?? []).forEach((ex: any) => {
-            const sets = (ex.set_logs ?? []).filter((sl: any) => sl.weight_lbs)
+            ;(s.exercise_logs ?? []).forEach(ex => {
+            const sets = (ex.set_logs ?? []).filter(sl => sl.weight_lbs)
             if (!sets.length) return
-            const maxWeight = Math.max(...sets.map((sl: any) => sl.weight_lbs))
+            const maxWeight = Math.max(...sets.map(sl => sl.weight_lbs ?? 0))
             points.push({ x: sleep, y: maxWeight })
         })
     })
     return points
 }
 
-function buildMoodData(sessions: any[]): MoodPoint[] {
+export function buildMoodData(sessions: WorkoutSessionWithExercises[]): MoodPoint[] {
     const moodGroups: Record<number, number[]> = { 1: [], 2: [], 3: [], 4: [], 5: [] }
     sessions.forEach(s => {
         if (!s.mood) return
-            ;(s.exercise_logs ?? []).forEach((ex: any) => {
-            const sets = (ex.set_logs ?? []).filter((sl: any) => sl.weight_lbs)
+            ;(s.exercise_logs ?? []).forEach(ex => {
+            const sets = (ex.set_logs ?? []).filter(sl => sl.weight_lbs)
             if (!sets.length) return
-            const maxWeight = Math.max(...sets.map((sl: any) => sl.weight_lbs))
-            moodGroups[s.mood]?.push(maxWeight)
+            const maxWeight = Math.max(...sets.map(sl => sl.weight_lbs ?? 0))
+            moodGroups[s.mood as number]?.push(maxWeight)
         })
     })
     return [1, 2, 3, 4, 5].map(mood => ({
@@ -201,4 +219,22 @@ function buildMoodData(sessions: any[]): MoodPoint[] {
             ? Math.round(moodGroups[mood].reduce((a, b) => a + b, 0) / moodGroups[mood].length)
             : 0,
     }))
+}
+
+// Raw (mood, max weight) pairs, one per exercise per session -- unlike
+// buildMoodData's per-level averages, this keeps every data point so a real
+// correlation coefficient can be computed on it (averaging first would
+// throw away the variance a correlation needs).
+export function buildMoodScatterData(sessions: WorkoutSessionWithExercises[]): ScatterPoint[] {
+    const points: ScatterPoint[] = []
+    sessions.forEach(s => {
+        if (!s.mood) return
+            ;(s.exercise_logs ?? []).forEach(ex => {
+            const sets = (ex.set_logs ?? []).filter(sl => sl.weight_lbs)
+            if (!sets.length) return
+            const maxWeight = Math.max(...sets.map(sl => sl.weight_lbs ?? 0))
+            points.push({ x: s.mood as number, y: maxWeight })
+        })
+    })
+    return points
 }

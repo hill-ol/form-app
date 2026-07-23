@@ -2,16 +2,42 @@ import { parseLocalDate } from './dateUtils'
 
 export type CyclePhase = 'menstrual' | 'follicular' | 'ovulatory' | 'luteal'
 
+// The luteal phase (ovulation -> next period) is physiologically stable at
+// roughly 12-14 days regardless of a person's total cycle length -- nearly
+// all cycle-to-cycle length variation comes from the follicular phase
+// instead. Splitting phases as a fixed *percentage* of total cycle length
+// (the old approach here) gets this backwards: it stretches the luteal
+// phase for anyone with a longer-than-28-day cycle, when in reality it's the
+// follicular phase that should absorb that variability. Modeling luteal
+// length as fixed and counting back from the next predicted period matches
+// the actual physiology much more closely.
+const DEFAULT_LUTEAL_LENGTH = 14
+const DEFAULT_MENSTRUAL_LENGTH = 5
+const OVULATION_WINDOW_BEFORE = 1 // days before predicted ovulation counted as "ovulatory"
+const OVULATION_WINDOW_AFTER = 1  // days after
+
+function ovulationDayFor(cycleLength: number, menstrualLength: number): number {
+    // Keep the luteal phase from swallowing the whole cycle on unusually
+    // short logged cycles, and never predict ovulation before the period ends.
+    const lutealLength = Math.min(DEFAULT_LUTEAL_LENGTH, Math.max(cycleLength - menstrualLength - 2, 3))
+    return Math.max(menstrualLength + 1, cycleLength - lutealLength)
+}
+
+function phaseForDay(day: number, cycleLength: number, menstrualLength = DEFAULT_MENSTRUAL_LENGTH): CyclePhase {
+    const ovulationDay = ovulationDayFor(cycleLength, menstrualLength)
+    if (day <= menstrualLength) return 'menstrual'
+    if (day < ovulationDay - OVULATION_WINDOW_BEFORE) return 'follicular'
+    if (day <= ovulationDay + OVULATION_WINDOW_AFTER) return 'ovulatory'
+    return 'luteal'
+}
+
 export function getCyclePhase(periodStart: string, cycleLength = 28): CyclePhase {
     const start = parseLocalDate(periodStart)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const elapsed = Math.round((today.getTime() - start.getTime()) / 864e5)
-    const day = (elapsed % cycleLength) + 1
-    if (day <= 5) return 'menstrual'
-    if (day <= Math.round(cycleLength * 0.46)) return 'follicular'
-    if (day <= Math.round(cycleLength * 0.57)) return 'ovulatory'
-    return 'luteal'
+    const day = (((elapsed % cycleLength) + cycleLength) % cycleLength) + 1
+    return phaseForDay(day, cycleLength)
 }
 
 // Groups sorted period days into runs (gap >2 days = new cycle), returns first day of each run
@@ -26,6 +52,27 @@ export function findCycleStarts(periodDays: string[]): string[] {
         if (gap > 2) starts.push(sorted[i])
     }
     return starts
+}
+
+// Length (in days) of each logged period, grouped by the same consecutive-day
+// run rule as findCycleStarts (a gap >2 days ends a run).
+function derivePeriodLengths(periodDays: string[]): number[] {
+    if (!periodDays.length) return []
+    const sorted = [...periodDays].sort()
+    const lengths: number[] = []
+    let runStart = parseLocalDate(sorted[0])
+    let runLast = runStart
+    for (let i = 1; i < sorted.length; i++) {
+        const curr = parseLocalDate(sorted[i])
+        const gap = Math.round((curr.getTime() - runLast.getTime()) / 864e5)
+        if (gap > 2) {
+            lengths.push(Math.round((runLast.getTime() - runStart.getTime()) / 864e5) + 1)
+            runStart = curr
+        }
+        runLast = curr
+    }
+    lengths.push(Math.round((runLast.getTime() - runStart.getTime()) / 864e5) + 1)
+    return lengths
 }
 
 export interface CycleInfo {
@@ -52,22 +99,23 @@ export function getCyclePhaseFromLogs(periodDays: string[]): CycleInfo | null {
             const curr = parseLocalDate(starts[i])
             gaps.push(Math.round((curr.getTime() - prev.getTime()) / 864e5))
         }
-        const recent = gaps.slice(-3)
-        derivedCycleLength = Math.round(recent.reduce((a, b) => a + b, 0) / recent.length)
+        const recentGaps = gaps.slice(-3)
+        derivedCycleLength = Math.round(recentGaps.reduce((a, b) => a + b, 0) / recentGaps.length)
         hasEnoughData = true
     }
+
+    const periodLengths = derivePeriodLengths(periodDays)
+    const recentLengths = periodLengths.slice(-3)
+    const derivedMenstrualLength = recentLengths.length
+        ? Math.round(recentLengths.reduce((a, b) => a + b, 0) / recentLengths.length)
+        : DEFAULT_MENSTRUAL_LENGTH
 
     const start = parseLocalDate(latestStart)
     const today = new Date(); today.setHours(0, 0, 0, 0)
     const elapsed = Math.round((today.getTime() - start.getTime()) / 864e5)
-    const dayInCycle = elapsed + 1
 
-    const cycleDay = (elapsed % derivedCycleLength) + 1
-    let phase: CyclePhase
-    if (cycleDay <= 5) phase = 'menstrual'
-    else if (cycleDay <= Math.round(derivedCycleLength * 0.46)) phase = 'follicular'
-    else if (cycleDay <= Math.round(derivedCycleLength * 0.57)) phase = 'ovulatory'
-    else phase = 'luteal'
+    const dayInCycle = (((elapsed % derivedCycleLength) + derivedCycleLength) % derivedCycleLength) + 1
+    const phase = phaseForDay(dayInCycle, derivedCycleLength, derivedMenstrualLength)
 
     const daysUntilNext = hasEnoughData ? Math.max(0, derivedCycleLength - elapsed) : null
 

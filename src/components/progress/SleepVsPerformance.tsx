@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { linearRegression } from '@/lib/progressUtils'
+import { linearRegression, pearsonCorrelation, describeCorrelation } from '@/lib/progressUtils'
 import { ScatterPoint as ProgressScatterPoint } from '@/lib/progressData'
 
 interface Props {
@@ -14,6 +14,8 @@ export default function SleepVsPerformance({ scatterData }: Props) {
 
     const points: { x: number; y: number }[] = scatterData.map(p => ({ x: p.x, y: p.y }))
     const { m, b } = linearRegression(points)
+    const r = pearsonCorrelation(points)
+    const correlation = r !== null ? describeCorrelation(r) : null
 
     const under6 = scatterData.filter(p => p.x < 6)
     const over8 = scatterData.filter(p => p.x >= 8)
@@ -69,7 +71,7 @@ export default function SleepVsPerformance({ scatterData }: Props) {
                         legend: { display: false },
                         tooltip: {
                             enabled: false,
-                            external: (context: any) => {
+                            external: (context) => {
                                 const { chart, tooltip } = context
                                 let el = document.getElementById('sleep-perf-tooltip')
                                 if (!el) {
@@ -94,7 +96,7 @@ export default function SleepVsPerformance({ scatterData }: Props) {
                             type: 'linear' as const, min: 4.5, max: 10,
                             title: { display: true, text: 'Sleep (hrs)', font: { size: 9 }, color: '#aaa' },
                             grid: { color: '#f5f0e8' },
-                            ticks: { font: { size: 9 }, color: '#aaa', callback: (v: any) => v + 'h' }
+                            ticks: { font: { size: 9 }, color: '#aaa', callback: (v) => v + 'h' }
                         },
                         y: {
                             title: { display: true, text: 'lbs', font: { size: 9 }, color: '#aaa' },
@@ -129,9 +131,14 @@ export default function SleepVsPerformance({ scatterData }: Props) {
           </span>
                 )}
             </div>
-            <p className="mb-3" style={{ fontSize: '10px', color: 'var(--muted)' }}>
+            <p className="mb-1" style={{ fontSize: '10px', color: 'var(--muted)' }}>
                 Weight lifted vs hours slept
             </p>
+            {correlation && (
+                <p className="mb-3" style={{ fontSize: '10px', color: 'var(--pink-dark)', fontWeight: 700 }}>
+                    r = {r!.toFixed(2)} · {correlation.strength}{correlation.direction !== 'none' ? ` ${correlation.direction}` : ''} correlation
+                </p>
+            )}
             {points.length < 3 ? (
                 <div className="flex items-center justify-center h-24"
                      style={{ color: 'var(--muted)', fontSize: '12px' }}>
