@@ -10,6 +10,7 @@ export interface ActiveSet {
 }
 
 export interface ActiveExercise {
+    instanceId: string
     exerciseId: string
     exerciseName: string
     muscleGroup: string
@@ -61,6 +62,7 @@ export function createExercise(
     const cleanWeight = lastWeight ? stripWeight(lastWeight) : ''
     const exerciseType = exerciseTypeOverride ?? getExerciseType(dayType ?? '', equipment)
     return {
+        instanceId: crypto.randomUUID(),
         exerciseId,
         exerciseName,
         muscleGroup,

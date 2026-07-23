@@ -2,13 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { WorkoutSession } from '@/types'
-
-const WORKOUT_EMOJI: Record<string, string> = {
-    strength: '🏋️',
-    cardio: '🏃',
-    yoga: '🧘',
-    bodyweight: '🤸',
-}
+import { WORKOUT_EMOJI } from '@/lib/calendarUtils'
 
 interface Props {
     workout: WorkoutSession

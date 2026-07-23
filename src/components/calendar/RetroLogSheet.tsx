@@ -2,13 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { EXERCISE_LIBRARY } from '@/lib/placeholder'
-import { Exercise } from '@/types'
+import { Exercise, DayType, MuscleGroup, Equipment, MovementType } from '@/types'
 import CalendarPopupPortal from './CalendarPopupPortal'
-
-const DAY_LABEL: Record<string, string> = {
-    push: 'Push Day', pull: 'Pull Day', legs: 'Legs Day',
-    cardio: 'Cardio', yoga: 'Yoga', 'full body': 'Full Body',
-}
+import { DAY_LABEL } from '@/lib/constants'
 
 interface RetroSet {
     reps: string
@@ -32,13 +28,14 @@ interface Props {
     dayType: string
     onClose: () => void
     onSaved: () => void
+    bare?: boolean
 }
 
 function blankSet(weight: string): RetroSet {
     return { reps: '', weight, duration: '', distance: '' }
 }
 
-export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props) {
+export default function RetroLogSheet({ date, dayType, onClose, onSaved, bare }: Props) {
     const [exercises, setExercises] = useState<RetroExercise[]>([])
     const [query, setQuery] = useState('')
     const [durationMins, setDurationMins] = useState('')
@@ -61,17 +58,17 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                 setDbWeights(weights)
 
                 // Build merged exercise list so custom exercises show in picker
-                const mapped: Exercise[] = dbRows.map((ex: any) => ({
+                const mapped: Exercise[] = dbRows.map(ex => ({
                     id: ex.id,
                     name: ex.name,
-                    dayType: ex.day_types ?? [],
-                    muscleGroups: ex.muscle_groups ?? [],
-                    primaryMuscle: ex.primary_muscle ?? '',
-                    equipment: ex.equipment ?? [],
-                    movementType: ex.movement_type ?? '',
+                    dayType: (ex.day_types ?? []) as DayType[],
+                    muscleGroups: (ex.muscle_groups ?? []) as MuscleGroup[],
+                    primaryMuscle: (ex.primary_muscle ?? '') as MuscleGroup,
+                    equipment: (ex.equipment ?? []) as Equipment[],
+                    movementType: (ex.movement_type ?? '') as MovementType,
                     currentWeight: ex.current_weight ? String(ex.current_weight) : undefined,
-                    exerciseType: ex.exercise_type ?? undefined,
-                    notes: ex.notes,
+                    exerciseType: (ex.exercise_type ?? undefined) as Exercise['exerciseType'],
+                    notes: ex.notes ?? undefined,
                 }))
                 const seen = new Set<string>()
                 const merged: Exercise[] = []
@@ -81,17 +78,17 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                 setAllExercises(merged)
 
                 // Prefer last session's actual exercises + weights over template
-                const lastExLogs = (lastSession as any)?.exercise_logs ?? []
+                const lastExLogs = lastSession?.exercise_logs ?? []
                 if (lastExLogs.length > 0) {
-                    const prebuilt: RetroExercise[] = lastExLogs.map((ex: any) => {
+                    const prebuilt: RetroExercise[] = lastExLogs.map(ex => {
                         const lib = EXERCISE_LIBRARY.find(e => e.id === ex.exercise_id)
-                        const completedSets = (ex.set_logs ?? []).filter((s: any) => s.completed)
+                        const completedSets = (ex.set_logs ?? []).filter(s => s.completed)
                         const exerciseType = lib?.exerciseType ?? ex.exercise_type ?? (dayType === 'cardio' ? 'cardio' : dayType === 'yoga' ? 'yoga' : 'strength')
                         const defaultWeight = weights[ex.exercise_id]
                             ? String(weights[ex.exercise_id])
                             : completedSets[0]?.weight_lbs ? String(completedSets[0].weight_lbs) : ''
                         const sets: RetroSet[] = completedSets.length > 0
-                            ? completedSets.map((s: any) => ({
+                            ? completedSets.map(s => ({
                                 reps: '',
                                 weight: s.weight_lbs ? String(s.weight_lbs) : '',
                                 duration: s.duration_seconds
@@ -218,7 +215,7 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
         setSaving(true)
         setError(null)
         try {
-            const { saveSession, saveExerciseToLibrary } = await import('@/lib/db')
+            const { saveSession, saveExerciseToLibrary, getCheckinForDate } = await import('@/lib/db')
             const { EXERCISE_LIBRARY: lib } = await import('@/lib/placeholder')
 
             const workoutType = dayType === 'cardio' ? 'cardio'
@@ -226,7 +223,10 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                     : dayType === 'full body' ? 'bodyweight'
                         : 'strength'
 
+            const mood = await getCheckinForDate(date).catch(() => null)
+
             const exercisesForSave = exercises.map(ex => ({
+                instanceId: crypto.randomUUID(),
                 exerciseId: ex.id,
                 exerciseName: ex.name,
                 muscleGroup: ex.muscleGroup,
@@ -243,7 +243,11 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
             }))
 
             await saveSession(
-                { date, dayType, workoutType, name: DAY_LABEL[dayType] ?? 'Workout', durationSeconds: durationMins ? Math.round(parseFloat(durationMins) * 60) : 0 },
+                {
+                    date, dayType, workoutType, name: DAY_LABEL[dayType] ?? 'Workout',
+                    durationSeconds: durationMins ? Math.round(parseFloat(durationMins) * 60) : 0,
+                    mood: mood ?? undefined,
+                },
                 exercisesForSave
             )
 
@@ -281,8 +285,8 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
         }
     }
 
-    return (
-        <CalendarPopupPortal onClose={onClose}>
+    const content = (
+        <>
             <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: '#e8e0d0' }} />
 
             <div className="flex items-center justify-between mb-1">
@@ -553,6 +557,9 @@ export default function RetroLogSheet({ date, dayType, onClose, onSaved }: Props
                 }}>
                 {saving ? 'Saving...' : 'Save Session'}
             </button>
-        </CalendarPopupPortal>
+        </>
     )
+
+    if (bare) return content
+    return <CalendarPopupPortal onClose={onClose}>{content}</CalendarPopupPortal>
 }

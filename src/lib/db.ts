@@ -2,69 +2,20 @@ import { supabase } from './supabase'
 import { DayTemplate } from '@/types'
 import { ActiveExercise } from './sessionUtils'
 import { localDateString, parseLocalDate } from './dateUtils'
-
-interface SupabaseSession {
-    id: string
-    date: string
-    day_type: string
-    workout_type: string
-    name: string
-    duration_seconds: number | null
-    mood: number | null
-    sleep_hours: number | null
-    notes: string | null
-    exercise_logs?: SupabaseExerciseLog[]
-}
-
-interface SupabaseExerciseLog {
-    id: string
-    session_id: string
-    exercise_id: string
-    exercise_name: string
-    muscle_group: string | null
-    equipment: string | null
-    exercise_type: string | null
-    set_logs?: SupabaseSetLog[]
-}
-
-interface SupabaseSetLog {
-    id: string
-    exercise_log_id: string
-    set_number: number
-    reps: number | null
-    weight_lbs: number | null
-    duration_seconds: number | null
-    distance: number | null
-    completed: boolean
-}
-
-interface SupabaseSleepLog {
-    id: string
-    date: string
-    hours: number
-    mood: number
-    created_at: string
-}
-
-interface SupabaseSetLogWithExercise {
-    weight_lbs: number
-    exercise_logs: {
-        exercise_name: string
-        exercise_id: string
-    }
-    created_at: string
-}
-
-interface SupabasePreferences {
-    id: string
-    weekly_goal: number
-    rest_duration_seconds: number
-    rest_timer_default: boolean
-    show_ai_coach: boolean
-    period_start_date?: string
-    cycle_length_days?: number
-    updated_at: string
-}
+import { EXERCISE_LIBRARY } from './placeholder'
+import { suggestNextWeight, ExerciseSessionPoint } from './progressionUtils'
+import {
+    WorkoutSessionRow,
+    WorkoutSessionWithExercises,
+    ExerciseLogRow,
+    ExerciseLogWithSession,
+    SleepLogRow,
+    SetLogWithExerciseAndSession,
+    ExerciseLogWithSessionDate,
+    TrainingPreferencesRow,
+    ExerciseLibraryRow,
+    DayOverrideRow,
+} from './dbTypes'
 
 export async function logSleep(date: string, hours: number, mood: number) {
     const { data, error } = await supabase
@@ -73,20 +24,20 @@ export async function logSleep(date: string, hours: number, mood: number) {
         .select()
         .single()
     if (error) throw error
-    return data as SupabaseSleepLog
+    return data as SleepLogRow
 }
 
-export async function getSleepLogs(limit = 30): Promise<SupabaseSleepLog[]> {
+export async function getSleepLogs(limit = 30): Promise<SleepLogRow[]> {
     const { data, error } = await supabase
         .from('sleep_logs')
         .select('*')
         .order('date', { ascending: false })
         .limit(limit)
     if (error) throw error
-    return (data ?? []) as SupabaseSleepLog[]
+    return (data ?? []) as SleepLogRow[]
 }
 
-export async function getLastSleep(): Promise<SupabaseSleepLog | null> {
+export async function getLastSleep(): Promise<SleepLogRow | null> {
     const { data, error } = await supabase
         .from('sleep_logs')
         .select('*')
@@ -94,7 +45,7 @@ export async function getLastSleep(): Promise<SupabaseSleepLog | null> {
         .limit(1)
         .single()
     if (error) return null
-    return data as SupabaseSleepLog
+    return data as SleepLogRow
 }
 
 export async function saveSession(
@@ -126,53 +77,60 @@ export async function saveSession(
         .single()
 
     if (sessionError) throw sessionError
-    const savedSession = sessionData as SupabaseSession
+    const savedSession = sessionData as WorkoutSessionRow
 
-    for (const ex of exercises) {
-        const completedSets = ex.sets.filter(s => s.completed)
-        if (completedSets.length === 0) continue
+    try {
+        for (const ex of exercises) {
+            const completedSets = ex.sets.filter(s => s.completed)
+            if (completedSets.length === 0) continue
 
-        const { data: exData, error: exError } = await supabase
-            .from('exercise_logs')
-            .insert({
-                session_id: savedSession.id,
-                exercise_id: ex.exerciseId,
-                exercise_name: ex.exerciseName,
-                muscle_group: ex.muscleGroup,
-                equipment: ex.equipment,
-                exercise_type: ex.exerciseType,
-            })
-            .select()
-            .single()
+            const { data: exData, error: exError } = await supabase
+                .from('exercise_logs')
+                .insert({
+                    session_id: savedSession.id,
+                    exercise_id: ex.exerciseId,
+                    exercise_name: ex.exerciseName,
+                    muscle_group: ex.muscleGroup,
+                    equipment: ex.equipment,
+                    exercise_type: ex.exerciseType,
+                })
+                .select()
+                .single()
 
-        if (exError) throw exError
-        const savedEx = exData as SupabaseExerciseLog
+            if (exError) throw exError
+            const savedEx = exData as ExerciseLogRow
 
-        const sets = completedSets.map((s, i) => ({
-            exercise_log_id: savedEx.id,
-            set_number: i + 1,
-            reps: s.reps ? parseInt(s.reps) : null,
-            weight_lbs: s.weight && s.weight !== 'BW' ? parseFloat(s.weight) : null,
-            duration_seconds: s.duration
-                ? s.duration.includes(':')
-                    ? parseInt(s.duration.split(':')[0]) * 60 + parseInt(s.duration.split(':')[1] ?? '0')
-                    : parseInt(s.duration) * 60
-                : null,
-            distance: s.distance ? parseFloat(s.distance) : null,
-            completed: true,
-        }))
+            const sets = completedSets.map((s, i) => ({
+                exercise_log_id: savedEx.id,
+                set_number: i + 1,
+                reps: s.reps ? parseInt(s.reps) : null,
+                weight_lbs: s.weight && s.weight !== 'BW' ? parseFloat(s.weight) : null,
+                duration_seconds: s.duration
+                    ? s.duration.includes(':')
+                        ? (parseInt(s.duration.split(':')[0]) || 0) * 60 + (parseInt(s.duration.split(':')[1]) || 0)
+                        : parseInt(s.duration) * 60
+                    : null,
+                distance: s.distance ? parseFloat(s.distance) : null,
+                completed: true,
+            }))
 
-        const { error: setError } = await supabase
-            .from('set_logs')
-            .insert(sets)
+            const { error: setError } = await supabase
+                .from('set_logs')
+                .insert(sets)
 
-        if (setError) throw setError
+            if (setError) throw setError
+        }
+    } catch (e) {
+        // Roll back the whole session — exercise_logs/set_logs cascade-delete
+        // with it (see db/schema.sql) — rather than leaving a partial session.
+        await supabase.from('workout_sessions').delete().eq('id', savedSession.id)
+        throw e
     }
 
     return savedSession
 }
 
-export async function getRecentSessions(limit = 10): Promise<SupabaseSession[]> {
+export async function getRecentSessions(limit = 10): Promise<WorkoutSessionWithExercises[]> {
     const { data, error } = await supabase
         .from('workout_sessions')
         .select(`
@@ -185,13 +143,13 @@ export async function getRecentSessions(limit = 10): Promise<SupabaseSession[]> 
         .order('date', { ascending: false })
         .limit(limit)
     if (error) throw error
-    return (data ?? []) as SupabaseSession[]
+    return (data ?? []) as WorkoutSessionWithExercises[]
 }
 
 export async function getSessionsForMonth(
     year: number,
     month: number
-): Promise<SupabaseSession[]> {
+): Promise<Pick<WorkoutSessionRow, 'id' | 'date' | 'day_type' | 'workout_type' | 'name' | 'duration_seconds' | 'mood'>[]> {
     const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
     const lastDay = new Date(year, month + 1, 0).getDate()
     const end = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
@@ -202,13 +160,13 @@ export async function getSessionsForMonth(
         .lte('date', end)
         .order('date', { ascending: true })
     if (error) throw error
-    return (data ?? []) as SupabaseSession[]
+    return data ?? []
 }
 
 export async function getExerciseHistory(
     exerciseId: string,
     limit = 20
-): Promise<SupabaseExerciseLog[]> {
+): Promise<ExerciseLogWithSession[]> {
     const { data, error } = await supabase
         .from('exercise_logs')
         .select(`
@@ -220,7 +178,7 @@ export async function getExerciseHistory(
         .order('created_at', { ascending: false })
         .limit(limit)
     if (error) throw error
-    return (data ?? []) as SupabaseExerciseLog[]
+    return (data ?? []) as ExerciseLogWithSession[]
 }
 
 export async function getCurrentStreak(): Promise<number> {
@@ -239,7 +197,9 @@ export async function getCurrentStreak(): Promise<number> {
     if (uniqueDates.length === 0) return 0
 
     const today = localDateString()
-    const yesterday = localDateString(new Date(Date.now() - 864e5))
+    const yesterdayDate = new Date()
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+    const yesterday = localDateString(yesterdayDate)
 
     // Streak must start today or yesterday (otherwise it's broken)
     if (uniqueDates[0] !== today && uniqueDates[0] !== yesterday) return 0
@@ -291,14 +251,14 @@ export async function saveWeeklyTemplate(template: DayTemplate[]) {
     if (error) throw error
 }
 
-export async function getPreferences(): Promise<SupabasePreferences | null> {
+export async function getPreferences(): Promise<TrainingPreferencesRow | null> {
     const { data, error } = await supabase
         .from('training_preferences')
         .select('*')
         .limit(1)
         .single()
     if (error) return null
-    return data as SupabasePreferences
+    return data as TrainingPreferencesRow
 }
 
 export async function saveDailyCheckin(date: string, energyLevel: number) {
@@ -308,14 +268,17 @@ export async function saveDailyCheckin(date: string, energyLevel: number) {
     if (error) throw error
 }
 
-export async function getTodayCheckin(): Promise<number | null> {
-    const today = localDateString()
+export async function getCheckinForDate(date: string): Promise<number | null> {
     const { data } = await supabase
         .from('daily_checkins')
         .select('energy_level')
-        .eq('date', today)
+        .eq('date', date)
         .single()
     return data?.energy_level ?? null
+}
+
+export async function getTodayCheckin(): Promise<number | null> {
+    return getCheckinForDate(localDateString())
 }
 
 export async function getTodayInsight(): Promise<string | null> {
@@ -422,12 +385,12 @@ export async function saveExerciseToLibrary(ex: {
     if (error) throw error
 }
 
-export async function getCustomExercises(): Promise<Record<string, unknown>[]> {
+export async function getCustomExercises(): Promise<ExerciseLibraryRow[]> {
     const { data, error } = await supabase
         .from('exercise_library')
         .select('*')
     if (error) return []
-    return (data ?? []) as Record<string, unknown>[]
+    return (data ?? []) as ExerciseLibraryRow[]
 }
 
 export async function getExerciseWeights(): Promise<Record<string, number>> {
@@ -458,7 +421,7 @@ export async function getPersonalRecords(): Promise<{
         .from('set_logs')
         .select(`
       weight_lbs,
-      exercise_logs!inner(exercise_name, exercise_id),
+      exercise_logs!inner(exercise_name, exercise_id, workout_sessions!inner(date)),
       created_at
     `)
         .not('weight_lbs', 'is', null)
@@ -468,13 +431,13 @@ export async function getPersonalRecords(): Promise<{
 
     const prs: Record<string, { exercise: string; weight: number; date: string }> = {}
 
-    for (const row of (data ?? []) as unknown as SupabaseSetLogWithExercise[]) {
+    for (const row of (data ?? []) as unknown as SetLogWithExerciseAndSession[]) {
         const name = row.exercise_logs.exercise_name
         if (!prs[name] || row.weight_lbs > prs[name].weight) {
             prs[name] = {
                 exercise: name,
                 weight: row.weight_lbs,
-                date: new Date(row.created_at).toLocaleDateString('en-US', {
+                date: parseLocalDate(row.exercise_logs.workout_sessions.date).toLocaleDateString('en-US', {
                     month: 'short', day: 'numeric',
                 }),
             }
@@ -493,7 +456,7 @@ export async function getHoldPersonalRecords(): Promise<{
         .from('set_logs')
         .select(`
             duration_seconds,
-            exercise_logs!inner(exercise_name),
+            exercise_logs!inner(exercise_name, workout_sessions!inner(date)),
             created_at
         `)
         .not('duration_seconds', 'is', null)
@@ -503,7 +466,7 @@ export async function getHoldPersonalRecords(): Promise<{
 
     const prs: Record<string, { exercise: string; weight: number; date: string; duration: number; isHold: true }> = {}
 
-    for (const row of (data ?? []) as any[]) {
+    for (const row of (data ?? []) as unknown as SetLogWithExerciseAndSession[]) {
         const name = row.exercise_logs.exercise_name
         const dur = row.duration_seconds as number
         if (!prs[name] || dur > prs[name].duration) {
@@ -512,7 +475,7 @@ export async function getHoldPersonalRecords(): Promise<{
                 weight: 0,
                 duration: dur,
                 isHold: true,
-                date: new Date(row.created_at).toLocaleDateString('en-US', {
+                date: parseLocalDate(row.exercise_logs.workout_sessions.date).toLocaleDateString('en-US', {
                     month: 'short', day: 'numeric',
                 }),
             }
@@ -535,6 +498,8 @@ export async function saveDayOverride(
         .eq('date', date)
         .eq('is_logged', false)
 
+    if (deleteError) throw deleteError
+
     const { error } = await supabase
         .from('day_overrides')
         .insert({
@@ -550,14 +515,14 @@ export async function saveDayOverride(
 export async function getDayOverrides(
     startDate: string,
     endDate: string
-): Promise<{ date: string; day_type: string; label: string }[]> {
+): Promise<DayOverrideRow[]> {
     const { data, error } = await supabase
         .from('day_overrides')
         .select('*')
         .gte('date', startDate)
         .lte('date', endDate)
     if (error) return []
-    return (data ?? []) as { date: string; day_type: string; label: string }[]
+    return (data ?? []) as DayOverrideRow[]
 }
 
 export interface DayTypeExercise {
@@ -597,7 +562,7 @@ export async function deleteDayTypeExercise(dayType: string, exerciseId: string)
     if (error) throw error
 }
 
-export async function getSessionById(sessionId: string): Promise<SupabaseSession | null> {
+export async function getSessionById(sessionId: string): Promise<WorkoutSessionWithExercises | null> {
     const { data, error } = await supabase
         .from('workout_sessions')
         .select(`
@@ -610,7 +575,7 @@ export async function getSessionById(sessionId: string): Promise<SupabaseSession
         .eq('id', sessionId)
         .single()
     if (error) return null
-    return data as SupabaseSession
+    return data as WorkoutSessionWithExercises
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
@@ -621,7 +586,7 @@ export async function deleteSession(sessionId: string): Promise<void> {
     if (error) throw error
 }
 
-export async function getLastSessionByDayType(dayType: string): Promise<SupabaseSession | null> {
+export async function getLastSessionByDayType(dayType: string): Promise<WorkoutSessionWithExercises | null> {
     const { data, error } = await supabase
         .from('workout_sessions')
         .select(`
@@ -636,7 +601,7 @@ export async function getLastSessionByDayType(dayType: string): Promise<Supabase
         .limit(1)
         .single()
     if (error) return null
-    return data as SupabaseSession
+    return data as WorkoutSessionWithExercises
 }
 
 export async function getProgressionSuggestions(): Promise<Record<string, number>> {
@@ -653,36 +618,32 @@ export async function getProgressionSuggestions(): Promise<Record<string, number
 
     if (error) return {}
 
-    const exerciseHistory: Record<string, {
-        date: string
-        maxWeight: number
-        allRepsHit: boolean
-        targetReps: number
-    }[]> = {}
+    const customExercises = await getCustomExercises().catch(() => [])
+    const movementTypeById: Record<string, string> = {}
+    for (const ex of EXERCISE_LIBRARY) movementTypeById[ex.id] = ex.movementType
+    for (const ex of customExercises) if (ex.movement_type) movementTypeById[ex.id] = ex.movement_type
 
-    for (const log of (data ?? []) as any[]) {
+    const exerciseHistory: Record<string, ExerciseSessionPoint[]> = {}
+
+    for (const log of (data ?? []) as unknown as ExerciseLogWithSessionDate[]) {
         const id = log.exercise_id
         const date = log.workout_sessions.date
-        const completedSets = (log.set_logs ?? []).filter((s: any) => s.completed && s.weight_lbs)
+        const completedSets = (log.set_logs ?? []).filter(s => s.completed && s.weight_lbs)
         if (!completedSets.length) continue
 
-        const maxWeight = Math.max(...completedSets.map((s: any) => s.weight_lbs))
-        const avgReps = completedSets.reduce((a: number, s: any) => a + (s.reps ?? 0), 0) / completedSets.length
-        const allRepsHit = avgReps >= 10
+        const maxWeight = Math.max(...completedSets.map(s => s.weight_lbs ?? 0))
+        const avgReps = completedSets.reduce((a, s) => a + (s.reps ?? 0), 0) / completedSets.length
 
         if (!exerciseHistory[id]) exerciseHistory[id] = []
-        exerciseHistory[id].push({ date, maxWeight, allRepsHit, targetReps: 10 })
+        exerciseHistory[id].push({ date, maxWeight, avgReps })
     }
 
     const suggestions: Record<string, number> = {}
 
     for (const [id, history] of Object.entries(exerciseHistory)) {
-        const sorted = history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        const lastThree = sorted.slice(0, 3)
-        if (lastThree.length >= 2 && lastThree.every(s => s.allRepsHit)) {
-            const lastWeight = lastThree[0].maxWeight
-            suggestions[id] = lastWeight + 5
-        }
+        const sorted = history.sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime())
+        const suggestion = suggestNextWeight(sorted, movementTypeById[id])
+        if (suggestion !== null) suggestions[id] = suggestion
     }
 
     return suggestions
@@ -694,7 +655,7 @@ export async function getPeriodLogs(): Promise<string[]> {
         .select('date')
         .order('date', { ascending: true })
     if (error) throw error
-    return (data ?? []).map((r: any) => r.date as string)
+    return (data ?? []).map((r: { date: string }) => r.date)
 }
 
 export async function logPeriodDay(date: string): Promise<void> {

@@ -4,18 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import CalendarPopupPortal from './CalendarPopupPortal'
 import RetroLogSheet from './RetroLogSheet'
+import { DAY_EMOJI, DAY_LABEL, WORKOUT_DAY_TYPES } from '@/lib/constants'
 
-const DAY_TYPE_OPTIONS = ['push', 'pull', 'legs', 'cardio', 'yoga', 'full body']
-
-const DAY_EMOJI: Record<string, string> = {
-    push: '🏋️', pull: '🏋️', legs: '🦵',
-    cardio: '🏃', yoga: '🧘', 'full body': '🤸',
-}
-
-const DAY_LABEL: Record<string, string> = {
-    push: 'Push Day', pull: 'Pull Day', legs: 'Legs Day',
-    cardio: 'Cardio', yoga: 'Yoga', 'full body': 'Full Body',
-}
+const DAY_TYPE_OPTIONS: readonly string[] = WORKOUT_DAY_TYPES
 
 interface Props {
     onClose: () => void
@@ -63,12 +54,15 @@ export default function AddWorkoutSheet({ onClose, onSaved }: Props) {
 
     if (showRetroLog) {
         return (
-            <RetroLogSheet
-                date={selectedDate}
-                dayType={selectedType}
-                onClose={onClose}
-                onSaved={() => onSaved?.()}
-            />
+            <CalendarPopupPortal onClose={onClose}>
+                <RetroLogSheet
+                    bare
+                    date={selectedDate}
+                    dayType={selectedType}
+                    onClose={onClose}
+                    onSaved={() => onSaved?.()}
+                />
+            </CalendarPopupPortal>
         )
     }
 

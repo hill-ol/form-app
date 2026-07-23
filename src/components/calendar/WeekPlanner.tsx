@@ -4,13 +4,10 @@ import { useState } from 'react'
 import { DEFAULT_WEEK_TEMPLATE } from '@/lib/placeholder'
 import { DayTemplate } from '@/types'
 import CalendarPopupPortal from './CalendarPopupPortal'
+import { DAY_EMOJI, ALL_DAY_TYPES } from '@/lib/constants'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const DAY_TYPE_OPTIONS = ['push', 'pull', 'legs', 'cardio', 'yoga', 'full body', 'rest']
-const DAY_EMOJI: Record<string, string> = {
-    push: '🏋️', pull: '🏋️', legs: '🦵',
-    cardio: '🏃', yoga: '🧘', 'full body': '🤸', rest: '😴',
-}
+const DAY_TYPE_OPTIONS: readonly string[] = ALL_DAY_TYPES
 
 interface Props { onClose: () => void }
 

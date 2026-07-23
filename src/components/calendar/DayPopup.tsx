@@ -4,22 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CalendarDay, WorkoutSession } from '@/types'
 import { WORKOUT_COLORS, WORKOUT_EMOJI, DAY_TYPE_TO_WORKOUT } from '@/lib/calendarUtils'
+import { DAY_EMOJI, DAY_LABEL, ALL_DAY_TYPES, MOOD_EMOJI } from '@/lib/constants'
 import CalendarPopupPortal from './CalendarPopupPortal'
 import SessionDetailSheet from './SessionDetailSheet'
 
-const DAY_TYPE_OPTIONS = ['push', 'pull', 'legs', 'cardio', 'yoga', 'full body', 'rest']
-
-const DAY_EMOJI: Record<string, string> = {
-    push: '🏋️', pull: '🏋️', legs: '🦵',
-    cardio: '🏃', yoga: '🧘', 'full body': '🤸', rest: '😴',
-}
-
-const DAY_LABEL: Record<string, string> = {
-    push: 'Push Day', pull: 'Pull Day', legs: 'Legs Day',
-    cardio: 'Cardio', yoga: 'Yoga', 'full body': 'Full Body', rest: 'Rest Day',
-}
-
-const MOOD_EMOJI = ['😴', '😐', '🙂', '💪', '🔥']
+const DAY_TYPE_OPTIONS: readonly string[] = ALL_DAY_TYPES
 
 function Handle() {
     return (
@@ -80,29 +69,30 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
         }
     }
 
-    if (detailSession) {
-        return (
-            <SessionDetailSheet
-                session={{
-                    id: detailSession.id,
-                    date: detailSession.date,
-                    name: detailSession.name,
-                    type: detailSession.type,
-                    duration: detailSession.duration,
-                    mood: (detailSession as any).mood,
-                }}
-                onClose={() => setDetailSession(null)}
-                onDeleted={() => {
-                    setDetailSession(null)
-                    onClose()
-                }}
-            />
-        )
-    }
+    const detailContent = detailSession && (
+        <SessionDetailSheet
+            bare
+            session={{
+                id: detailSession.id,
+                date: detailSession.date,
+                name: detailSession.name,
+                type: detailSession.type,
+                duration: detailSession.duration,
+                mood: detailSession.mood,
+            }}
+            onClose={() => setDetailSession(null)}
+            onDeleted={() => {
+                setDetailSession(null)
+                onClose()
+            }}
+        />
+    )
 
     if (isToday) {
         return (
             <CalendarPopupPortal onClose={onClose}>
+                {detailContent ? detailContent : (
+                <>
                 <Handle />
                 <DateLabel text={dateStr} color="var(--pink)" />
 
@@ -119,7 +109,7 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
                                     <div
                                         key={s.id}
                                         onClick={() => setDetailSession(s)}
-                                        className="flex items-center justify-between rounded-2xl px-4 py-3 cursor-pointer transition-all active:scale-95"
+                                        className="flex items-center justify-between rounded-2xl px-4 py-3 cursor-pointer transition active:scale-95"
                                         style={{
                                             background: sColors?.bg ?? '#FAF7F0',
                                             border: `0.5px solid ${sColors?.border ?? 'var(--border)'}`,
@@ -145,7 +135,7 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
 
                         <button
                             onClick={() => router.push('/log')}
-                            className="w-full py-3.5 rounded-full text-white text-xs font-black uppercase tracking-widest transition-all duration-200 active:scale-95"
+                            className="w-full py-3.5 rounded-full text-white text-xs font-black uppercase tracking-widest transition duration-200 active:scale-95"
                             style={{ background: 'var(--pink)', border: 'none', cursor: 'pointer' }}>
                             Log Another Session
                         </button>
@@ -171,11 +161,13 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
                         </div>
                         <button
                             onClick={() => router.push('/log')}
-                            className="w-full py-3.5 rounded-full text-white text-xs font-black uppercase tracking-widest transition-all duration-200 active:scale-95"
+                            className="w-full py-3.5 rounded-full text-white text-xs font-black uppercase tracking-widest transition duration-200 active:scale-95"
                             style={{ background: 'var(--pink)', border: 'none', cursor: 'pointer' }}>
                             Start Session
                         </button>
                     </>
+                )}
+                </>
                 )}
             </CalendarPopupPortal>
         )
@@ -184,6 +176,8 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
     if (isPast) {
         return (
             <CalendarPopupPortal onClose={onClose}>
+                {detailContent ? detailContent : (
+                <>
                 <Handle />
                 <DateLabel text={dateStr} />
 
@@ -215,7 +209,7 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
                                     <div
                                         key={s.id}
                                         onClick={() => setDetailSession(s)}
-                                        className="flex items-center justify-between rounded-2xl px-4 py-3 cursor-pointer transition-all active:scale-95"
+                                        className="flex items-center justify-between rounded-2xl px-4 py-3 cursor-pointer transition active:scale-95"
                                         style={{
                                             background: sColors?.bg ?? '#FAF7F0',
                                             border: `0.5px solid ${sColors?.border ?? 'var(--border)'}`,
@@ -241,6 +235,8 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
                         </div>
                     </>
                 )}
+                </>
+                )}
             </CalendarPopupPortal>
         )
     }
@@ -262,7 +258,7 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
                     <button
                         key={type}
                         onClick={() => setSelectedType(type)}
-                        className="text-xs font-bold px-3 py-2 rounded-full transition-all duration-200 active:scale-95"
+                        className="text-xs font-bold px-3 py-2 rounded-full transition duration-200 active:scale-95"
                         style={{
                             background: selectedType === type ? 'var(--pink-light)' : '#FAF7F0',
                             color: selectedType === type ? 'var(--pink-dark)' : '#888',
@@ -279,7 +275,7 @@ export default function DayPopup({ day, onClose, onOverrideSaved }: Props) {
             <button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full py-3.5 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-200 active:scale-95"
+                className="w-full py-3.5 rounded-full text-xs font-black uppercase tracking-widest transition duration-200 active:scale-95"
                 style={{
                     background: saved ? '#D1FAE5' : 'var(--pink-light)',
                     color: saved ? '#065F46' : 'var(--pink)',

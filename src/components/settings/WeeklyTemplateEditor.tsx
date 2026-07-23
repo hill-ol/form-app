@@ -3,15 +3,11 @@
 import {useEffect, useState} from 'react'
 import { DEFAULT_WEEK_TEMPLATE } from '@/lib/placeholder'
 import { DayTemplate } from '@/types'
+import { DAY_EMOJI, ALL_DAY_TYPES } from '@/lib/constants'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-const DAY_TYPE_OPTIONS = ['push', 'pull', 'legs', 'cardio', 'yoga', 'full body', 'rest']
-
-const DAY_EMOJI: Record<string, string> = {
-    push: '🏋️', pull: '🏋️', legs: '🦵',
-    cardio: '🏃', yoga: '🧘', 'full body': '🤸', rest: '😴',
-}
+const DAY_TYPE_OPTIONS: readonly string[] = ALL_DAY_TYPES
 
 const DAY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
     push:       { bg: '#FDE8F0', text: '#C42D65', border: '#E8417A' },
@@ -97,7 +93,7 @@ export default function WeeklyTemplateEditor() {
                     return (
                         <div key={day} style={{ borderBottom: '0.5px solid var(--border)' }}>
                             <div
-                                className="flex items-center justify-between px-4 py-3 cursor-pointer transition-all"
+                                className="flex items-center justify-between px-4 py-3 cursor-pointer transition active:scale-[0.98]"
                                 style={{ background: isOpen ? '#FAF7F0' : '#fff' }}
                                 onClick={() => setExpanded(isOpen ? null : i)}>
                                 <div className="flex items-center gap-3">

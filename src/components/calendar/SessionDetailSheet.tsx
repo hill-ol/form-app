@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import CalendarPopupPortal from './CalendarPopupPortal'
 import { WORKOUT_EMOJI, WORKOUT_COLORS } from '@/lib/calendarUtils'
+import { MOOD_EMOJI } from '@/lib/constants'
 
 interface SetLog {
     id: string
@@ -32,15 +33,15 @@ interface Session {
     mood?: number
 }
 
-const MOOD_EMOJI = ['😴', '😐', '🙂', '💪', '🔥']
 
 interface Props {
     session: Session
     onClose: () => void
     onDeleted: () => void
+    bare?: boolean
 }
 
-export default function SessionDetailSheet({ session, onClose, onDeleted }: Props) {
+export default function SessionDetailSheet({ session, onClose, onDeleted, bare }: Props) {
     const [exercises, setExercises] = useState<ExerciseLog[]>([])
     const [loading, setLoading] = useState(true)
     const [confirmDelete, setConfirmDelete] = useState(false)
@@ -95,8 +96,8 @@ export default function SessionDetailSheet({ session, onClose, onDeleted }: Prop
         return [reps, weight].filter(Boolean).join(' · ') || '—'
     }
 
-    return (
-        <CalendarPopupPortal onClose={onClose}>
+    const content = (
+        <>
             <div className="w-10 h-1 rounded-full mx-auto mb-5"
                  style={{ background: '#e8e0d0' }} />
 
@@ -198,15 +199,20 @@ export default function SessionDetailSheet({ session, onClose, onDeleted }: Prop
             <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="w-full py-3.5 rounded-full font-black uppercase tracking-widest text-xs transition-all active:scale-95"
+                className="w-full py-3.5 rounded-full font-black uppercase tracking-widest text-xs transition active:scale-95"
                 style={{
                     background: confirmDelete ? '#FEE2E2' : '#FAF7F0',
                     color: confirmDelete ? '#DC2626' : '#aaa',
                     border: `1.5px solid ${confirmDelete ? '#FCA5A5' : '#e8e0d0'}`,
                     cursor: deleting ? 'default' : 'pointer',
+                    transitionDuration: confirmDelete ? '300ms' : '150ms',
+                    transitionTimingFunction: 'var(--motion-ease-out)',
                 }}>
                 {deleting ? 'Deleting...' : confirmDelete ? 'Tap again to confirm delete' : 'Delete session'}
             </button>
-        </CalendarPopupPortal>
+        </>
     )
+
+    if (bare) return content
+    return <CalendarPopupPortal onClose={onClose}>{content}</CalendarPopupPortal>
 }
