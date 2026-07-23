@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import TopNav from '@/components/layout/TopNav'
-import BottomNav from '@/components/layout/BottomNav'
 import AiRecapCard from '@/components/progress/AiRecapCard'
 import StatsBar from '@/components/progress/StatsBar'
 import WorkoutFrequencyChart from '@/components/progress/WorkoutFrequencyChart'
@@ -99,8 +98,6 @@ export default function ProgressPage() {
                     </>
                 )}
             </main>
-
-            <BottomNav />
         </div>
     )
 }

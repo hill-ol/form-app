@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import TopNav from '@/components/layout/TopNav'
-import BottomNav from '@/components/layout/BottomNav'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import AddWorkoutSheet from '@/components/calendar/AddWorkoutSheet'
 import RetroLogSheet from '@/components/calendar/RetroLogSheet'
@@ -242,8 +241,6 @@ export default function CalendarPage() {
                     )}
                 </div>
             </main>
-
-            <BottomNav />
         </div>
     )
 }

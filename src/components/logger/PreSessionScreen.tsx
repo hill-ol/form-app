@@ -4,7 +4,6 @@ import { EXERCISE_LIBRARY } from '@/lib/placeholder'
 import { ActiveExercise } from '@/lib/sessionUtils'
 import { DAY_EMOJI } from '@/lib/constants'
 import TopNav from '@/components/layout/TopNav'
-import BottomNav from '@/components/layout/BottomNav'
 
 interface Props {
     dayLabel: string
@@ -221,8 +220,6 @@ export default function PreSessionScreen({
                 </div>
 
             </div>
-
-            <BottomNav />
         </div>
     )
 }

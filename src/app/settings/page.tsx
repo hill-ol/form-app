@@ -1,5 +1,4 @@
 import TopNav from '@/components/layout/TopNav'
-import BottomNav from '@/components/layout/BottomNav'
 import WeeklyTemplateEditor from '@/components/settings/WeeklyTemplateEditor'
 import DayTypeTemplateEditor from '@/components/settings/DayTypeTemplateEditor'
 import ExerciseLibraryEditor from '@/components/settings/ExerciseLibraryEditor'
@@ -47,8 +46,6 @@ export default function SettingsPage() {
                 </div>
                 </div>
             </main>
-
-            <BottomNav />
         </div>
     )
 }

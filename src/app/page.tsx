@@ -13,7 +13,6 @@ import {
     getPeriodLogs,
 } from '@/lib/db'
 import TopNav from '@/components/layout/TopNav'
-import BottomNav from '@/components/layout/BottomNav'
 import MoodCheckIn from '@/components/dashboard/MoodCheckIn'
 import AiCoachCard from '@/components/dashboard/AiCoachCard'
 import TodayWorkout from '@/components/dashboard/TodayWorkout'
@@ -251,8 +250,6 @@ export default async function DashboardPage() {
                     </div>
                 </div>
             </main>
-
-            <BottomNav />
         </div>
     )
 }

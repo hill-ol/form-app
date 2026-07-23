@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { Home, Calendar, Play, BarChart2, Settings } from 'lucide-react'
+import { useBottomNavVisibility } from './BottomNavVisibility'
 
 const items = [
     { icon: Home, label: 'home', href: '/' },
@@ -14,6 +15,9 @@ const items = [
 export default function BottomNav() {
     const pathname = usePathname()
     const router = useRouter()
+    const { hidden } = useBottomNavVisibility()
+
+    if (hidden) return null
 
     return (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t z-50 flex justify-around px-2 pt-2"

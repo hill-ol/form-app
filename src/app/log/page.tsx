@@ -15,7 +15,6 @@ import FinishSummary from '@/components/logger/FinishSummary'
 import FocusModeOverlay from '@/components/logger/FocusModeOverlay'
 import PreSessionScreen from '@/components/logger/PreSessionScreen'
 import TopNav from '@/components/layout/TopNav'
-import BottomNav from '@/components/layout/BottomNav'
 import { DAY_EMOJI, DAY_LABEL } from '@/lib/constants'
 
 type Screen = 'pre' | 'active' | 'done'
@@ -357,8 +356,6 @@ export default function LogPage() {
                         Finish Session
                     </button>
                 </div>
-
-                <BottomNav />
 
                 {focusMode && (
                     <FocusModeOverlay

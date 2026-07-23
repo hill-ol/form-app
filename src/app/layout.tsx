@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import ActiveSessionBanner from '@/components/logger/ActiveSessionBanner'
+import BottomNav from '@/components/layout/BottomNav'
+import { BottomNavVisibilityProvider } from '@/components/layout/BottomNavVisibility'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
 export const metadata: Metadata = {
@@ -33,8 +35,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen" style={{ backgroundColor: 'var(--cream)' }}>
       <ErrorBoundary>
-        <ActiveSessionBanner />
-        {children}
+        <BottomNavVisibilityProvider>
+          <ActiveSessionBanner />
+          {children}
+          <BottomNav />
+        </BottomNavVisibilityProvider>
       </ErrorBoundary>
       </body>
       </html>
