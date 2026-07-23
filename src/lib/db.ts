@@ -43,7 +43,7 @@ export async function getLastSleep(): Promise<SleepLogRow | null> {
         .select('*')
         .order('date', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
     if (error) return null
     return data as SleepLogRow
 }
@@ -256,7 +256,7 @@ export async function getPreferences(): Promise<TrainingPreferencesRow | null> {
         .from('training_preferences')
         .select('*')
         .limit(1)
-        .single()
+        .maybeSingle()
     if (error) return null
     return data as TrainingPreferencesRow
 }
@@ -273,7 +273,7 @@ export async function getCheckinForDate(date: string): Promise<number | null> {
         .from('daily_checkins')
         .select('energy_level')
         .eq('date', date)
-        .single()
+        .maybeSingle()
     return data?.energy_level ?? null
 }
 
@@ -287,7 +287,7 @@ export async function getTodayInsight(): Promise<string | null> {
         .from('daily_checkins')
         .select('coach_insight')
         .eq('date', today)
-        .single()
+        .maybeSingle()
     return data?.coach_insight ?? null
 }
 
@@ -312,7 +312,7 @@ export async function getTodayStressFlag(): Promise<boolean> {
         .from('daily_checkins')
         .select('stress_flag')
         .eq('date', today)
-        .single()
+        .maybeSingle()
     return data?.stress_flag ?? false
 }
 
@@ -328,7 +328,7 @@ export async function savePreferences(prefs: {
         .from('training_preferences')
         .select('id')
         .limit(1)
-        .single()
+        .maybeSingle()
 
     const payload: Record<string, unknown> = {
         weekly_goal: prefs.weeklyGoal,
@@ -599,7 +599,7 @@ export async function getLastSessionByDayType(dayType: string): Promise<WorkoutS
         .eq('day_type', dayType)
         .order('date', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
     if (error) return null
     return data as WorkoutSessionWithExercises
 }
