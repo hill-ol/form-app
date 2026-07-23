@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ActiveExercise } from '@/lib/sessionUtils'
 import { saveSession } from '@/lib/db'
+import { useBottomNavVisibility } from '@/components/layout/BottomNavVisibility'
 
 interface Props {
     exercises: ActiveExercise[]
@@ -22,6 +23,13 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
     const [sessionId, setSessionId] = useState<string | null>(null)
     const [coachInsight, setCoachInsight] = useState<string | null>(null)
     const [coachLoading, setCoachLoading] = useState(false)
+    const { setHidden } = useBottomNavVisibility()
+    const savedRef = useRef(false)
+
+    useEffect(() => {
+        setHidden(true)
+        return () => setHidden(false)
+    }, [setHidden])
 
     const totalSets = exercises.reduce((acc, ex) =>
         acc + ex.sets.filter(s => s.completed).length, 0)
@@ -66,6 +74,9 @@ export default function FinishSummary({ exercises, duration, dayName, dayType, m
     }
 
     useEffect(() => {
+        if (savedRef.current) return
+        savedRef.current = true
+
         async function saveAndUpdate() {
             try {
                 const { getExerciseWeights, saveExerciseToLibrary, getCurrentStreak } = await import('@/lib/db')
