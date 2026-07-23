@@ -212,7 +212,7 @@ export default function CycleSettings() {
                         <div style={{ padding: '16px', background: '#FEF2F2', borderRadius: '12px', border: '1px solid #FECACA' }}>
                             <p style={{ fontSize: '12px', fontWeight: 700, color: '#DC2626', marginBottom: '4px' }}>Setup required</p>
                             <p style={{ fontSize: '11px', color: '#991B1B', lineHeight: 1.5 }}>
-                                Run this in your Supabase SQL editor, then refresh this page:
+                                Couldn't reach the database. If this is a fresh setup, run this in your Neon SQL editor, then refresh this page:
                             </p>
                             <pre style={{ fontSize: '10px', color: '#7F1D1D', marginTop: '8px', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
 {`create table if not exists period_logs (
