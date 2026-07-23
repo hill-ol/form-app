@@ -130,6 +130,21 @@ export async function saveSession(
     return savedSession
 }
 
+export async function getAllSessionsForExport(): Promise<WorkoutSessionWithExercises[]> {
+    const { data, error } = await supabase
+        .from('workout_sessions')
+        .select(`
+      *,
+      exercise_logs (
+        *,
+        set_logs (*)
+      )
+    `)
+        .order('date', { ascending: true })
+    if (error) throw error
+    return (data ?? []) as WorkoutSessionWithExercises[]
+}
+
 export async function getRecentSessions(limit = 10): Promise<WorkoutSessionWithExercises[]> {
     const { data, error } = await supabase
         .from('workout_sessions')

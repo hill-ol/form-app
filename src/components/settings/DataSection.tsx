@@ -7,6 +7,31 @@ export default function DataSection() {
     const [clearing, setClearing] = useState(false)
     const [cleared, setCleared] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [exporting, setExporting] = useState(false)
+    const [exportError, setExportError] = useState<string | null>(null)
+
+    async function handleExport() {
+        setExporting(true)
+        setExportError(null)
+        try {
+            const { getAllSessionsForExport } = await import('@/lib/db')
+            const { buildSessionsCsv } = await import('@/lib/exportUtils')
+            const sessions = await getAllSessionsForExport()
+            const csv = buildSessionsCsv(sessions)
+            const blob = new Blob([csv], { type: 'text/csv' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `form-sessions-${new Date().toISOString().slice(0, 10)}.csv`
+            a.click()
+            URL.revokeObjectURL(url)
+        } catch (e) {
+            console.error('Failed to export data:', e)
+            setExportError('Could not export — check your connection.')
+        } finally {
+            setExporting(false)
+        }
+    }
 
     async function handleClearAll() {
         setClearing(true)
@@ -46,18 +71,22 @@ export default function DataSection() {
                      style={{ borderBottom: '0.5px solid #f5f0e8' }}>
                     <div>
                         <p className="font-semibold" style={{ fontSize: '13px' }}>Export data</p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-                            Download your sessions as CSV
+                        <p className="text-xs mt-0.5" style={{ color: exportError ? '#DC2626' : 'var(--muted)' }}>
+                            {exportError ?? 'Download your sessions as CSV'}
                         </p>
                     </div>
                     <button
+                        onClick={handleExport}
+                        disabled={exporting}
                         className="font-bold rounded-full transition-all active:scale-95"
                         style={{
-                            padding: '6px 14px', fontSize: '11px', cursor: 'pointer',
+                            padding: '6px 14px', fontSize: '11px',
+                            cursor: exporting ? 'default' : 'pointer',
                             background: 'var(--cream)', color: 'var(--muted)',
                             border: '1.5px solid var(--border)',
+                            opacity: exporting ? 0.6 : 1,
                         }}>
-                        Export
+                        {exporting ? 'Exporting…' : 'Export'}
                     </button>
                 </div>
 
