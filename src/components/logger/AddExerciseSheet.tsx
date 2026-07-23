@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { EXERCISE_LIBRARY } from '@/lib/placeholder'
-import { Exercise } from '@/types'
+import { Exercise, DayType, MuscleGroup, Equipment, MovementType } from '@/types'
 import CalendarPopupPortal from '@/components/calendar/CalendarPopupPortal'
+import { EXERCISE_FILTER_DAY_TYPES } from '@/lib/constants'
 
 interface Props {
     currentDayType: string
@@ -16,24 +17,24 @@ export default function AddExerciseSheet({ currentDayType, onAdd, onClose }: Pro
     const [filter, setFilter] = useState<string>(currentDayType)
     const [allExercises, setAllExercises] = useState<Exercise[]>(EXERCISE_LIBRARY)
 
-    const DAY_FILTERS = ['all', 'push', 'pull', 'legs', 'cardio', 'yoga', 'full body']
+    const DAY_FILTERS: readonly string[] = EXERCISE_FILTER_DAY_TYPES
 
     useEffect(() => {
         async function load() {
             try {
                 const { getCustomExercises } = await import('@/lib/db')
                 const dbRows = await getCustomExercises()
-                const mapped: Exercise[] = dbRows.map((ex: any) => ({
+                const mapped: Exercise[] = dbRows.map(ex => ({
                     id: ex.id,
                     name: ex.name,
-                    dayType: ex.day_types ?? [],
-                    muscleGroups: ex.muscle_groups ?? [],
-                    primaryMuscle: ex.primary_muscle ?? '',
-                    equipment: ex.equipment ?? [],
-                    movementType: ex.movement_type ?? '',
+                    dayType: (ex.day_types ?? []) as DayType[],
+                    muscleGroups: (ex.muscle_groups ?? []) as MuscleGroup[],
+                    primaryMuscle: (ex.primary_muscle ?? '') as MuscleGroup,
+                    equipment: (ex.equipment ?? []) as Equipment[],
+                    movementType: (ex.movement_type ?? '') as MovementType,
                     currentWeight: ex.current_weight ? String(ex.current_weight) : undefined,
-                    exerciseType: ex.exercise_type ?? undefined,
-                    notes: ex.notes,
+                    exerciseType: (ex.exercise_type ?? undefined) as Exercise['exerciseType'],
+                    notes: ex.notes ?? undefined,
                 }))
                 const seen = new Set<string>()
                 const merged: Exercise[] = []
@@ -77,7 +78,7 @@ export default function AddExerciseSheet({ currentDayType, onAdd, onClose }: Pro
                     <button
                         key={f}
                         onClick={() => setFilter(f)}
-                        className="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full transition-all active:scale-95"
+                        className="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full transition active:scale-95"
                         style={{
                             background: filter === f ? 'var(--pink)' : 'var(--cream)',
                             color: filter === f ? '#fff' : 'var(--muted)',
@@ -92,7 +93,7 @@ export default function AddExerciseSheet({ currentDayType, onAdd, onClose }: Pro
                 {filtered.slice(0, 20).map(ex => (
                     <div
                         key={ex.id}
-                        className="flex items-center justify-between py-3 cursor-pointer transition-all"
+                        className="flex items-center justify-between py-3 cursor-pointer transition-transform active:scale-[0.98]"
                         style={{ borderBottom: '0.5px solid #f5f0e8' }}
                         onClick={() => { onAdd(ex); onClose() }}>
                         <div>

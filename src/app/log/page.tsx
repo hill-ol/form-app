@@ -2,7 +2,9 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useKeyboardAvoid } from '@/hooks/useKeyboardAvoid'
-import { EXERCISE_LIBRARY } from '@/lib/placeholder'
+import { useCoachInsight } from '@/hooks/useCoachInsight'
+import { useDragReorder } from '@/hooks/useDragReorder'
+import { useSessionExercises } from '@/hooks/useSessionExercises'
 import { Exercise } from '@/types'
 import { ActiveExercise, createExercise } from '@/lib/sessionUtils'
 import SessionHeader from '@/components/logger/SessionHeader'
@@ -10,38 +12,11 @@ import ExerciseCard from '@/components/logger/ExerciseCard'
 import AddExerciseSheet from '@/components/logger/AddExerciseSheet'
 import RestTimer from '@/components/logger/RestTimer'
 import FinishSummary from '@/components/logger/FinishSummary'
+import FocusModeOverlay from '@/components/logger/FocusModeOverlay'
+import PreSessionScreen from '@/components/logger/PreSessionScreen'
 import TopNav from '@/components/layout/TopNav'
 import BottomNav from '@/components/layout/BottomNav'
-import { ActiveSet } from '@/lib/sessionUtils'
-
-const WORKOUT_EMOJI: Record<string, string> = {
-    strength: '🏋️', cardio: '🏃', yoga: '🧘', bodyweight: '🤸',
-}
-
-const DAY_EMOJI: Record<string, string> = {
-    push: '🏋️', pull: '🏋️', legs: '🦵',
-    cardio: '🏃', yoga: '🧘', 'full body': '🤸', rest: '😴',
-}
-
-const DAY_LABEL: Record<string, string> = {
-    push: 'Push Day', pull: 'Pull Day', legs: 'Legs Day',
-    cardio: 'Cardio', yoga: 'Yoga', 'full body': 'Full Body', rest: 'Rest Day',
-}
-
-function buildExercisesForDayType(dayType: string): ActiveExercise[] {
-    const suggestions = EXERCISE_LIBRARY.filter(ex =>
-        ex.dayType.includes(dayType as never)
-    ).slice(0, 4)
-    return suggestions.map(ex =>
-        createExercise(
-            ex.id, ex.name, ex.primaryMuscle,
-            ex.equipment[0] ?? 'bodyweight',
-            ex.currentWeight,
-            dayType,
-            ex.exerciseType as ActiveExercise['exerciseType'] | undefined,
-        )
-    )
-}
+import { DAY_EMOJI, DAY_LABEL } from '@/lib/constants'
 
 type Screen = 'pre' | 'active' | 'done'
 
@@ -72,26 +47,13 @@ export default function LogPage() {
     const [showAddSheet, setShowAddSheet] = useState(false)
     const [restTimerOn, setRestTimerOn] = useState(false)
     const [restActive, setRestActive] = useState(false)
+    const [restKey, setRestKey] = useState(0)
     const [restDuration, setRestDuration] = useState(90)
     const [startTime, setStartTime] = useState<number>(0)
-    const [coachInsight, setCoachInsight] = useState<string | null>(null)
-    const [coachLoading, setCoachLoading] = useState(false)
     const [estimatedDuration, setEstimatedDuration] = useState('45–60 min')
-    const [exercisesLoading, setExercisesLoading] = useState(!saved?.exercises?.length)
     const [quickMode, setQuickMode] = useState(false)
     const [focusMode, setFocusMode] = useState(false)
-    const [draggingIdx, setDraggingIdxState] = useState<number | null>(null)
-    const [hoverIdx, setHoverIdxState] = useState<number | null>(null)
-    const cardRefs = useRef<(HTMLDivElement | null)[]>([])
-    const ghostRef = useRef<HTMLDivElement | null>(null)
-    const dragInitialRef = useRef<{
-        touchY: number; cardTop: number; cardLeft: number; cardWidth: number; cardHeight: number
-    } | null>(null)
-    const draggingIdxRef = useRef<number | null>(null)
-    const hoverIdxRef = useRef<number | null>(null)
-
-    function setDraggingIdx(v: number | null) { draggingIdxRef.current = v; setDraggingIdxState(v) }
-    function setHoverIdx(v: number | null) { hoverIdxRef.current = v; setHoverIdxState(v) }
+    const [sessionMood, setSessionMood] = useState<number | undefined>(undefined)
 
     useKeyboardAvoid()
 
@@ -106,6 +68,17 @@ export default function LogPage() {
         saveSession(s, dayTypeRef.current, [])
     }
 
+    async function finishSession() {
+        try {
+            const { getTodayCheckin } = await import('@/lib/db')
+            const mood = await getTodayCheckin()
+            setSessionMood(mood ?? undefined)
+        } catch {
+            // no today's checkin available — FinishSummary just saves with no mood
+        }
+        setScreen('done')
+    }
+
     function setExercises(updater: ActiveExercise[] | ((prev: ActiveExercise[]) => ActiveExercise[])) {
         setExercisesState(prev => {
             const next = typeof updater === 'function' ? updater(prev) : updater
@@ -116,6 +89,10 @@ export default function LogPage() {
 
     const dayLabel = DAY_LABEL[selectedDayType] ?? 'Workout'
     const dayEmoji = DAY_EMOJI[selectedDayType] ?? '🏋️'
+
+    const { coachInsight, coachLoading, fetchCoachInsight, resetCoachInsight } = useCoachInsight(dayLabel)
+    const { draggingIdx, hoverIdx, cardRefs, ghostRef, dragInitialRef, startDrag } = useDragReorder(setExercises)
+    const { exercisesLoading } = useSessionExercises(selectedDayType, saved, setExercises)
 
     useEffect(() => {
         // Only load preferences + template if no saved session (pre-screen, no exercises yet)
@@ -130,7 +107,7 @@ export default function LogPage() {
                 }
                 if (tmpl?.length) {
                     const todayDow = new Date().getDay()
-                    const todayEntry = tmpl.find((t: any) => t.dayOfWeek === todayDow)
+                    const todayEntry = tmpl.find(t => t.dayOfWeek === todayDow)
                     if (todayEntry?.dayType) setSelectedDayType(todayEntry.dayType)
                 }
             } catch { /* keep defaults */ }
@@ -150,8 +127,8 @@ export default function LogPage() {
             try {
                 const { getLastSessionByDayType } = await import('@/lib/db')
                 const last = await getLastSessionByDayType(selectedDayType)
-                if (last && (last as any).duration_seconds) {
-                    const mins = Math.floor((last as any).duration_seconds / 60)
+                if (last?.duration_seconds) {
+                    const mins = Math.floor(last.duration_seconds / 60)
                     const rounded = Math.round(mins / 5) * 5
                     setEstimatedDuration(`~${rounded} min`)
                 } else {
@@ -164,142 +141,9 @@ export default function LogPage() {
         loadDuration()
     }, [selectedDayType])
 
-    useEffect(() => {
-        if (saved?.screen === 'active') { setExercisesLoading(false); return }
-        async function loadRealExercises() {
-            try {
-                const { getLastSessionByDayType, getProgressionSuggestions } = await import('@/lib/db')
-                const [last, progressionSuggestions] = await Promise.all([
-                    getLastSessionByDayType(selectedDayType),
-                    getProgressionSuggestions(),
-                ])
-
-                if (!last || !(last as any).exercise_logs?.length) {
-                    // Try day type template before falling back to placeholder library
-                    const { getDayTypeTemplates, getCustomExercises } = await import('@/lib/db')
-                    const [allTemplates, dbRows] = await Promise.all([getDayTypeTemplates(), getCustomExercises()])
-                    const dayTemplates = allTemplates.filter(t => t.day_type === selectedDayType)
-                    if (dayTemplates.length > 0) {
-                        // Build merged lookup: DB rows override built-ins so custom exercise types resolve correctly
-                        const dbMap: Record<string, any> = {}
-                        for (const row of dbRows) dbMap[(row as any).id] = row
-                        const libEntry = (id: string) => {
-                            const db = dbMap[id]
-                            if (db) return { exerciseType: db.exercise_type, primaryMuscle: db.primary_muscle, equipment: db.equipment }
-                            const builtin = EXERCISE_LIBRARY.find(e => e.id === id)
-                            if (builtin) return { exerciseType: builtin.exerciseType, primaryMuscle: builtin.primaryMuscle, equipment: builtin.equipment }
-                            return null
-                        }
-                        setExercises(dayTemplates.map(t => {
-                            const lib = libEntry(t.exercise_id)
-                            const exerciseType = (lib?.exerciseType ?? 'strength') as ActiveExercise['exerciseType']
-                            const isTimeBased = exerciseType === 'cardio' || exerciseType === 'yoga'
-                            // cardio/yoga: t.sets = duration minutes → 1 set with duration pre-filled
-                            // others: t.sets = number of sets → that many blank sets
-                            const sets: ActiveSet[] = isTimeBased
-                                ? [{ id: crypto.randomUUID(), reps: '', weight: '', duration: String(t.sets), distance: '', completed: false }]
-                                : Array.from({ length: t.sets }, () => ({
-                                    id: crypto.randomUUID(), reps: '', weight: '', duration: '', distance: '', completed: false,
-                                }))
-                            return {
-                                exerciseId: t.exercise_id,
-                                exerciseName: t.exercise_name,
-                                muscleGroup: lib?.primaryMuscle ?? 'general',
-                                equipment: (lib?.equipment as string[])?.[0] ?? 'bodyweight',
-                                exerciseType,
-                                sets,
-                            }
-                        }))
-                        return
-                    }
-                    setExercises(buildExercisesForDayType(selectedDayType))
-                    return
-                }
-
-                const exLogs = (last as any).exercise_logs ?? []
-
-                const built: ActiveExercise[] = exLogs.map((ex: any) => {
-                    const completedSets = (ex.set_logs ?? [])
-                        .filter((s: any) => s.completed)
-                        .sort((a: any, b: any) => a.set_number - b.set_number)
-
-                    // Respect per-exercise type from library (e.g. 'hold' for plank)
-                    const libEntry = EXERCISE_LIBRARY.find(e => e.id === ex.exercise_id)
-                    const exerciseType = (libEntry?.exerciseType ?? ex.exercise_type ?? 'strength') as ActiveExercise['exerciseType']
-                    const isHoldEx = exerciseType === 'hold'
-
-                    const sets: ActiveSet[] = completedSets.length > 0
-                        ? completedSets.map((s: any) => ({
-                            id: crypto.randomUUID(),
-                            reps: '',
-                            weight: s.weight_lbs ? String(s.weight_lbs) : '',
-                            duration: isHoldEx && s.duration_seconds
-                                ? `${Math.floor(s.duration_seconds / 60)}:${String(s.duration_seconds % 60).padStart(2, '0')}`
-                                : '',
-                            distance: '',
-                            completed: false,
-                        }))
-                        : [{ id: crypto.randomUUID(), reps: '', weight: '', duration: '', distance: '', completed: false }]
-
-                    // Compute most-common reps from last session for pre-fill
-                    const repsCounts: Record<string, number> = {}
-                    for (const s of completedSets) {
-                        if (s.reps) repsCounts[s.reps] = (repsCounts[s.reps] ?? 0) + 1
-                    }
-                    const lastReps = Object.keys(repsCounts).sort((a, b) => repsCounts[b] - repsCounts[a])[0]
-
-                    const suggested = progressionSuggestions[ex.exercise_id]
-                    return {
-                        exerciseId: ex.exercise_id,
-                        exerciseName: ex.exercise_name,
-                        muscleGroup: ex.muscle_group ?? 'general',
-                        equipment: ex.equipment ?? 'barbell',
-                        exerciseType,
-                        lastWeight: completedSets[0]?.weight_lbs
-                            ? String(completedSets[0].weight_lbs)
-                            : undefined,
-                        lastReps: lastReps ? String(lastReps) : undefined,
-                        suggestedWeight: suggested ? String(suggested) : undefined,
-                        sets,
-                    }
-                })
-
-                setExercises(built)
-            } catch (e) {
-                console.error('Failed to load real exercises:', e)
-                setExercises(buildExercisesForDayType(selectedDayType))
-            } finally {
-                setExercisesLoading(false)
-            }
-        }
-
-        loadRealExercises()
-    }, [selectedDayType])
-
-    async function fetchCoachInsight() {
-        if (coachLoading) return
-        setCoachLoading(true)
-        try {
-            const res = await fetch('/api/coach', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'pre-session',
-                    context: { todayPlan: dayLabel },
-                }),
-            })
-            const data = await res.json()
-            setCoachInsight(data.insight)
-        } catch {
-            setCoachInsight('You showed up — that is already half the battle.')
-        } finally {
-            setCoachLoading(false)
-        }
-    }
-
     function selectDayType(dayType: string) {
         setSelectedDayType(dayType)
-        setCoachInsight(null)
+        resetCoachInsight()
         saveSession(screen, dayType, exercises)
     }
 
@@ -348,7 +192,12 @@ export default function LogPage() {
     }
 
     const handleSetComplete = useCallback(() => {
-        if (restTimerOn) setRestActive(true)
+        if (restTimerOn) {
+            setRestActive(true)
+            // Bump the key so a set completed mid-rest restarts the countdown
+            // from the full duration instead of continuing from wherever it was.
+            setRestKey(k => k + 1)
+        }
     }, [restTimerOn])
 
     function handleToggleTimer() {
@@ -357,62 +206,6 @@ export default function LogPage() {
             return !prev
         })
     }
-
-    // Drag-to-reorder: ghost follows finger, other cards shift with translateY
-    useEffect(() => {
-        if (draggingIdx === null) return
-
-        function onTouchMove(e: TouchEvent) {
-            e.preventDefault()
-            if (!dragInitialRef.current) return
-            const y = e.touches[0].clientY
-            const delta = y - dragInitialRef.current.touchY
-
-            // Update ghost position directly (no setState = no re-render lag)
-            if (ghostRef.current) {
-                ghostRef.current.style.top = `${dragInitialRef.current.cardTop + delta}px`
-            }
-
-            // Compute hover index from midpoint of ghost
-            const ghostMid = dragInitialRef.current.cardTop + delta + dragInitialRef.current.cardHeight / 2
-            const di = draggingIdxRef.current!
-            let next = di
-            for (let i = 0; i < cardRefs.current.length; i++) {
-                const el = cardRefs.current[i]
-                if (!el) continue
-                const rect = el.getBoundingClientRect()
-                if (ghostMid < rect.top + rect.height / 2) { next = i; break }
-                next = i
-            }
-            if (next !== hoverIdxRef.current) {
-                setHoverIdx(next)
-                import('@/lib/haptics').then(({ haptics }) => haptics.light())
-            }
-        }
-
-        function onTouchEnd() {
-            const di = draggingIdxRef.current
-            const hi = hoverIdxRef.current
-            if (di !== null && hi !== null && di !== hi) {
-                setExercises(prev => {
-                    const arr = [...prev]
-                    const [item] = arr.splice(di, 1)
-                    arr.splice(hi, 0, item)
-                    return arr
-                })
-            }
-            dragInitialRef.current = null
-            setDraggingIdx(null)
-            setHoverIdx(null)
-        }
-
-        document.addEventListener('touchmove', onTouchMove, { passive: false })
-        document.addEventListener('touchend', onTouchEnd)
-        return () => {
-            document.removeEventListener('touchmove', onTouchMove)
-            document.removeEventListener('touchend', onTouchEnd)
-        }
-    }, [draggingIdx])
 
     if (screen === 'done') {
         const savedStart = parseInt(sessionStorage.getItem('form_session_start') ?? '0')
@@ -427,6 +220,7 @@ export default function LogPage() {
                 duration={duration}
                 dayName={dayLabel}
                 dayType={selectedDayType}
+                mood={sessionMood}
             />
         )
     }
@@ -439,7 +233,7 @@ export default function LogPage() {
                     dayName={`${dayLabel} ${dayEmoji}`}
                     restTimerOn={restTimerOn}
                     onToggleTimer={handleToggleTimer}
-                    onFinish={() => setScreen('done')}
+                    onFinish={finishSession}
                     onFocus={() => setFocusMode(true)}
                 />
 
@@ -448,6 +242,7 @@ export default function LogPage() {
                     style={{ paddingBottom: '140px' }}>
                     {restActive && restTimerOn && (
                         <RestTimer
+                            key={restKey}
                             seconds={restDuration}
                             onComplete={() => setRestActive(false)}
                             onSkip={() => setRestActive(false)}
@@ -465,13 +260,13 @@ export default function LogPage() {
                         }
                         return (
                             <div
-                                key={ex.exerciseId + i}
+                                key={ex.instanceId}
                                 ref={el => { cardRefs.current[i] = el }}
                                 style={{
-                                    animation: draggingIdx === null ? `slideInUp 0.2s ease ${i * 0.05}s both` : 'none',
+                                    animation: draggingIdx === null ? `slideInUp 0.2s var(--motion-ease-out) ${i * 0.05}s both` : 'none',
                                     opacity: isDragging ? 0 : 1,
                                     transform: `translateY(${shiftY}px)`,
-                                    transition: isDragging ? 'none' : 'transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.1s',
+                                    transition: isDragging ? 'none' : 'transform 0.22s var(--motion-ease-out), opacity 0.1s',
                                     position: 'relative',
                                 }}>
                                 <ExerciseCard
@@ -485,20 +280,7 @@ export default function LogPage() {
                                     onMoveUp={() => moveExercise(i, 'up')}
                                     onMoveDown={() => moveExercise(i, 'down')}
                                     isDragging={false}
-                                    onDragStart={e => {
-                                        const rect = cardRefs.current[i]?.getBoundingClientRect()
-                                        if (!rect) return
-                                        dragInitialRef.current = {
-                                            touchY: e.touches[0].clientY,
-                                            cardTop: rect.top,
-                                            cardLeft: rect.left,
-                                            cardWidth: rect.width,
-                                            cardHeight: rect.height,
-                                        }
-                                        setDraggingIdx(i)
-                                        setHoverIdx(i)
-                                        import('@/lib/haptics').then(({ haptics }) => haptics.light())
-                                    }}
+                                    onDragStart={e => startDrag(i, e)}
                                 />
                             </div>
                         )
@@ -562,7 +344,7 @@ export default function LogPage() {
                     borderTop: '0.5px solid var(--border)',
                 }}>
                     <button
-                        onClick={() => setScreen('done')}
+                        onClick={finishSession}
                         className="w-full py-4 rounded-full text-white font-black uppercase tracking-widest text-sm transition-all active:scale-95"
                         style={{
                             background: 'var(--pink)',
@@ -578,56 +360,15 @@ export default function LogPage() {
 
                 <BottomNav />
 
-                {focusMode && (() => {
-                    const totalSets = exercises.reduce((n, ex) => n + ex.sets.length, 0)
-                    const doneSets = exercises.reduce((n, ex) => n + ex.sets.filter(s => s.completed).length, 0)
-                    const nextEx = exercises.find(ex => ex.sets.some(s => !s.completed))
-                    return (
-                        <div
-                            onClick={() => setFocusMode(false)}
-                            style={{
-                                position: 'fixed', inset: 0, zIndex: 9999,
-                                background: '#0d0d0d',
-                                display: 'flex', flexDirection: 'column',
-                                alignItems: 'center', justifyContent: 'center',
-                                padding: '40px 32px',
-                                animation: 'fadeIn 0.2s ease',
-                            }}>
-                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '16px' }}>
-                                {dayLabel}
-                            </p>
-                            <p style={{ color: '#fff', fontSize: '36px', fontWeight: 900, letterSpacing: '-0.02em', textAlign: 'center', lineHeight: 1.15, marginBottom: '8px' }}>
-                                {nextEx?.exerciseName ?? 'All done!'}
-                            </p>
-                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '32px' }}>
-                                {nextEx?.muscleGroup}
-                            </p>
-                            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                                {exercises.map(ex => (
-                                    <div key={ex.exerciseId} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {ex.sets.map(s => (
-                                            <div key={s.id} style={{
-                                                width: '8px', height: '8px', borderRadius: '50%',
-                                                background: s.completed ? 'var(--pink)' : 'rgba(255,255,255,0.15)',
-                                            }} />
-                                        ))}
-                                    </div>
-                                ))}
-                            </div>
-                            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', fontWeight: 700 }}>
-                                {doneSets} / {totalSets} sets done
-                            </p>
-                            {restActive && restTimerOn && (
-                                <p style={{ color: 'var(--pink)', fontSize: '13px', fontWeight: 700, marginTop: '16px' }}>
-                                    Resting…
-                                </p>
-                            )}
-                            <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '11px', marginTop: '48px' }}>
-                                Tap anywhere to exit
-                            </p>
-                        </div>
-                    )
-                })()}
+                {focusMode && (
+                    <FocusModeOverlay
+                        exercises={exercises}
+                        dayLabel={dayLabel}
+                        restActive={restActive}
+                        restTimerOn={restTimerOn}
+                        onClose={() => setFocusMode(false)}
+                    />
+                )}
 
                 {showAddSheet && (
                     <AddExerciseSheet
@@ -640,199 +381,21 @@ export default function LogPage() {
         )
     }
 
-    const displayExercises = (quickMode ? exercises.slice(0, 3) : exercises).map(ex => ({
-        exerciseId: ex.exerciseId,
-        exerciseName: ex.exerciseName,
-        sets: quickMode ? Math.min(ex.sets.length, 2) : ex.sets.length,
-        reps: 0,
-        weight: ex.lastWeight ?? 'BW',
-    }))
-
     return (
-        <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--cream)' }}>
-            <TopNav />
-
-            <div className="flex-1 flex flex-col px-4 pt-4 pb-24 max-w-2xl mx-auto w-full">
-
-                <div
-                    className="rounded-2xl p-5 mb-4"
-                    style={{
-                        background: '#fff',
-                        border: '0.5px solid var(--border)',
-                        animation: 'slideInUp 0.25s ease',
-                    }}>
-                    <p className="text-xs font-bold uppercase tracking-widest mb-1"
-                       style={{ color: 'var(--muted)', fontSize: '10px' }}>
-                        Today&apos;s session
-                    </p>
-                    <p className="text-2xl font-black mb-1">{dayLabel} {dayEmoji}</p>
-
-                    {selectedDayType === 'rest' ? (
-                        <p className="text-sm mt-2" style={{ color: 'var(--muted)' }}>
-                            Recovery day — let your body rebuild. Pick a workout below if you want to train instead.
-                        </p>
-                    ) : (
-                        <>
-                            <div className="flex items-center justify-between mb-4">
-                                <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                                    {displayExercises.length} exercises · estimated {quickMode ? '~20 min' : estimatedDuration}
-                                </p>
-                                <button
-                                    onClick={() => setQuickMode(q => !q)}
-                                    className="text-xs font-bold px-3 py-1.5 rounded-full transition-all active:scale-95"
-                                    style={{
-                                        background: quickMode ? 'var(--pink-light)' : 'var(--cream)',
-                                        color: quickMode ? 'var(--pink-dark)' : 'var(--muted)',
-                                        border: quickMode ? '1.5px solid var(--pink)' : '1.5px solid var(--border)',
-                                        cursor: 'pointer',
-                                    }}>
-                                    ⚡ Quick
-                                </button>
-                            </div>
-
-                            <div className="space-y-2 mb-4">
-                                {exercisesLoading ? (
-                                    Array.from({ length: 3 }).map((_, i) => (
-                                        <div key={i} className="flex items-center justify-between rounded-xl px-3 py-2.5"
-                                             style={{ background: 'var(--cream)', border: '0.5px solid var(--border)' }}>
-                                            <div className="space-y-1.5">
-                                                <div className="h-3 rounded-full animate-pulse" style={{ background: '#e8e0d0', width: `${80 + i * 20}px` }} />
-                                                <div className="h-2.5 rounded-full animate-pulse" style={{ background: '#e8e0d0', width: '60px' }} />
-                                            </div>
-                                            <div className="h-6 w-12 rounded-full animate-pulse" style={{ background: '#e8e0d0' }} />
-                                        </div>
-                                    ))
-                                ) : displayExercises.map((ex, i) => {
-                                    const lib = EXERCISE_LIBRARY.find(e => e.id === ex.exerciseId)
-                                    return (
-                                        <div
-                                            key={ex.exerciseId}
-                                            className="flex items-center justify-between rounded-xl px-3 py-2.5"
-                                            style={{
-                                                background: 'var(--cream)',
-                                                border: '0.5px solid var(--border)',
-                                                animation: `slideInUp 0.2s ease ${i * 0.06}s both`,
-                                            }}>
-                                            <div>
-                                                <p className="text-sm font-semibold">{ex.exerciseName}</p>
-                                                <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                                                    {lib?.primaryMuscle ?? ex.exerciseId} · {ex.sets}×{ex.reps || '—'}
-                                                </p>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-bold px-2 py-1 rounded-full"
-                                                      style={{ background: 'var(--pink-light)', color: 'var(--pink-dark)' }}>
-                                                    {ex.weight}
-                                                </span>
-                                                {(ex as any).progressReady && (
-                                                    <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full"
-                                                          style={{ background: 'var(--pink)', fontSize: '10px' }}>
-                                                        ↑ {(ex as any).suggestedWeight ? `try ${(ex as any).suggestedWeight}` : 'level up'}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-
-                            <button
-                                onClick={startSession}
-                                className="w-full py-4 rounded-full text-white font-black uppercase tracking-widest text-sm transition-all active:scale-95"
-                                style={{
-                                    background: 'var(--pink)',
-                                    cursor: 'pointer',
-                                    border: 'none',
-                                    animation: 'pulse 2s infinite',
-                                }}>
-                                Start Session {dayEmoji}
-                            </button>
-                        </>
-                    )}
-                </div>
-
-                <div className="rounded-2xl p-4 mb-4"
-                     style={{ background: 'var(--pink-light)', border: '0.5px solid #f0b8d0' }}>
-                    <div className="flex justify-between items-center mb-1">
-                        <p className="text-xs font-bold uppercase tracking-widest"
-                           style={{ color: 'var(--pink-dark)', fontSize: '10px' }}>
-                            ✨ AI Coach
-                        </p>
-                        {!coachInsight && !coachLoading && (
-                            <button
-                                onClick={fetchCoachInsight}
-                                className="text-xs font-bold rounded-full px-3 py-1 transition-all active:scale-95"
-                                style={{
-                                    background: 'var(--pink)', color: '#fff',
-                                    border: 'none', cursor: 'pointer',
-                                }}>
-                                Get insight
-                            </button>
-                        )}
-                        {coachInsight && !coachLoading && (
-                            <button
-                                onClick={fetchCoachInsight}
-                                className="text-xs font-bold px-2 py-1 transition-all active:scale-95"
-                                style={{
-                                    background: 'transparent', color: 'var(--pink-dark)',
-                                    border: 'none', cursor: 'pointer', opacity: 0.7,
-                                }}>
-                                ↻ refresh
-                            </button>
-                        )}
-                    </div>
-
-                    {coachLoading && (
-                        <div className="space-y-1.5 mt-1">
-                            <div className="h-3 rounded-full animate-pulse"
-                                 style={{ background: '#f0b8d0', width: '85%' }} />
-                            <div className="h-3 rounded-full animate-pulse"
-                                 style={{ background: '#f0b8d0', width: '60%' }} />
-                        </div>
-                    )}
-
-                    {!coachLoading && coachInsight && (
-                        <p className="text-sm leading-relaxed" style={{ color: '#444' }}>
-                            {coachInsight}
-                        </p>
-                    )}
-
-                    {!coachLoading && !coachInsight && (
-                        <p className="text-sm" style={{ color: '#C42D65', opacity: 0.7 }}>
-                            Tap for a pre-workout insight.
-                        </p>
-                    )}
-                </div>
-
-                <div className="rounded-2xl p-4"
-                     style={{ background: '#fff', border: '0.5px solid var(--border)' }}>
-                    <p className="text-xs font-bold uppercase tracking-widest mb-3"
-                       style={{ color: 'var(--muted)', fontSize: '10px' }}>
-                        Or start something else
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                        {(['push', 'pull', 'legs', 'cardio', 'yoga'] as const).map(type => (
-                            <button
-                                key={type}
-                                onClick={() => selectDayType(type)}
-                                className="text-xs font-bold px-3 py-2 rounded-full transition-all active:scale-95"
-                                style={{
-                                    background: selectedDayType === type ? 'var(--pink-light)' : 'var(--cream)',
-                                    color: selectedDayType === type ? 'var(--pink-dark)' : 'var(--muted)',
-                                    border: selectedDayType === type
-                                        ? '1.5px solid var(--pink)'
-                                        : '1.5px solid var(--border)',
-                                    cursor: 'pointer',
-                                }}>
-                                {DAY_EMOJI[type]} {type.charAt(0).toUpperCase() + type.slice(1)}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-            </div>
-
-            <BottomNav />
-        </div>
+        <PreSessionScreen
+            dayLabel={dayLabel}
+            dayEmoji={dayEmoji}
+            selectedDayType={selectedDayType}
+            exercises={exercises}
+            exercisesLoading={exercisesLoading}
+            estimatedDuration={estimatedDuration}
+            quickMode={quickMode}
+            onToggleQuickMode={() => setQuickMode(q => !q)}
+            coachInsight={coachInsight}
+            coachLoading={coachLoading}
+            onFetchCoachInsight={fetchCoachInsight}
+            onSelectDayType={selectDayType}
+            onStartSession={startSession}
+        />
     )
 }
