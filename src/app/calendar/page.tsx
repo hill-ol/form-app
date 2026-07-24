@@ -60,6 +60,9 @@ export default function CalendarPage() {
     }, [year, month])
 
     useEffect(() => {
+        // loadCalendarData is a reusable async fetch (also called directly from
+        // AddWorkoutSheet/RetroLogSheet's onSaved), not inlineable into the effect.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadCalendarData()
     }, [loadCalendarData])
 
