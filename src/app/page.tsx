@@ -32,6 +32,9 @@ export default async function DashboardPage() {
     const today = new Date()
     const year = today.getFullYear()
     const month = today.getMonth()
+    const hour = today.getHours()
+    const greeting = hour < 12 ? 'good morning,' : hour < 17 ? 'good afternoon,' : 'good evening,'
+    const dateStr = today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 
     const [recentSessions, lastSleep, streak, template, monthSessions, prefs, progressionSuggestions, todayEnergyLevel, todayStressed, periodLogs] =
         await Promise.all([
@@ -214,7 +217,7 @@ export default async function DashboardPage() {
 
             <main className="max-w-2xl mx-auto px-4 pt-3 md:pt-6 pb-24 md:pb-10 space-y-3 stagger-children">
                 <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-                    <DashboardGreeting />
+                    <DashboardGreeting greeting={greeting} dateStr={dateStr} />
                     <MoodCheckIn />
                 </div>
 
