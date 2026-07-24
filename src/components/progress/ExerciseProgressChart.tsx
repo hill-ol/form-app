@@ -19,17 +19,16 @@ export default function ExerciseProgressChart({ exerciseHistory, initialExercise
             : exercises[0] ?? ''
     )
 
-    useEffect(() => {
+    // Re-select when initialExercise changes after mount (e.g. tapping a
+    // different PR) — adjusted during render rather than in an effect, per
+    // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+    const [prevInitialExercise, setPrevInitialExercise] = useState(initialExercise)
+    if (initialExercise !== prevInitialExercise) {
+        setPrevInitialExercise(initialExercise)
         if (initialExercise && exerciseHistory[initialExercise]) {
             setSelected(initialExercise)
         }
-    }, [initialExercise])
-
-    useEffect(() => {
-        if (exercises.length > 0 && !selected) {
-            setSelected(exercises[0])
-        }
-    }, [exercises])
+    }
 
     const points = selected ? (exerciseHistory[selected] ?? []) : []
     const isHoldChart = points.length > 0 && points[0].duration != null
