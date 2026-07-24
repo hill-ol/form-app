@@ -588,7 +588,7 @@ export async function getSessionById(sessionId: string): Promise<WorkoutSessionW
       )
     `)
         .eq('id', sessionId)
-        .single()
+        .maybeSingle()
     if (error) return null
     return data as WorkoutSessionWithExercises
 }

@@ -13,11 +13,9 @@ export default function RestTimer({ seconds, onComplete, onSkip }: Props) {
     const [remaining, setRemaining] = useState(seconds)
     const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
     const onCompleteRef = useRef(onComplete)
-    onCompleteRef.current = onComplete
-
     useEffect(() => {
-        setRemaining(seconds)
-    }, [seconds])
+        onCompleteRef.current = onComplete
+    })
 
     useEffect(() => {
         if (remaining <= 0) {

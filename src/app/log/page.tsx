@@ -53,14 +53,19 @@ export default function LogPage() {
     const [quickMode, setQuickMode] = useState(false)
     const [focusMode, setFocusMode] = useState(false)
     const [sessionMood, setSessionMood] = useState<number | undefined>(undefined)
+    const [finishedDuration, setFinishedDuration] = useState(0)
 
     useKeyboardAvoid()
 
-    // Use refs so closure-based setters always see the latest values
+    // Use refs so closure-based setters always see the latest values, even
+    // when called from a stale closure (e.g. useDragReorder's document-level
+    // touch listeners, which don't get remade every render)
     const screenRef = useRef(screen)
     const dayTypeRef = useRef(selectedDayType)
-    screenRef.current = screen
-    dayTypeRef.current = selectedDayType
+    useEffect(() => {
+        screenRef.current = screen
+        dayTypeRef.current = selectedDayType
+    })
 
     function setScreen(s: Screen) {
         setScreenState(s)
@@ -75,6 +80,12 @@ export default function LogPage() {
         } catch {
             // no today's checkin available — FinishSummary just saves with no mood
         }
+        const savedStart = parseInt(sessionStorage.getItem('form_session_start') ?? '0')
+        const rawStart = startTime || savedStart
+        // Guard against both being 0 (sessionStorage cleared mid-session)
+        setFinishedDuration(rawStart > 0 ? Math.floor((Date.now() - rawStart) / 1000) : 0)
+        sessionStorage.removeItem('form_session_start')
+        sessionStorage.removeItem(SESSION_KEY)
         setScreen('done')
     }
 
@@ -207,16 +218,10 @@ export default function LogPage() {
     }
 
     if (screen === 'done') {
-        const savedStart = parseInt(sessionStorage.getItem('form_session_start') ?? '0')
-        const rawStart = startTime || savedStart
-        // Guard against both being 0 (sessionStorage cleared mid-session)
-        const duration = rawStart > 0 ? Math.floor((Date.now() - rawStart) / 1000) : 0
-        sessionStorage.removeItem('form_session_start')
-        sessionStorage.removeItem(SESSION_KEY)
         return (
             <FinishSummary
                 exercises={exercises}
-                duration={duration}
+                duration={finishedDuration}
                 dayName={dayLabel}
                 dayType={selectedDayType}
                 mood={sessionMood}
@@ -248,6 +253,10 @@ export default function LogPage() {
                         />
                     )}
 
+                    {/* dragInitialRef is read during render below by design: useDragReorder
+                        intentionally keeps drag geometry in a ref (not state) so per-frame
+                        touch updates skip re-rendering entirely — see its header comment. */}
+                    {/* eslint-disable react-hooks/refs */}
                     {exercises.map((ex, i) => {
                         const isDragging = i === draggingIdx
                         // Compute translateY shift for non-dragging cards
@@ -320,6 +329,7 @@ export default function LogPage() {
                             </div>
                         </div>
                     )}
+                    {/* eslint-enable react-hooks/refs */}
 
                     <button
                         onClick={() => setShowAddSheet(true)}
